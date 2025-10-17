@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import Foundation
 
 struct FlightDeal: Codable, Identifiable {
@@ -35,10 +38,10 @@ struct FlightDeal: Codable, Identifiable {
 
     var dealScoreColor: String {
         switch dealScore {
-        case 90...100: return "excellent" // DealScore.excellent
-        case 80..<90: return "great" // DealScore.great
-        case 70..<80: return "good" // DealScore.good
-        default: return "fair" // DealScore.fair
+        case 90...100: "excellent" // DealScore.excellent
+        case 80..<90: "great" // DealScore.great
+        case 70..<80: "good" // DealScore.good
+        default: "fair" // DealScore.fair
         }
     }
 
@@ -47,13 +50,13 @@ struct FlightDeal: Codable, Identifiable {
         guard origin == watchlist.origin else { return false }
 
         // Match destination (wildcard "ANY" matches all)
-        if watchlist.destination != "ANY" && destination != watchlist.destination {
+        if watchlist.destination != "ANY", destination != watchlist.destination {
             return false
         }
 
         // Match date range if specified
         if let dateRange = watchlist.dateRange {
-            guard departureDate >= dateRange.start && departureDate <= dateRange.end else {
+            guard departureDate >= dateRange.start, departureDate <= dateRange.end else {
                 return false
             }
         }
@@ -69,7 +72,7 @@ struct FlightDeal: Codable, Identifiable {
     }
 }
 
-struct DealScore {
+enum DealScore {
     static let excellent = 90...100
     static let great = 80..<90
     static let good = 70..<80

@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import Foundation
 
 struct User: Codable, Identifiable {
@@ -33,8 +36,8 @@ enum SubscriptionTier: String, Codable {
 
     var displayName: String {
         switch self {
-        case .free: return "Free"
-        case .pro: return "Pro"
+        case .free: "Free"
+        case .pro: "Pro"
         }
     }
 }
@@ -82,7 +85,7 @@ struct PreferredAirport: Codable, Identifiable {
     }
 }
 
-extension Array where Element == PreferredAirport {
+extension [PreferredAirport] {
     var totalWeight: Double {
         reduce(0) { $0 + $1.weight }
     }

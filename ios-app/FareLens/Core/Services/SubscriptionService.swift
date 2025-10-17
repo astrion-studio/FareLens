@@ -1,5 +1,8 @@
-import StoreKit
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import Foundation
+import StoreKit
 
 protocol SubscriptionServiceProtocol {
     func getCurrentTier() async -> SubscriptionTier
@@ -40,7 +43,7 @@ actor SubscriptionService: SubscriptionServiceProtocol {
         let result = try await product.purchase()
 
         switch result {
-        case .success(let verification):
+        case let .success(verification):
             // Verify transaction
             let transaction = try checkVerified(verification)
             await transaction.finish()
@@ -69,7 +72,7 @@ actor SubscriptionService: SubscriptionServiceProtocol {
     func checkTrialEligibility() async -> Bool {
         // Check if user has ever subscribed before
         for await result in Transaction.currentEntitlements {
-            if case .verified(let transaction) = result {
+            if case let .verified(transaction) = result {
                 if transaction.productID == productID {
                     return false // User has subscribed before
                 }
@@ -89,7 +92,7 @@ actor SubscriptionService: SubscriptionServiceProtocol {
         var validSubscription = false
 
         for await result in Transaction.currentEntitlements {
-            if case .verified(let transaction) = result {
+            if case let .verified(transaction) = result {
                 if transaction.productID == productID {
                     validSubscription = true
                     break
@@ -105,9 +108,9 @@ actor SubscriptionService: SubscriptionServiceProtocol {
     }
 
     private func listenForTransactions() -> Task<Void, Error> {
-        return Task.detached {
+        Task.detached {
             for await result in Transaction.updates {
-                if case .verified(let transaction) = result {
+                if case let .verified(transaction) = result {
                     await transaction.finish()
                     await self.updateSubscriptionStatus()
                 }
@@ -119,7 +122,7 @@ actor SubscriptionService: SubscriptionServiceProtocol {
         switch result {
         case .unverified:
             throw SubscriptionError.failedVerification
-        case .verified(let safe):
+        case let .verified(safe):
             return safe
         }
     }
@@ -128,7 +131,7 @@ actor SubscriptionService: SubscriptionServiceProtocol {
     func fetchProducts() async throws -> [Product] {
         let productIDs = [
             "com.farelens.pro.monthly",
-            "com.farelens.pro.annual"
+            "com.farelens.pro.annual",
         ]
         return try await Product.products(for: productIDs)
     }
@@ -138,7 +141,7 @@ actor SubscriptionService: SubscriptionServiceProtocol {
         let result = try await product.purchase()
 
         switch result {
-        case .success(let verification):
+        case let .success(verification):
             let transaction = try checkVerified(verification)
             await transaction.finish()
             await updateSubscriptionStatus()

@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import SwiftUI
 
 struct DealsView: View {
@@ -104,4 +107,3 @@ struct EmptyDealsView: View {
         .padding(Spacing.screenHorizontal)
     }
 }
-

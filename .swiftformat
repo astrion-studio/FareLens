@@ -1,0 +1,49 @@
+# SwiftFormat Configuration for FareLens
+# Based on iOS 26 patterns and project conventions
+
+# Indentation
+--indent 4
+--tabwidth 4
+--indentcase false
+
+# Line length
+--maxwidth 120
+--wraparguments before-first
+--wrapcollections before-first
+
+# Spacing
+--operatorfunc spaced
+--nospaceoperators ...,..<
+--ranges spaced
+
+# Semicolons
+--semicolons never
+
+# Trailing commas
+--commas always
+
+# Imports
+--importgrouping testable-bottom
+--importgrouping alphabetical
+
+# Swift version
+--swiftversion 5.9
+
+# iOS 26 specific patterns
+--enable isEmpty
+--enable sortedImports
+--enable unusedArguments
+--enable redundantSelf
+--enable redundantReturn
+--enable redundantParens
+--enable redundantNilInit
+--enable redundantExtensionACL
+
+# Disable rules that conflict with iOS 26 patterns
+--disable hoistTry
+--disable redundantFileprivate
+
+# File header
+--header strip
+--header "// FareLens - Flight Deal Alert App\n// Copyright © 2025 FareLens. All rights reserved."
+

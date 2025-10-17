@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import SwiftUI
 
 struct DealDetailView: View {
@@ -7,7 +10,7 @@ struct DealDetailView: View {
 
     init(deal: FlightDeal) {
         self.deal = deal
-        self._viewModel = State(wrappedValue: DealDetailViewModel(deal: deal))
+        _viewModel = State(wrappedValue: DealDetailViewModel(deal: deal))
     }
 
     var body: some View {
@@ -335,7 +338,8 @@ struct DealQualityCard: View {
                 HStack(spacing: Spacing.xs) {
                     ForEach(0..<5) { index in
                         Circle()
-                            .fill(index < deal.qualityStars ? Color.scoreColor(for: deal.dealScore) : Color.textTertiary)
+                            .fill(index < deal.qualityStars ? Color.scoreColor(for: deal.dealScore) : Color
+                                .textTertiary)
                             .frame(width: 12, height: 12)
                     }
                 }
@@ -357,8 +361,16 @@ struct FlightDetailsCard: View {
                     .foregroundColor(.textPrimary)
 
                 DetailRow(icon: "airplane", label: "Airline", value: deal.airline)
-                DetailRow(icon: "calendar", label: "Departure", value: deal.departureDate.formatted(date: .long, time: .omitted))
-                DetailRow(icon: "calendar.badge.clock", label: "Return", value: deal.returnDate.formatted(date: .long, time: .omitted))
+                DetailRow(
+                    icon: "calendar",
+                    label: "Departure",
+                    value: deal.departureDate.formatted(date: .long, time: .omitted)
+                )
+                DetailRow(
+                    icon: "calendar.badge.clock",
+                    label: "Return",
+                    value: deal.returnDate.formatted(date: .long, time: .omitted)
+                )
                 DetailRow(icon: "clock", label: "Duration", value: "\(deal.durationDays) days")
                 DetailRow(icon: "person.fill", label: "Passengers", value: "1 adult")
                 DetailRow(icon: "bag.fill", label: "Baggage", value: deal.includedBaggage ?? "See airline policy")
@@ -451,46 +463,46 @@ extension FlightDeal {
     var dealQualityDescription: String {
         switch dealScore {
         case 90...100:
-            return "Exceptional deal! This is one of the best prices we've ever seen for this route."
+            "Exceptional deal! This is one of the best prices we've ever seen for this route."
         case 80..<90:
-            return "Excellent deal! This is significantly below the average price."
+            "Excellent deal! This is significantly below the average price."
         case 70..<80:
-            return "Great deal! A solid discount on the typical fare."
+            "Great deal! A solid discount on the typical fare."
         case 60..<70:
-            return "Good deal. Better than average pricing."
+            "Good deal. Better than average pricing."
         default:
-            return "Fair price for this route."
+            "Fair price for this route."
         }
     }
 
     var qualityStars: Int {
         switch dealScore {
-        case 90...100: return 5
-        case 80..<90: return 4
-        case 70..<80: return 3
-        case 60..<70: return 2
-        default: return 1
+        case 90...100: 5
+        case 80..<90: 4
+        case 70..<80: 3
+        case 60..<70: 2
+        default: 1
         }
     }
 
     var originCity: String? {
         // TODO: Map IATA to city names
-        return nil
+        nil
     }
 
     var destinationCity: String? {
         // TODO: Map IATA to city names
-        return nil
+        nil
     }
 
     var includedBaggage: String? {
         // TODO: Get from API
-        return nil
+        nil
     }
 
     var bookingURL: String {
         // TODO: Get from API
-        return "https://www.google.com/flights?q=\(origin)+to+\(destination)"
+        "https://www.google.com/flights?q=\(origin)+to+\(destination)"
     }
 }
 
@@ -498,13 +510,13 @@ extension Color {
     static func scoreColor(for score: Int) -> Color {
         switch score {
         case 90...100:
-            return .scoreExcellent
+            .scoreExcellent
         case 80..<90:
-            return .scoreGreat
+            .scoreGreat
         case 70..<80:
-            return .scoreGood
+            .scoreGood
         default:
-            return .scoreFair
+            .scoreFair
         }
     }
 }

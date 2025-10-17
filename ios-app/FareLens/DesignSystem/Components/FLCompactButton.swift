@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import SwiftUI
 
 /// Compact button with icon and optional title (for toolbars and compact spaces)
@@ -18,7 +21,7 @@ struct FLCompactButton: View {
                 Image(systemName: icon)
                     .font(.footnote)
 
-                if let title = title {
+                if let title {
                     Text(title)
                         .footnoteStyle()
                 }

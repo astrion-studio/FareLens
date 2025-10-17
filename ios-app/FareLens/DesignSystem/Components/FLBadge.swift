@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import SwiftUI
 
 /// FareLens Badge Component
@@ -26,40 +29,40 @@ struct FLBadge: View {
 
         var backgroundColor: Color {
             switch self {
-            case .score(let value):
-                return scoreColor(value).opacity(0.15)
+            case let .score(value):
+                scoreColor(value).opacity(0.15)
             case .hot:
-                return Color.accentOrange.opacity(0.15)
+                Color.accentOrange.opacity(0.15)
             case .expiring:
-                return Color.warning.opacity(0.15)
+                Color.warning.opacity(0.15)
             case .saved:
-                return Color.success.opacity(0.15)
-            case .custom(let bg, _):
-                return bg
+                Color.success.opacity(0.15)
+            case let .custom(bg, _):
+                bg
             }
         }
 
         var foregroundColor: Color {
             switch self {
-            case .score(let value):
-                return scoreColor(value)
+            case let .score(value):
+                scoreColor(value)
             case .hot:
-                return Color.accentOrange
+                Color.accentOrange
             case .expiring:
-                return Color.warning
+                Color.warning
             case .saved:
-                return Color.success
-            case .custom(_, let fg):
-                return fg
+                Color.success
+            case let .custom(_, fg):
+                fg
             }
         }
 
         private func scoreColor(_ score: Int) -> Color {
             switch score {
-            case 90...100: return .scoreExcellent
-            case 80..<90: return .scoreGreat
-            case 70..<80: return .scoreGood
-            default: return .scoreFair
+            case 90...100: .scoreExcellent
+            case 80..<90: .scoreGreat
+            case 70..<80: .scoreGood
+            default: .scoreFair
             }
         }
     }

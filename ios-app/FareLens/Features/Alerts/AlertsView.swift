@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import SwiftUI
 
 struct AlertsView: View {
@@ -295,13 +298,13 @@ struct EmptyAlertsView: View {
     private var filterText: String {
         switch filter {
         case .all:
-            return "yet"
+            "yet"
         case .today:
-            return "today"
+            "today"
         case .thisWeek:
-            return "this week"
+            "this week"
         case .thisMonth:
-            return "this month"
+            "this month"
         }
     }
 }

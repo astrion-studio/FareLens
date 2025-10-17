@@ -1,0 +1,135 @@
+# SwiftLint Configuration for FareLens
+# iOS 26 patterns and project conventions
+
+# Disabled rules
+disabled_rules:
+  - trailing_whitespace  # SwiftFormat handles this
+  - line_length  # Using 120 char limit instead
+
+# Opt-in rules
+opt_in_rules:
+  - empty_count
+  - empty_string
+  - force_unwrapping  # Warn on force unwraps
+  - implicitly_unwrapped_optional
+  - operator_usage_whitespace
+  - overridden_super_call
+  - prohibited_super_call
+  - redundant_nil_coalescing
+  - redundant_type_annotation
+  - single_test_class
+  - sorted_first_last
+  - sorted_imports
+  - unneeded_parentheses_in_closure_argument
+  - vertical_parameter_alignment_on_call
+  - yoda_condition
+
+# Custom rules for iOS 26 patterns
+custom_rules:
+  # Enforce @Observable pattern (iOS 26)
+  no_observable_object:
+    name: "Use @Observable (iOS 26+) instead of ObservableObject"
+    regex: 'class\s+\w+.*:\s*ObservableObject'
+    message: "Use @Observable macro instead of ObservableObject protocol for iOS 26+"
+    severity: error
+    
+  # Enforce @State pattern (iOS 26)
+  no_state_object:
+    name: "Use @State (iOS 26+) instead of @StateObject"
+    regex: '@StateObject\s+private\s+var\s+\w+:\s*\w+ViewModel'
+    message: "Use @State instead of @StateObject with @Observable ViewModels"
+    severity: error
+    
+  # Enforce @Environment pattern (iOS 26)
+  no_environment_object:
+    name: "Use @Environment (iOS 26+) instead of @EnvironmentObject"
+    regex: '@EnvironmentObject\s+private\s+var\s+\w+:'
+    message: "Use @Environment instead of @EnvironmentObject with @Observable types"
+    severity: error
+    
+  # Enforce @MainActor on ViewModels
+  viewmodel_main_actor:
+    name: "ViewModels should be @MainActor"
+    regex: 'final\s+class\s+\w+ViewModel\s*:\s*@Observable'
+    message: "Add @MainActor to ViewModel class for UI thread safety"
+    severity: warning
+    
+  # Enforce actor isolation for services
+  service_actor:
+    name: "Services should be actors"
+    regex: 'class\s+\w+Service\s*:\s*\w+Protocol'
+    message: "Services should be 'actor' types, not 'class'"
+    severity: error
+    
+  # Enforce protocol-based DI
+  protocol_di:
+    name: "Use protocol-based dependency injection"
+    regex: 'class\s+\w+.*:\s*\w+Service'
+    message: "Inject services via protocols, not concrete types"
+    severity: warning
+
+# Line length
+line_length:
+  warning: 120
+  error: 150
+  ignores_urls: true
+  ignores_function_declarations: true
+  ignores_comments: true
+
+# Function body length
+function_body_length:
+  warning: 80
+  error: 120
+
+# File length
+file_length:
+  warning: 500
+  error: 800
+
+# Type body length
+type_body_length:
+  warning: 300
+  error: 500
+
+# Cyclomatic complexity
+cyclomatic_complexity:
+  warning: 15
+  error: 20
+
+# Force unwrapping
+force_unwrapping:
+  severity: error
+
+# Force casting
+force_cast:
+  severity: error
+
+# Force try
+force_try:
+  severity: error
+
+# Implicitly unwrapped optionals
+implicitly_unwrapped_optional:
+  severity: warning
+
+# Trailing newline
+trailing_newline:
+  severity: warning
+
+# Empty count
+empty_count:
+  severity: warning
+
+# Excluded paths
+excluded:
+  - Carthage
+  - Pods
+  - .build
+  - DerivedData
+  - "*.generated.swift"
+  - "*.pb.swift"
+  - "*.pbobjc.swift"
+
+# Reporter
+reporter: "xcode"
+

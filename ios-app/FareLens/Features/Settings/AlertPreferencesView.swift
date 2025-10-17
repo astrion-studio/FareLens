@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import SwiftUI
 
 struct AlertPreferencesView: View {
@@ -78,8 +81,8 @@ struct AlertPreferencesView: View {
                         .headlineStyle()
                 } footer: {
                     Text(viewModel.alertPreferences.quietHoursEnabled ?
-                         "No alerts between \(formatHour(viewModel.alertPreferences.quietHoursStart)) and \(formatHour(viewModel.alertPreferences.quietHoursEnd))" :
-                         "Receive alerts at any time")
+                        "No alerts between \(formatHour(viewModel.alertPreferences.quietHoursStart)) and \(formatHour(viewModel.alertPreferences.quietHoursEnd))" :
+                        "Receive alerts at any time")
                         .footnoteStyle()
                 }
 

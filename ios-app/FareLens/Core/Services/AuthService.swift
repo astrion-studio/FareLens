@@ -1,5 +1,8 @@
-import Foundation
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import Combine
+import Foundation
 
 protocol AuthServiceProtocol {
     func signIn(email: String, password: String) async throws -> User
@@ -35,7 +38,7 @@ actor AuthService: AuthServiceProtocol {
             method: .post,
             body: [
                 "email": email,
-                "password": password
+                "password": password,
             ]
         )
 
@@ -64,7 +67,7 @@ actor AuthService: AuthServiceProtocol {
             method: .post,
             body: [
                 "email": email,
-                "password": password
+                "password": password,
             ]
         )
 
@@ -115,7 +118,7 @@ actor AuthService: AuthServiceProtocol {
             path: "/auth/reset-password",
             method: .post,
             body: [
-                "email": email
+                "email": email,
             ]
         )
 
@@ -138,15 +141,15 @@ enum AuthError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidCredentials:
-            return "Invalid email or password"
+            "Invalid email or password"
         case .userNotFound:
-            return "User not found"
+            "User not found"
         case .emailAlreadyExists:
-            return "An account with this email already exists"
+            "An account with this email already exists"
         case .weakPassword:
-            return "Password must be at least 8 characters"
+            "Password must be at least 8 characters"
         case .networkError:
-            return "Network error. Please try again."
+            "Network error. Please try again."
         }
     }
 }

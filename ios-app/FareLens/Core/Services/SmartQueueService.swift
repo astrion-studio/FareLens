@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import Foundation
 
 protocol SmartQueueServiceProtocol {
@@ -41,7 +44,7 @@ actor SmartQueueService: SmartQueueServiceProtocol {
         let watchlistBoost: Double = user.watchlists.contains(where: { $0.matches(deal) }) ? 0.2 : 0.0
 
         // 2. Airport weight: Apply user's preferred airport weight
-        var airportWeight: Double = 0.0
+        var airportWeight = 0.0
         if let airport = user.preferredAirports.first(where: { $0.iata == deal.origin }) {
             airportWeight = airport.weight // 0.0-1.0
         }
@@ -61,8 +64,8 @@ extension SmartQueueService {
     /// Calculation: 85 × (1 + 0.2) × (1 + 0.6) = 85 × 1.2 × 1.6 = 163.2
     static func example1() -> Double {
         let dealScore: Double = 85
-        let watchlistBoost: Double = 0.2 // Matches watchlist
-        let airportWeight: Double = 0.6 // LAX is preferred
+        let watchlistBoost = 0.2 // Matches watchlist
+        let airportWeight = 0.6 // LAX is preferred
         return dealScore * (1.0 + watchlistBoost) * (1.0 + airportWeight) // 163.2
     }
 
@@ -72,8 +75,8 @@ extension SmartQueueService {
     /// Calculation: 90 × (1 + 0) × (1 + 0) = 90
     static func example2() -> Double {
         let dealScore: Double = 90
-        let watchlistBoost: Double = 0.0 // No match
-        let airportWeight: Double = 0.0 // Not preferred
+        let watchlistBoost = 0.0 // No match
+        let airportWeight = 0.0 // Not preferred
         return dealScore * (1.0 + watchlistBoost) * (1.0 + airportWeight) // 90.0
     }
 

@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import SwiftUI
 
 /// FareLens Button Component
@@ -44,11 +47,11 @@ struct FLButton: View {
         var foregroundColor: Color {
             switch self {
             case .primary, .destructive:
-                return .white
+                .white
             case .secondary:
-                return .brandBlue
+                .brandBlue
             case .ghost:
-                return .brandBlue
+                .brandBlue
             }
         }
     }

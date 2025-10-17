@@ -1,6 +1,9 @@
-import SwiftUI
-import StoreKit
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import Observation
+import StoreKit
+import SwiftUI
 
 struct PaywallView: View {
     @State private var viewModel = PaywallViewModel()
@@ -118,7 +121,10 @@ struct PaywallView: View {
 
                         // CTA Button
                         VStack(spacing: Spacing.md) {
-                            FLButton(title: viewModel.isLoading ? "Processing..." : "Start Free Trial", style: .primary) {
+                            FLButton(
+                                title: viewModel.isLoading ? "Processing..." : "Start Free Trial",
+                                style: .primary
+                            ) {
                                 Task {
                                     await viewModel.purchase()
                                 }
@@ -375,9 +381,9 @@ extension Product {
     var savingsText: String? {
         switch id {
         case "com.farelens.pro.annual":
-            return "Save 20%"
+            "Save 20%"
         default:
-            return nil
+            nil
         }
     }
 }

@@ -1,6 +1,9 @@
-import SwiftUI
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import Foundation
 import Observation
+import SwiftUI
 
 @Observable
 @MainActor
@@ -18,10 +21,10 @@ final class AlertsViewModel {
     init(user: User, alertService: AlertServiceProtocol = AlertService.shared) {
         self.user = user
         self.alertService = alertService
-        self.dailyLimit = user.maxAlertsPerDay
+        dailyLimit = user.maxAlertsPerDay
     }
 
-    func loadAlerts(forceRefresh: Bool = false) async {
+    func loadAlerts(forceRefresh _: Bool = false) async {
         guard !isLoading else { return }
 
         isLoading = true
@@ -71,7 +74,7 @@ final class AlertsViewModel {
         }
     }
 
-    func openDealDetail(_ alert: AlertHistory) {
+    func openDealDetail(_: AlertHistory) {
         // Navigate to deal detail view
         // This would be handled by the navigation coordinator
     }

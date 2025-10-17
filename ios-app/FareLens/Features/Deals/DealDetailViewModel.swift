@@ -1,6 +1,9 @@
-import SwiftUI
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import Foundation
 import Observation
+import SwiftUI
 
 @Observable
 @MainActor
@@ -75,7 +78,8 @@ final class DealDetailViewModel {
         let activityVC = UIActivityViewController(activityItems: [text], applicationActivities: nil)
 
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootVC = windowScene.windows.first?.rootViewController {
+           let rootVC = windowScene.windows.first?.rootViewController
+        {
             rootVC.present(activityVC, animated: true)
         }
     }

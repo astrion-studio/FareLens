@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import Foundation
 
 protocol DealsRepositoryProtocol {
@@ -66,7 +69,7 @@ actor DealsRepository: DealsRepositoryProtocol {
         }
 
         // Pro users see all deals (extract FlightDeal from RankedDeal)
-        return rankedDeals.map { $0.deal }
+        return rankedDeals.map(\.deal)
     }
 
     // MARK: - Private Methods
@@ -93,11 +96,11 @@ actor DealsRepository: DealsRepositoryProtocol {
         }
 
         // Extract FlightDeal from RankedDeal
-        return excellentDeals.map { $0.deal }
+        return excellentDeals.map(\.deal)
     }
 
     private func filterByOrigin(_ deals: [FlightDeal], origin: String?) -> [FlightDeal] {
-        guard let origin = origin else { return deals }
+        guard let origin else { return deals }
         return deals.filter { $0.origin == origin }
     }
 }

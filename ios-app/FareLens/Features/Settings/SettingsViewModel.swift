@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import Foundation
 import Observation
 
@@ -13,8 +16,8 @@ final class SettingsViewModel {
 
     init(user: User) {
         self.user = user
-        self.alertPreferences = user.alertPreferences
-        self.preferredAirports = user.preferredAirports
+        alertPreferences = user.alertPreferences
+        preferredAirports = user.preferredAirports
     }
 
     // Safe URL accessors for settings links
@@ -70,7 +73,7 @@ final class SettingsViewModel {
     }
 
     func removePreferredAirport(at index: Int) {
-        guard index >= 0 && index < preferredAirports.count else {
+        guard index >= 0, index < preferredAirports.count else {
             errorMessage = "Invalid airport index"
             return
         }
@@ -78,7 +81,7 @@ final class SettingsViewModel {
     }
 
     func updateAirportWeight(at index: Int, weight: Double) {
-        guard index >= 0 && index < preferredAirports.count else {
+        guard index >= 0, index < preferredAirports.count else {
             errorMessage = "Invalid airport index"
             return
         }

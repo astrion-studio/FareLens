@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import SwiftUI
 
 /// FareLens Design System - Typography
@@ -60,64 +63,64 @@ extension Font {
 extension Text {
     /// Apply display style (hero prices)
     func displayStyle() -> Text {
-        self.font(.display)
+        font(.display)
             .kerning(-0.5) // Tighter kerning for large text
     }
 
     /// Apply title 1 style (screen headers)
     func title1Style() -> Text {
-        self.font(.title1)
+        font(.title1)
             .kerning(-0.4)
     }
 
     /// Apply title 2 style (section headers)
     func title2Style() -> Text {
-        self.font(.title2)
+        font(.title2)
             .kerning(-0.3)
     }
 
     /// Apply title 3 style (card headers)
     func title3Style() -> Text {
-        self.font(.title3)
+        font(.title3)
     }
 
     /// Apply headline style (emphasis)
     func headlineStyle() -> Text {
-        self.font(.headline)
+        font(.headline)
     }
 
     /// Apply body style (main content)
     func bodyStyle() -> Text {
-        self.font(.body)
+        font(.body)
     }
 
     /// Apply callout style (secondary)
     func calloutStyle() -> Text {
-        self.font(.callout)
+        font(.callout)
     }
 
     /// Apply subheadline style (tertiary)
     func subheadlineStyle() -> Text {
-        self.font(.subheadline)
+        font(.subheadline)
     }
 
     /// Apply footnote style (metadata)
     func footnoteStyle() -> Text {
-        self.font(.footnote)
+        font(.footnote)
             .foregroundColor(.textSecondary)
     }
 
     /// Apply caption style (small text)
     func captionStyle() -> Text {
-        self.font(.caption1)
+        font(.caption1)
             .foregroundColor(.textTertiary)
     }
 }
 
 /// Line height multipliers (for Text with specific line spacing needs)
-struct LineHeight {
-    static let tight: CGFloat = 1.1    // Display text
-    static let normal: CGFloat = 1.2   // Titles
-    static let relaxed: CGFloat = 1.3  // Body, Headlines
-    static let loose: CGFloat = 1.4    // Long-form content
+enum LineHeight {
+    static let tight: CGFloat = 1.1 // Display text
+    static let normal: CGFloat = 1.2 // Titles
+    static let relaxed: CGFloat = 1.3 // Body, Headlines
+    static let loose: CGFloat = 1.4 // Long-form content
 }

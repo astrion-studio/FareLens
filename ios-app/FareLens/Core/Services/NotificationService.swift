@@ -1,7 +1,10 @@
-import UserNotifications
-import UIKit
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import Foundation
 import OSLog
+import UIKit
+import UserNotifications
 
 protocol NotificationServiceProtocol {
     func requestAuthorization() async -> Bool
@@ -29,7 +32,8 @@ actor NotificationService: NSObject, NotificationServiceProtocol, UNUserNotifica
             logger.info("Notification authorization: \(granted ? "granted" : "denied", privacy: .public)")
             return granted
         } catch {
-            logger.error("Failed to request notification authorization: \(error.localizedDescription, privacy: .public)")
+            logger
+                .error("Failed to request notification authorization: \(error.localizedDescription, privacy: .public)")
             return false
         }
     }
@@ -58,7 +62,7 @@ actor NotificationService: NSObject, NotificationServiceProtocol, UNUserNotifica
             "destination": deal.destination,
             "price": deal.totalPrice,
             "dealScore": deal.dealScore,
-            "deepLink": deal.deepLink
+            "deepLink": deal.deepLink,
         ]
 
         // Immediate delivery
@@ -71,7 +75,10 @@ actor NotificationService: NSObject, NotificationServiceProtocol, UNUserNotifica
 
         do {
             try await notificationCenter.add(request)
-            logger.info("Deal alert scheduled: \(deal.id.uuidString, privacy: .public) for \(deal.origin, privacy: .public) → \(deal.destination, privacy: .public)")
+            logger
+                .info(
+                    "Deal alert scheduled: \(deal.id.uuidString, privacy: .public) for \(deal.origin, privacy: .public) → \(deal.destination, privacy: .public)"
+                )
         } catch {
             logger.error("Failed to schedule notification: \(error.localizedDescription, privacy: .public)")
         }
@@ -99,22 +106,23 @@ actor NotificationService: NSObject, NotificationServiceProtocol, UNUserNotifica
     // MARK: - UNUserNotificationCenterDelegate
 
     nonisolated func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        willPresent notification: UNNotification
+        _: UNUserNotificationCenter,
+        willPresent _: UNNotification
     ) async -> UNNotificationPresentationOptions {
         // Show notification even when app is in foreground
-        return [.banner, .sound, .badge]
+        [.banner, .sound, .badge]
     }
 
     nonisolated func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
+        _: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
         let userInfo = response.notification.request.content.userInfo
 
         // Handle notification tap
         if let dealId = userInfo["dealId"] as? String,
-           let deepLink = userInfo["deepLink"] as? String {
+           let deepLink = userInfo["deepLink"] as? String
+        {
             // Open deep link to deal detail
             await handleDealNotificationTap(dealId: dealId, deepLink: deepLink)
         }

@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import Foundation
 
 struct Watchlist: Codable, Identifiable {
@@ -38,14 +41,14 @@ struct Watchlist: Codable, Identifiable {
     }
 
     var displayDateRange: String? {
-        guard let dateRange = dateRange else { return nil }
+        guard let dateRange else { return nil }
         let formatter = DateFormatter()
         formatter.dateStyle = .short
         return "\(formatter.string(from: dateRange.start)) - \(formatter.string(from: dateRange.end))"
     }
 
     var displayMaxPrice: String? {
-        guard let maxPrice = maxPrice else { return nil }
+        guard let maxPrice else { return nil }
         return "Up to $\(Int(maxPrice))"
     }
 

@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import SwiftUI
 
 struct WatchlistsView: View {
@@ -91,7 +94,9 @@ struct WatchlistsView: View {
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("Free plan: \(viewModel.user.maxWatchlists) watchlists max. Upgrade to Pro for unlimited watchlists.")
+                Text(
+                    "Free plan: \(viewModel.user.maxWatchlists) watchlists max. Upgrade to Pro for unlimited watchlists."
+                )
             }
         }
         .task {
@@ -216,4 +221,3 @@ struct QuotaWarning: View {
         .cornerRadius(CornerRadius.sm)
     }
 }
-

@@ -1,6 +1,9 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
+import Observation
 import SwiftUI
 import UserNotifications
-import Observation
 
 struct NotificationSettingsView: View {
     @State private var viewModel = NotificationSettingsViewModel()
@@ -310,39 +313,39 @@ enum PermissionStatus {
     var description: String {
         switch self {
         case .notDetermined:
-            return "Not Configured"
+            "Not Configured"
         case .denied:
-            return "Disabled"
+            "Disabled"
         case .authorized:
-            return "Enabled"
+            "Enabled"
         case .provisional:
-            return "Provisional"
+            "Provisional"
         }
     }
 
     var color: Color {
         switch self {
         case .notDetermined:
-            return .textSecondary
+            .textSecondary
         case .denied:
-            return .error
+            .error
         case .authorized:
-            return .success
+            .success
         case .provisional:
-            return .warning
+            .warning
         }
     }
 
     var icon: String {
         switch self {
         case .notDetermined:
-            return "bell.slash.fill"
+            "bell.slash.fill"
         case .denied:
-            return "bell.slash.fill"
+            "bell.slash.fill"
         case .authorized:
-            return "bell.fill"
+            "bell.fill"
         case .provisional:
-            return "bell.badge.fill"
+            "bell.badge.fill"
         }
     }
 }

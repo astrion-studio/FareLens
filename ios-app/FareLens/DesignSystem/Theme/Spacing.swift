@@ -1,8 +1,11 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import SwiftUI
 
 /// FareLens Design System - Spacing & Layout
 /// 8pt base grid system for consistent spacing
-struct Spacing {
+enum Spacing {
     /// 4pt - Micro spacing (icon padding, badge spacing)
     static let xs: CGFloat = 4
 
@@ -49,7 +52,7 @@ struct Spacing {
 }
 
 /// Corner radius values for consistent rounded corners
-struct CornerRadius {
+enum CornerRadius {
     /// 4pt - Small radius (badges, tags)
     static let xs: CGFloat = 4
 
@@ -70,7 +73,7 @@ struct CornerRadius {
 }
 
 /// Shadow presets for depth hierarchy
-struct Shadows {
+enum Shadows {
     /// Subtle shadow for cards
     static let card = Shadow(
         color: Color.black.opacity(0.08),
@@ -106,7 +109,7 @@ struct Shadows {
 /// View modifier for applying shadows
 extension View {
     func cardShadow() -> some View {
-        self.shadow(
+        shadow(
             color: Shadows.card.color,
             radius: Shadows.card.radius,
             x: Shadows.card.x,
@@ -115,7 +118,7 @@ extension View {
     }
 
     func floatingShadow() -> some View {
-        self.shadow(
+        shadow(
             color: Shadows.floating.color,
             radius: Shadows.floating.radius,
             x: Shadows.floating.x,
@@ -124,7 +127,7 @@ extension View {
     }
 
     func modalShadow() -> some View {
-        self.shadow(
+        shadow(
             color: Shadows.modal.color,
             radius: Shadows.modal.radius,
             x: Shadows.modal.x,

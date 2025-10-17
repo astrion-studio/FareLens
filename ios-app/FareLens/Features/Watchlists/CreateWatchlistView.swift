@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import SwiftUI
 
 struct CreateWatchlistView: View {
@@ -204,4 +207,3 @@ struct FormSection<Content: View>: View {
         }
     }
 }
-

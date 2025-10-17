@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import Foundation
 
 protocol APIClientProtocol {
@@ -17,7 +20,7 @@ actor APIClient: APIClientProtocol {
     }
 
     func setAuthToken(_ token: String?) {
-        self.authToken = token
+        authToken = token
     }
 
     /// Make API request with response
@@ -104,17 +107,17 @@ enum APIError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "Invalid URL"
+            "Invalid URL"
         case .invalidResponse:
-            return "Invalid response from server"
-        case .httpError(let code):
-            return "HTTP error: \(code)"
-        case .decodingError(let error):
-            return "Failed to decode response: \(error.localizedDescription)"
+            "Invalid response from server"
+        case let .httpError(code):
+            "HTTP error: \(code)"
+        case let .decodingError(error):
+            "Failed to decode response: \(error.localizedDescription)"
         case .unauthorized:
-            return "Unauthorized"
-        case .serverError(let message):
-            return "Server error: \(message)"
+            "Unauthorized"
+        case let .serverError(message):
+            "Server error: \(message)"
         }
     }
 }

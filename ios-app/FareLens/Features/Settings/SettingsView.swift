@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import SwiftUI
 
 struct SettingsView: View {
@@ -179,7 +182,7 @@ struct SettingsRow: View {
                     .bodyStyle()
                     .foregroundColor(.textPrimary)
 
-                if let subtitle = subtitle {
+                if let subtitle {
                     Text(subtitle)
                         .footnoteStyle()
                 }

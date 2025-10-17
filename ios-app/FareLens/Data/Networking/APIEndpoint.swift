@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import Foundation
 
 struct APIEndpoint {
@@ -26,9 +29,9 @@ extension APIEndpoint {
 
     static func getDeals(origin: String?, limit: Int = 20) -> APIEndpoint {
         var queryItems: [URLQueryItem] = [
-            URLQueryItem(name: "limit", value: "\(limit)")
+            URLQueryItem(name: "limit", value: "\(limit)"),
         ]
-        if let origin = origin {
+        if let origin {
             queryItems.append(URLQueryItem(name: "origin", value: origin))
         }
         return APIEndpoint(
@@ -63,7 +66,7 @@ extension APIEndpoint {
                 "origin": watchlist.origin,
                 "destination": watchlist.destination,
                 "date_range": watchlist.dateRange.map { ["start": $0.start, "end": $0.end] } as Any,
-                "max_price": watchlist.maxPrice as Any
+                "max_price": watchlist.maxPrice as Any,
             ]
         )
     }
@@ -78,7 +81,7 @@ extension APIEndpoint {
                 "destination": watchlist.destination,
                 "date_range": watchlist.dateRange.map { ["start": $0.start, "end": $0.end] } as Any,
                 "max_price": watchlist.maxPrice as Any,
-                "is_active": watchlist.isActive
+                "is_active": watchlist.isActive,
             ]
         )
     }
@@ -108,7 +111,7 @@ extension APIEndpoint {
                 "quiet_hours_enabled": preferences.quietHoursEnabled,
                 "quiet_hours_start": preferences.quietHoursStart,
                 "quiet_hours_end": preferences.quietHoursEnd,
-                "watchlist_only_mode": preferences.watchlistOnlyMode
+                "watchlist_only_mode": preferences.watchlistOnlyMode,
             ]
         )
     }
@@ -121,9 +124,9 @@ extension APIEndpoint {
                 "preferred_airports": airports.map { airport in
                     [
                         "iata": airport.iata,
-                        "weight": airport.weight
+                        "weight": airport.weight,
                     ]
-                }
+                },
             ]
         )
     }
@@ -135,7 +138,7 @@ extension APIEndpoint {
             path: "/user",
             method: .patch,
             body: [
-                "timezone": user.timezone
+                "timezone": user.timezone,
             ]
         )
     }
@@ -146,7 +149,7 @@ extension APIEndpoint {
             method: .post,
             body: [
                 "token": token,
-                "platform": "ios"
+                "platform": "ios",
             ]
         )
     }

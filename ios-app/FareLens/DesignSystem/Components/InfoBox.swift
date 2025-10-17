@@ -1,10 +1,13 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import SwiftUI
 
 /// Informational box with icon and text (for tips, warnings, etc.)
 struct InfoBox: View {
     let icon: String
     let text: String
-    var backgroundColor: Color = Color.brandBlue.opacity(0.1)
+    var backgroundColor: Color = .brandBlue.opacity(0.1)
     var foregroundColor: Color = .textPrimary
 
     var body: some View {

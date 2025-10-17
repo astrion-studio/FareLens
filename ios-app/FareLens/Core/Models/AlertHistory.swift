@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import Foundation
 
 /// Represents a historical alert that was sent to a user
@@ -9,7 +12,7 @@ struct AlertHistory: Identifiable, Codable {
     let expiresAt: Date?
 
     var isStillAvailable: Bool {
-        guard let expiresAt = expiresAt else { return true }
+        guard let expiresAt else { return true }
         return expiresAt > Date()
     }
 

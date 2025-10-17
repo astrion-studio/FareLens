@@ -1,3 +1,6 @@
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 import Foundation
 import OSLog
 
@@ -152,7 +155,8 @@ actor AlertService: AlertServiceProtocol {
     private func loadPersistedCounters() async {
         // Load alert counters
         if let counterData = userDefaults.data(forKey: "alertCounters"),
-           let decoded = try? JSONDecoder().decode([String: Int].self, from: counterData) {
+           let decoded = try? JSONDecoder().decode([String: Int].self, from: counterData)
+        {
             alertsSentToday = decoded.compactMap { key, value in
                 guard let uuid = UUID(uuidString: key) else {
                     logger.warning("Invalid UUID in alert counters: \(key, privacy: .public)")
@@ -164,7 +168,8 @@ actor AlertService: AlertServiceProtocol {
 
         // Load last reset dates
         if let resetData = userDefaults.data(forKey: "lastResetDates"),
-           let decoded = try? JSONDecoder().decode([String: Date].self, from: resetData) {
+           let decoded = try? JSONDecoder().decode([String: Date].self, from: resetData)
+        {
             lastResetDate = decoded.compactMap { key, value in
                 guard let uuid = UUID(uuidString: key) else {
                     logger.warning("Invalid UUID in reset dates: \(key, privacy: .public)")
@@ -174,7 +179,7 @@ actor AlertService: AlertServiceProtocol {
             }.reduce(into: [:]) { $0[$1.0] = $1.1 }
         }
 
-        logger.info("Loaded persisted alert counters: \(self.alertsSentToday.count) users")
+        logger.info("Loaded persisted alert counters: \(alertsSentToday.count) users")
     }
 
     private func persistCounters() async {
