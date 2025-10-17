@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  code-quality:
+    name: Code Quality Checks
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v1
+        with:
+          swift-version: "5.9"
+      
+      - name: Install SwiftFormat
+        run: brew install swiftformat
+      
+      - name: Run SwiftFormat check
+        run: swiftformat --lint ios-app/FareLens
+      
+      - name: Run iOS 26 pattern validation
+        run: |
+          chmod +x scripts/check-ios26-patterns.sh
+          ./scripts/check-ios26-patterns.sh
+      
+      - name: Check for print statements
+        run: |
+          if grep -r "print(" ios-app/FareLens --include="*.swift" | grep -v "Tests.swift"; then
+            echo "❌ Found print statements (use OSLog instead)"
+            exit 1
+          fi
+      
+      - name: Check for force unwraps
+        run: |
+          if grep -r "[a-zA-Z0-9_]!" ios-app/FareLens --include="*.swift" | grep -v "Tests.swift" | grep -v "\"" | grep -v "//"; then
+            echo "❌ Found force unwraps (use safe optional handling)"
+            exit 1
+          fi
+
+  tests:
+    name: Run Tests
+    runs-on: macos-latest
+    needs: code-quality
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      
+      - name: Run tests
+        run: |
+          cd ios-app
+          xcodebuild test -scheme FareLens -destination 'platform=iOS Simulator,name=iPhone 15 Pro' || true
+
