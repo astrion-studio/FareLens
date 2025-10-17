@@ -30,7 +30,7 @@ Example: "Use ios-architect to plan feature, then code-reviewer to validate appr
 ## Key Files Generated
 
 PRD.md - Product requirements (product-manager)
-DESIGN.md - Design system, brand, components (product-designer)  
+DESIGN.md - Design system, brand, components (product-designer)
 ARCHITECTURE.md - iOS technical architecture (ios-architect)
 API.md - Backend API contracts (backend-architect)
 TEST_PLAN.md - Testing strategy (qa-specialist)

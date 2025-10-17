@@ -4,7 +4,7 @@ This guide walks through creating the Xcode project and integrating all Swift fi
 
 ## Prerequisites
 
-- Xcode 15.0+ (for iOS 17.0+ support)
+- Xcode 15.0+ (for iOS 26.0+ support)
 - macOS Sonoma or later
 - Apple Developer account (for device testing and App Store submission)
 
@@ -190,7 +190,7 @@ Create `FareLens.entitlements`:
 - **Bundle Identifier:** com.farelens.app
 - **Version:** 1.0.0
 - **Build:** 1
-- **Minimum Deployments:** iOS 17.0
+- **Minimum Deployments:** iOS 26.0
 
 ### Signing & Capabilities
 
@@ -208,7 +208,7 @@ Search for these settings and configure:
 
 - **Swift Language Version:** Swift 5
 - **Enable Strict Concurrency Checking:** Minimal
-- **Deployment Target:** iOS 17.0
+- **Deployment Target:** iOS 26.0
 
 ## Step 7: Configure StoreKit
 

@@ -1080,7 +1080,7 @@ In Xcode:
 
 1. **Select Project** → FareLens target → Build Settings
 2. **Search "Swift Language Version"** → Set to **Swift 5.9**
-3. **Search "iOS Deployment Target"** → Set to **iOS 17.0** (minimum for @Observable)
+3. **Search "iOS Deployment Target"** → Set to **iOS 26.0** (minimum for @Observable)
 4. **Search "Enable Testability"** → Set to **YES** (Debug only)
 5. **Search "Code Coverage"** → Set to **YES**
 

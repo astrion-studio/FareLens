@@ -285,7 +285,7 @@ Week 10:    Polish & App Store Submission      🔜 UPCOMING
 - ✅ Quiet hours: 10pm-7am (customizable)
 
 ### Technical Decisions (from ARCHITECTURE.md)
-- ✅ iOS 17.0+ with SwiftUI
+- ✅ iOS 26.0+ with SwiftUI
 - ✅ MVVM architecture
 - ✅ Protocol-based dependency injection
 - ✅ Actor isolation for services

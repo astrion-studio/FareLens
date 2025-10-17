@@ -154,7 +154,7 @@ FareLens is a flight deal intelligence app with personalized alerts, price track
 - Onboarding state, last sync timestamp
 
 **Considered Alternatives:**
-- **SwiftData:** Modern alternative (introduced iOS 17), but Core Data more mature with extensive documentation
+- **SwiftData:** Modern alternative (introduced iOS 17), but Core Data more mature with extensive documentation (Note: FareLens targets iOS 26.0+)
 - **Realm:** Third-party dependency, licensing concerns, Core Data sufficient
 - **SQLite directly:** Low-level, more work, Core Data abstracts complexity
 
