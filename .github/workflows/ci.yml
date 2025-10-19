@@ -33,8 +33,8 @@ jobs:
       
       - name: Check for print statements
         run: |
-          PRINT_STATEMENTS=$(find ios-app/FareLens -name "*.swift" -type f ! -name "*Tests.swift" \
-            -exec grep -l 'print(' {} + 2>/dev/null || true)
+          PRINT_STATEMENTS=$(find ios-app/FareLens -name "*.swift" -type f ! -name "*Tests.swift" -print0 | \
+            xargs -0 grep -l 'print(' 2>/dev/null || true)
 
           if [ -n "$PRINT_STATEMENTS" ]; then
             echo "❌ Found print statements (use OSLog instead)"
@@ -89,6 +89,7 @@ jobs:
       - name: Run tests
         if: steps.check_project.outputs.has_project == 'true'
         run: |
+          set -euo pipefail
           cd ios-app
           xcodebuild test -scheme FareLens -destination 'platform=iOS Simulator,name=iPhone 15 Pro'
 
