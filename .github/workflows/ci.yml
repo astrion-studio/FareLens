@@ -40,8 +40,20 @@ jobs:
 
       - name: Check for force unwraps
         run: |
-          if find ios-app/FareLens -name "*.swift" -type f ! -name "*Tests.swift" -exec grep -l "[a-zA-Z0-9_]!" {} + 2>/dev/null | grep -v "\"" | grep -v "//"; then
-            echo "❌ Found force unwraps (use safe optional handling)"
+          # Find files with potential force unwraps (variable!)
+          # Excludes: string literals, comments, != operators, array syntax [Int]!
+          FORCE_UNWRAPS=$(find ios-app/FareLens -name "*.swift" -type f ! -name "*Tests.swift" -print0 | \
+            xargs -0 grep -n "[a-zA-Z0-9_)]!" | \
+            grep -v "//" | \
+            grep -v "\".*!.*\"" | \
+            grep -v "!=" | \
+            grep -v "\[.*\]!" || true)
+
+          if [ -n "$FORCE_UNWRAPS" ]; then
+            echo "❌ Found potential force unwraps:"
+            echo "$FORCE_UNWRAPS"
+            echo ""
+            echo "Please use safe optional handling (if let, guard let, or ?? operator)"
             exit 1
           fi
 
