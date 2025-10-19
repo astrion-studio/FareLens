@@ -10,7 +10,30 @@ on:
     - cron: '0 6 * * 1'
 
 jobs:
+  detect-build:
+    name: Detect build configuration
+    runs-on: ubuntu-latest
+    outputs:
+      has-build: ${{ steps.detect.outputs.has-build }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Swift build definition
+        id: detect
+        run: |
+          XCODE_PROJECTS=$(git ls-files '*.xcodeproj' | wc -l)
+          SWIFTPM_FILES=$(git ls-files 'Package.swift' | wc -l)
+          if [ "$XCODE_PROJECTS" -gt 0 ] || [ "$SWIFTPM_FILES" -gt 0 ]; then
+            echo "has-build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has-build=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No Xcode project or Package.swift file detected; skipping CodeQL analysis until a build configuration is available."
+          fi
+
   analyze:
+    needs: detect-build
+    if: ${{ needs.detect-build.outputs.has-build == 'true' }}
     name: Analyze Code
     runs-on: macos-latest
     permissions:
