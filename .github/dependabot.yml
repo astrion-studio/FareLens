@@ -1,0 +1,55 @@
+# Dependabot configuration for automated dependency updates
+# Monitors Swift packages, Python dependencies, and GitHub Actions
+
+version: 2
+updates:
+  # Swift Package Manager (iOS app)
+  - package-ecosystem: "swift"
+    directory: "/ios-app"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "astrion-studio"
+    labels:
+      - "dependencies"
+      - "ios"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+
+  # Python (Backend API)
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "astrion-studio"
+    labels:
+      - "dependencies"
+      - "backend"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "astrion-studio"
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
