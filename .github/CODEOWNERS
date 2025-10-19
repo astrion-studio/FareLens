@@ -1,0 +1,32 @@
+# CODEOWNERS file
+# This file defines code owners for automatic review assignment
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything in the repo
+* @astrion-studio
+
+# iOS app
+/ios-app/ @astrion-studio
+
+# Swift code
+*.swift @astrion-studio
+
+# Backend (when it exists)
+/backend/ @astrion-studio
+*.py @astrion-studio
+
+# GitHub workflows and CI/CD
+/.github/ @astrion-studio
+/.github/workflows/ @astrion-studio
+
+# Documentation
+*.md @astrion-studio
+/docs/ @astrion-studio
+
+# Configuration files
+.swiftlint.yml @astrion-studio
+.swiftformat @astrion-studio
+dependabot.yml @astrion-studio
+
+# Security and sensitive files
+CODEOWNERS @astrion-studio
