@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  code-quality:
+    name: Code Quality Checks
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v1
+        with:
+          swift-version: "5.9"
+      
+      - name: Install SwiftFormat
+        run: brew install swiftformat
+      
+      - name: Run SwiftFormat check
+        run: swiftformat --lint ios-app/FareLens
+      
+      - name: Run iOS 26 pattern validation
+        run: |
+          chmod +x scripts/check-ios26-patterns.sh
+          ./scripts/check-ios26-patterns.sh
+      
+      - name: Check for print statements
+        run: |
+          PRINT_STATEMENTS=$(find ios-app/FareLens -name "*.swift" -type f ! -name "*Tests.swift" \
+            -exec grep -l 'print(' {} + 2>/dev/null || true)
+
+          if [ -n "$PRINT_STATEMENTS" ]; then
+            echo "❌ Found print statements (use OSLog instead)"
+            echo "$PRINT_STATEMENTS"
+            exit 1
+          fi
+
+      - name: Check for force unwraps
+        run: |
+          # Find files with potential force unwraps (variable!)
+          # Excludes: string literals, comments, != operators, array syntax [Int]!
+          FORCE_UNWRAPS=$(find ios-app/FareLens -name "*.swift" -type f ! -name "*Tests.swift" -print0 | \
+            xargs -0 grep -n "[a-zA-Z0-9_)]!" | \
+            grep -v "//" | \
+            grep -v "\".*!.*\"" | \
+            grep -v "!=" | \
+            grep -v "\[.*\]!" || true)
+
+          if [ -n "$FORCE_UNWRAPS" ]; then
+            echo "❌ Found potential force unwraps:"
+            echo "$FORCE_UNWRAPS"
+            echo ""
+            echo "Please use safe optional handling (if let, guard let, or ?? operator)"
+            exit 1
+          fi
+
+  tests:
+    name: Run Tests
+    runs-on: macos-latest
+    needs: code-quality
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Xcode project
+        id: check_project
+        run: |
+          if [ -f "ios-app/FareLens.xcodeproj/project.pbxproj" ]; then
+            echo "has_project=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_project=false" >> $GITHUB_OUTPUT
+            echo "⚠️ No Xcode project found - skipping tests"
+          fi
+
+      - name: Setup Xcode
+        if: steps.check_project.outputs.has_project == 'true'
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Run tests
+        if: steps.check_project.outputs.has_project == 'true'
+        run: |
+          cd ios-app
+          xcodebuild test -scheme FareLens -destination 'platform=iOS Simulator,name=iPhone 15 Pro'
+

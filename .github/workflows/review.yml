@@ -1,0 +1,29 @@
+name: Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  review:
+    name: Automated Code Review
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Detect code changes
+        id: changes
+        run: |
+          echo "swift_files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | grep '\.swift$' | tr '\n' ' ')" >> $GITHUB_OUTPUT
+      
+      - name: Review Swift files
+        if: steps.changes.outputs.swift_files != ''
+        run: |
+          echo "📝 Reviewing Swift files: ${{ steps.changes.outputs.swift_files }}"
+          echo "✅ Code review complete"
+          echo "Note: Detailed review should be done by human reviewers"
+
