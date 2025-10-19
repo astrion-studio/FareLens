@@ -33,14 +33,14 @@ jobs:
       
       - name: Check for print statements
         run: |
-          if grep -r "print(" ios-app/FareLens --include="*.swift" | grep -v "Tests.swift"; then
+          if find ios-app/FareLens -name "*.swift" -type f ! -name "*Tests.swift" -exec grep -l "print(" {} + 2>/dev/null; then
             echo "❌ Found print statements (use OSLog instead)"
             exit 1
           fi
-      
+
       - name: Check for force unwraps
         run: |
-          if grep -r "[a-zA-Z0-9_]!" ios-app/FareLens --include="*.swift" | grep -v "Tests.swift" | grep -v "\"" | grep -v "//"; then
+          if find ios-app/FareLens -name "*.swift" -type f ! -name "*Tests.swift" -exec grep -l "[a-zA-Z0-9_]!" {} + 2>/dev/null | grep -v "\"" | grep -v "//"; then
             echo "❌ Found force unwraps (use safe optional handling)"
             exit 1
           fi
@@ -62,5 +62,5 @@ jobs:
       - name: Run tests
         run: |
           cd ios-app
-          xcodebuild test -scheme FareLens -destination 'platform=iOS Simulator,name=iPhone 15 Pro' || true
+          xcodebuild test -scheme FareLens -destination 'platform=iOS Simulator,name=iPhone 15 Pro'
 
