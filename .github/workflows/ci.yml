@@ -33,8 +33,12 @@ jobs:
       
       - name: Check for print statements
         run: |
-          if find ios-app/FareLens -name "*.swift" -type f ! -name "*Tests.swift" -exec grep -l "print(" {} + 2>/dev/null; then
+          PRINT_STATEMENTS=$(find ios-app/FareLens -name "*.swift" -type f ! -name "*Tests.swift" \
+            -exec grep -l 'print(' {} + 2>/dev/null || true)
+
+          if [ -n "$PRINT_STATEMENTS" ]; then
             echo "❌ Found print statements (use OSLog instead)"
+            echo "$PRINT_STATEMENTS"
             exit 1
           fi
 
