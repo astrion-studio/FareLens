@@ -58,31 +58,55 @@ extension APIEndpoint {
     }
 
     static func createWatchlist(_ watchlist: Watchlist) -> APIEndpoint {
-        APIEndpoint(
+        var body: [String: Any] = [
+            "name": watchlist.name,
+            "origin": watchlist.origin,
+            "destination": watchlist.destination,
+        ]
+
+        if let dateRange = watchlist.dateRange {
+            let iso8601 = ISO8601DateFormatter()
+            body["date_range"] = [
+                "start": iso8601.string(from: dateRange.start),
+                "end": iso8601.string(from: dateRange.end),
+            ]
+        }
+
+        if let maxPrice = watchlist.maxPrice {
+            body["max_price"] = maxPrice
+        }
+
+        return APIEndpoint(
             path: "/watchlists",
             method: .post,
-            body: [
-                "name": watchlist.name,
-                "origin": watchlist.origin,
-                "destination": watchlist.destination,
-                "date_range": watchlist.dateRange.map { ["start": $0.start, "end": $0.end] } as Any,
-                "max_price": watchlist.maxPrice as Any,
-            ]
+            body: body
         )
     }
 
     static func updateWatchlist(id: UUID, watchlist: Watchlist) -> APIEndpoint {
-        APIEndpoint(
+        var body: [String: Any] = [
+            "name": watchlist.name,
+            "origin": watchlist.origin,
+            "destination": watchlist.destination,
+            "is_active": watchlist.isActive,
+        ]
+
+        if let dateRange = watchlist.dateRange {
+            let iso8601 = ISO8601DateFormatter()
+            body["date_range"] = [
+                "start": iso8601.string(from: dateRange.start),
+                "end": iso8601.string(from: dateRange.end),
+            ]
+        }
+
+        if let maxPrice = watchlist.maxPrice {
+            body["max_price"] = maxPrice
+        }
+
+        return APIEndpoint(
             path: "/watchlists/\(id.uuidString)",
             method: .put,
-            body: [
-                "name": watchlist.name,
-                "origin": watchlist.origin,
-                "destination": watchlist.destination,
-                "date_range": watchlist.dateRange.map { ["start": $0.start, "end": $0.end] } as Any,
-                "max_price": watchlist.maxPrice as Any,
-                "is_active": watchlist.isActive,
-            ]
+            body: body
         )
     }
 
