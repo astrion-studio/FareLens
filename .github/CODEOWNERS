@@ -1,32 +1,19 @@
 # CODEOWNERS file
 # This file defines code owners for automatic review assignment
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Cross-Agent Review Strategy:
+# GitHub CODEOWNERS requires actual GitHub user accounts, so all entries map to @astrion-studio.
+# AI agents (Claude Code, Codex, etc.) review via COMMENTS, not formal GitHub approvals.
+#
+# How Cross-Agent Review Works:
+# 1. @astrion-studio is the only formal approver (GitHub requirement)
+# 2. AI agents leave review comments on PRs requesting changes
+# 3. Branch protection: "Require conversation resolution" blocks merges until comments resolved
+# 4. Automated CI: code-reviewer agent runs quality checks via GitHub Actions
+# 5. PR template guides which specialized agents should comment (ios-architect, qa-specialist, etc.)
+#
+# This ensures high-quality code through agent collaboration WITHOUT requiring agents to have GitHub accounts.
 
 # Default owner for everything in the repo
 * @astrion-studio
-
-# iOS app
-/ios-app/ @astrion-studio
-
-# Swift code
-*.swift @astrion-studio
-
-# Backend (when it exists)
-/backend/ @astrion-studio
-*.py @astrion-studio
-
-# GitHub workflows and CI/CD
-/.github/ @astrion-studio
-/.github/workflows/ @astrion-studio
-
-# Documentation
-*.md @astrion-studio
-/docs/ @astrion-studio
-
-# Configuration files
-.swiftlint.yml @astrion-studio
-.swiftformat @astrion-studio
-dependabot.yml @astrion-studio
-
-# Security and sensitive files
-CODEOWNERS @astrion-studio
