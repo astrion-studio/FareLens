@@ -12,16 +12,38 @@ protocol NotificationServiceProtocol {
     func sendDealAlert(deal: FlightDeal, userId: UUID) async
 }
 
-actor NotificationService: NSObject, NotificationServiceProtocol, UNUserNotificationCenterDelegate {
+/// Delegate class to handle UNUserNotificationCenterDelegate callbacks
+/// Separated from actor to avoid NSObject inheritance conflict
+private class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
+    weak var service: NotificationService?
+
+    func userNotificationCenter(
+        _: UNUserNotificationCenter,
+        willPresent _: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        // Show notification even when app is in foreground
+        [.banner, .sound, .badge]
+    }
+
+    func userNotificationCenter(
+        _: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        await service?.handleNotificationResponse(response)
+    }
+}
+
+actor NotificationService: NotificationServiceProtocol {
     static let shared = NotificationService()
 
     private let notificationCenter = UNUserNotificationCenter.current()
     private var isAuthorized = false
     private let logger = Logger(subsystem: "com.farelens.app", category: "notifications")
+    private let delegate = NotificationDelegate()
 
-    override init() {
-        super.init()
-        notificationCenter.delegate = self
+    init() {
+        delegate.service = self
+        notificationCenter.delegate = delegate
     }
 
     /// Request notification permissions from user
@@ -103,20 +125,9 @@ actor NotificationService: NSObject, NotificationServiceProtocol, UNUserNotifica
         }
     }
 
-    // MARK: - UNUserNotificationCenterDelegate
+    // MARK: - Notification Response Handling
 
-    nonisolated func userNotificationCenter(
-        _: UNUserNotificationCenter,
-        willPresent _: UNNotification
-    ) async -> UNNotificationPresentationOptions {
-        // Show notification even when app is in foreground
-        [.banner, .sound, .badge]
-    }
-
-    nonisolated func userNotificationCenter(
-        _: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse
-    ) async {
+    func handleNotificationResponse(_ response: UNNotificationResponse) async {
         let userInfo = response.notification.request.content.userInfo
 
         // Handle notification tap
