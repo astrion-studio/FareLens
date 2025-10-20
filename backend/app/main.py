@@ -39,7 +39,7 @@ async def health():
     return {
         "status": "healthy",
         "database": "not_configured",  # TODO: Add database health check
-        "cache": "not_configured",      # TODO: Add Redis health check
+        "cache": "not_configured",  # TODO: Add Redis health check
     }
 
 
