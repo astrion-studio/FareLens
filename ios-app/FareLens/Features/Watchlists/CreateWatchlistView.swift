@@ -4,7 +4,7 @@
 import SwiftUI
 
 struct CreateWatchlistView: View {
-    @ObservedObject var viewModel: WatchlistsViewModel
+    @Bindable var viewModel: WatchlistsViewModel
     @Environment(\.dismiss) var dismiss
 
     @State private var name = ""

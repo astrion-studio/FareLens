@@ -4,7 +4,7 @@
 import SwiftUI
 
 struct AlertPreferencesView: View {
-    @ObservedObject var viewModel: SettingsViewModel
+    @Bindable var viewModel: SettingsViewModel
     @Environment(\.dismiss) var dismiss
 
     var body: some View {

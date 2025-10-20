@@ -4,7 +4,7 @@
 import SwiftUI
 
 struct PreferredAirportsView: View {
-    @ObservedObject var viewModel: SettingsViewModel
+    @Bindable var viewModel: SettingsViewModel
     @State private var showingAddAirport = false
     @State private var newAirportCode = ""
 
