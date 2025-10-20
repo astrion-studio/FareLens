@@ -1,32 +1,50 @@
 # CODEOWNERS file
 # This file defines code owners for automatic review assignment
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Cross-Agent Review Strategy:
+# - Human (@astrion-studio) is the ultimate decision maker
+# - AI agents (via comments/reviews) provide specialized expertise
+# - Automated code-reviewer agent catches quality issues via CI
+# - Branch protection ensures conversation resolution before merge
 
 # Default owner for everything in the repo
 * @astrion-studio
 
-# iOS app
+# iOS app - Requires ios-architect review for architectural changes
 /ios-app/ @astrion-studio
+/ios-app/FareLens/Core/ @astrion-studio
+/ios-app/FareLens/Features/ @astrion-studio
+/ios-app/FareLens/DesignSystem/ @astrion-studio
 
-# Swift code
+# Swift code - Code-reviewer agent runs via CI on all PRs
 *.swift @astrion-studio
 
-# Backend (when it exists)
+# Backend - Requires backend-architect review for API/database changes
 /backend/ @astrion-studio
+/backend/app/api/ @astrion-studio
+/backend/app/models/ @astrion-studio
 *.py @astrion-studio
 
-# GitHub workflows and CI/CD
+# GitHub workflows and CI/CD - Platform-engineer expertise needed
 /.github/ @astrion-studio
 /.github/workflows/ @astrion-studio
 
-# Documentation
+# Documentation - Product-manager reviews PRD, ios-architect reviews ARCHITECTURE
 *.md @astrion-studio
 /docs/ @astrion-studio
+PRD.md @astrion-studio
+ARCHITECTURE.md @astrion-studio
+API.md @astrion-studio
+DESIGN.md @astrion-studio
+TEST_PLAN.md @astrion-studio
 
 # Configuration files
 .swiftlint.yml @astrion-studio
 .swiftformat @astrion-studio
 dependabot.yml @astrion-studio
 
-# Security and sensitive files
+# Security and sensitive files - Extra scrutiny required
 CODEOWNERS @astrion-studio
+LICENSE @astrion-studio
+.github/workflows/codeql.yml @astrion-studio
