@@ -8,9 +8,9 @@ from pathlib import Path
 # Add parent directory to path so we can import app
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient  # noqa: E402
 
-from app.main import app
+from app.main import app  # noqa: E402
 
 client = TestClient(app)
 
