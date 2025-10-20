@@ -14,7 +14,9 @@ redis==5.2.0
 hiredis==3.0.0
 
 # Authentication
-python-jose[cryptography]==3.3.0
+# Replaced python-jose with PyJWT (more secure, actively maintained)
+# python-jose has critical vulnerabilities: CVE-2024-33664 (algorithm confusion)
+PyJWT[crypto]==2.10.1
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.20
 
