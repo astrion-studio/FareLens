@@ -67,9 +67,34 @@ Closes #
 ## Additional Notes
 <!-- Any additional information that reviewers should know -->
 
+## Cross-Agent Review
+<!-- Indicate which specialized agents should review this PR -->
+**Recommended Reviewers:**
+- [ ] **code-reviewer** - All PRs (runs automatically via CI)
+- [ ] **ios-architect** - iOS architecture, ViewModels, state management
+- [ ] **backend-architect** - API endpoints, database models, backend architecture
+- [ ] **qa-specialist** - Test coverage, edge cases, quality assurance
+- [ ] **platform-engineer** - CI/CD, workflows, deployment, infrastructure
+- [ ] **product-designer** - UI/UX changes, design system, user experience
+- [ ] **ml-engineer** - ML models, on-device inference, recommendation logic
+
+**Agent Review Status:**
+<!-- Update as agents review -->
+- [ ] code-reviewer completed (check CI workflow)
+- [ ] Recommended agents have reviewed
+- [ ] All agent feedback addressed
+- [ ] Conversation threads resolved
+
 ---
 **Reviewer Guidelines:**
-- Check for iOS 26 @Observable pattern compliance
-- Verify no force unwraps or print statements
-- Ensure tests are comprehensive
-- Validate architectural decisions align with ARCHITECTURE.md
+- **Human (@astrion-studio)**: Final decision maker, business logic, product direction
+- **AI Agents**: Specialized technical review (see Cross-Agent Review section above)
+- **Automated CI**: Code quality, patterns, security (code-reviewer agent)
+
+**What to Check:**
+- iOS 26 @Observable pattern compliance (ios-architect)
+- No force unwraps or print statements (code-reviewer)
+- Test coverage ≥80% for critical paths (qa-specialist)
+- Architectural decisions align with ARCHITECTURE.md (ios-architect/backend-architect)
+- API contracts match API.md (backend-architect)
+- UI follows DESIGN.md guidelines (product-designer)
