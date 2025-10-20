@@ -10,7 +10,34 @@ on:
     - cron: '0 6 * * 1'
 
 jobs:
+  detect-build:
+    name: Detect build configuration
+    runs-on: ubuntu-latest
+    outputs:
+      has-build: ${{ steps.detect.outputs.has-build }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Swift build definition
+        id: detect
+        run: |
+          # Check if project.pbxproj exists (Xcode project)
+          if [ -f "ios-app/FareLens.xcodeproj/project.pbxproj" ]; then
+            echo "has-build=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Xcode project found"
+          # Check if Package.swift exists (Swift Package Manager)
+          elif [ -f "Package.swift" ]; then
+            echo "has-build=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Package.swift found"
+          else
+            echo "has-build=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No Xcode project or Package.swift detected; skipping CodeQL analysis until a build configuration is available."
+          fi
+
   analyze:
+    needs: detect-build
+    if: ${{ needs.detect-build.outputs.has-build == 'true' }}
     name: Analyze Code
     runs-on: macos-latest
     permissions:
