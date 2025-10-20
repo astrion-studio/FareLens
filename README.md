@@ -6,7 +6,7 @@
 [![CodeQL](https://github.com/astrion-studio/FareLens/actions/workflows/codeql.yml/badge.svg)](https://github.com/astrion-studio/FareLens/actions/workflows/codeql.yml)
 [![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
 [![iOS](https://img.shields.io/badge/iOS-17.0+-blue.svg)](https://www.apple.com/ios/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-Proprietary-red.svg)](LICENSE)
 
 FareLens is a modern iOS application that helps travelers discover and track flight deals in real-time. Built with SwiftUI and iOS 26's new `@Observable` macro, it demonstrates cutting-edge iOS development patterns and best practices.
 
@@ -204,7 +204,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Copyright (c) 2024-2025 Astrion Studio. All Rights Reserved.
+
+This is proprietary software. See the [LICENSE](LICENSE) file for details.
+
+**Note:** This repository is temporarily public to utilize free GitHub security features during development. This does NOT grant any rights to use, modify, or distribute the code.
 
 ## Acknowledgments
 
