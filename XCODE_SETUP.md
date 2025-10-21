@@ -237,19 +237,17 @@ FareLens/
 3. **Bundle Identifier:** Should be `com.farelens.app`
    - If conflict: Change to `com.farelens.app.YOURNAME`
 
-### Step 4.3: Add Required Capabilities
+### Step 4.3: Leave Capabilities Default (Free Account)
 
-Click **+ Capability** button and add:
+- **Skip adding new capabilities if you're on the free Apple Developer account.**
+  - Push Notifications, Background Modes, and In-App Purchase require a paid Apple Developer Program membership and will trigger signing errors on free accounts.
+  - We'll enable them later once the paid program is active and the features are implemented.
 
-1. **Push Notifications**
-   - Required for flight deal alerts
+If you already have a paid Apple Developer Program membership, you can add them now so Xcode matches production signing:
 
-2. **Background Modes**
-   - Check: ✅ Background fetch
-   - Check: ✅ Remote notifications
-
-3. **In-App Purchase**
-   - Required for Pro subscription
+1. **Push Notifications** – Needed for flight deal alerts when we ship them
+2. **Background Modes** – Check ✅ Background fetch and ✅ Remote notifications
+3. **In-App Purchase** – Needed for the Pro subscription flow
 
 ### Step 4.4: Configure Deployment Target
 
