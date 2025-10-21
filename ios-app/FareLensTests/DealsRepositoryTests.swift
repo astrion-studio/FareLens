@@ -20,7 +20,7 @@ final class DealsRepositoryTests: XCTestCase {
 
     // MARK: - 20-Deal Algorithm Tests
 
-    @Test("Free tier shows all deals with score ≥80")
+    // Free tier shows all deals with score ≥80
     func test20DealAlgorithm_ShowsAllExcellentDeals() async throws {
         // Arrange: 15 deals with score ≥80
         let user = createTestUser(tier: .free)
@@ -33,7 +33,7 @@ final class DealsRepositoryTests: XCTestCase {
         XCTAssertEqual(result.count, 15)
     }
 
-    @Test("Free tier removes lowest scores when >20 deals with score ≥80")
+    // Free tier removes lowest scores when >20 deals with score ≥80
     func test20DealAlgorithm_RemovesLowestWhenOver20() async throws {
         // Arrange: 25 deals with score ≥80
         let user = createTestUser(tier: .free)
@@ -48,7 +48,7 @@ final class DealsRepositoryTests: XCTestCase {
         XCTAssertEqual(result.count, 20)
     }
 
-    @Test("Free tier backfills with score ≥70 when <20 deals with score ≥80")
+    // Free tier backfills with score ≥70 when <20 deals with score ≥80
     func test20DealAlgorithm_BackfillsWithGoodDeals() async throws {
         // Arrange: 10 excellent (≥80) + 15 good (≥70) deals
         let user = createTestUser(tier: .free)
@@ -63,7 +63,7 @@ final class DealsRepositoryTests: XCTestCase {
         XCTAssertEqual(result.count, 20)
     }
 
-    @Test("Pro tier sees all deals regardless of score")
+    // Pro tier sees all deals regardless of score
     func testProTier_SeesAllDeals() async throws {
         // Arrange: 50 deals with varying scores
         let user = createTestUser(tier: .pro)
@@ -78,7 +78,7 @@ final class DealsRepositoryTests: XCTestCase {
 
     // MARK: - Cache Tests
 
-    @Test("Deals fetched from cache when valid")
+    // Deals fetched from cache when valid
     func testCacheFetch_WhenValid() async throws {
         // Arrange: Cache is valid
         mockPersistence.isCacheValidFlag = true
@@ -92,7 +92,7 @@ final class DealsRepositoryTests: XCTestCase {
         XCTAssertEqual(mockAPIClient.requestCount, 0) // No API call
     }
 
-    @Test("Deals fetched from API when cache invalid")
+    // Deals fetched from API when cache invalid
     func testAPIFetch_WhenCacheInvalid() async throws {
         // Arrange: Cache is invalid
         mockPersistence.isCacheValidFlag = false
@@ -104,7 +104,7 @@ final class DealsRepositoryTests: XCTestCase {
         XCTAssertEqual(mockAPIClient.requestCount, 1)
     }
 
-    @Test("Force refresh ignores cache")
+    // Force refresh ignores cache
     func testForceRefresh_IgnoresCache() async throws {
         // Arrange: Cache is valid but force refresh
         mockPersistence.isCacheValidFlag = true
