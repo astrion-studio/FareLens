@@ -208,9 +208,9 @@ class MockPersistenceService: PersistenceServiceProtocol {
     func saveUser(_ user: User) async {}
     func loadUser() async -> User? { return nil }
     func clearUser() async {}
-    func saveDeals(_ deals: [FlightDeal]) async {}
-    func loadDeals() async -> [FlightDeal] { return [] }
+    func saveDeals(_ deals: [FlightDeal], origin: String?) async {}
+    func loadDeals(origin: String?) async -> [FlightDeal] { return [] }
     func clearDeals() async {}
-    func isCacheValid() async -> Bool { return false }
+    func isCacheValid(for origin: String?) async -> Bool { return false }
     func clearAllData() async {}
 }
