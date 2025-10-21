@@ -176,10 +176,12 @@ Xcode created a basic project. Now add our actual code:
      - `Features/`
 
 3. **In the import dialog:**
-   - ✅ **Copy items if needed** (check this)
+   - ❌ **Copy items if needed** (UNCHECK this - files already in repo!)
    - ✅ **Create groups** (NOT folder references)
    - ✅ **Add to targets: FareLens** (check this)
    - Click **Finish**
+
+**⚠️ IMPORTANT:** Do NOT check "Copy items if needed"! The files already exist in the cloned repository. Copying them would duplicate every file and cause build errors.
 
 ### Step 3.5: Verify File Structure in Xcode
 
@@ -519,15 +521,26 @@ open ios-app/FareLens.xcodeproj
 ### When You Make Changes
 
 ```bash
+# Create feature branch
+git checkout -b fix/my-bug-fix
+
 # Add files
 git add .
 
 # Commit
 git commit -m "fix: Description of your fix"
 
-# Push
-git push origin main
+# Push to feature branch
+git push -u origin fix/my-bug-fix
+
+# Create pull request (main branch is protected!)
+gh pr create --title "fix: Description of your fix" --fill
+
+# Enable auto-merge after Codex review
+gh pr merge --auto --squash
 ```
+
+**Note:** The `main` branch is protected - you cannot push directly to it. Always use feature branches and pull requests as described in [WORKFLOW.md](WORKFLOW.md).
 
 ---
 
