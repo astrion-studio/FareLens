@@ -3,6 +3,7 @@
 
 import Observation
 import SwiftUI
+import UIKit
 import UserNotifications
 
 struct NotificationSettingsView: View {
