@@ -141,12 +141,12 @@ actor AlertService: AlertServiceProtocol {
 
     /// Get number of alerts sent today for a specific user
     func getAlertsSentToday(for userId: UUID) async -> Int {
-        self.alertsSentToday[userId] ?? 0
+        alertsSentToday[userId] ?? 0
     }
 
     private func incrementAlertCounter(for userId: UUID) async {
-        let current = self.alertsSentToday[userId] ?? 0
-        self.alertsSentToday[userId] = current + 1
+        let current = alertsSentToday[userId] ?? 0
+        alertsSentToday[userId] = current + 1
         await persistCounters()
     }
 
@@ -165,7 +165,7 @@ actor AlertService: AlertServiceProtocol {
                 }
                 restoredCounters[uuid] = value
             }
-            self.alertsSentToday = restoredCounters
+            alertsSentToday = restoredCounters
         }
 
         // Load last reset dates
@@ -180,16 +180,16 @@ actor AlertService: AlertServiceProtocol {
                 }
                 restoredResetDates[uuid] = value
             }
-            self.lastResetDate = restoredResetDates
+            lastResetDate = restoredResetDates
         }
 
-        logger.info("Loaded persisted alert counters: \(self.alertsSentToday.count) users")
+        logger.info("Loaded persisted alert counters: \(alertsSentToday.count) users")
     }
 
     private func persistCounters() async {
         // Save alert counters
         var counterDict: [String: Int] = [:]
-        for (key, value) in self.alertsSentToday {
+        for (key, value) in alertsSentToday {
             counterDict[key.uuidString] = value
         }
 
@@ -199,7 +199,7 @@ actor AlertService: AlertServiceProtocol {
 
         // Save last reset dates
         var resetDict: [String: Date] = [:]
-        for (key, value) in self.lastResetDate {
+        for (key, value) in lastResetDate {
             resetDict[key.uuidString] = value
         }
 
