@@ -22,7 +22,7 @@ final class AlertServiceTests: XCTestCase {
 
     // MARK: - Alert Cap Tests
 
-    @Test("Free tier alerts sent immediately with 3/day cap")
+    // Free tier alerts sent immediately with 3/day cap
     func testFreeTierAlertCap() async throws {
         // Arrange: 5 deals, Free tier (3/day cap)
         let deals = (0..<5).map { _ in createTestDeal() }
@@ -35,7 +35,7 @@ final class AlertServiceTests: XCTestCase {
         XCTAssertEqual(mockNotification.sentAlerts.count, 3)
     }
 
-    @Test("Pro tier alerts sent immediately with 6/day cap")
+    // Pro tier alerts sent immediately with 6/day cap
     func testProTierAlertCap() async throws {
         // Arrange: 10 deals, Pro tier (6/day cap)
         testUser = createTestUser(tier: .pro)
@@ -49,7 +49,7 @@ final class AlertServiceTests: XCTestCase {
         XCTAssertEqual(mockNotification.sentAlerts.count, 6)
     }
 
-    @Test("Alert cap enforcement prevents exceeding daily limit")
+    // Alert cap enforcement prevents exceeding daily limit
     func testAlertCapEnforcement() async throws {
         // Arrange: Send 3 alerts first
         let firstBatch = (0..<3).map { _ in createTestDeal() }
@@ -66,7 +66,7 @@ final class AlertServiceTests: XCTestCase {
 
     // MARK: - Quiet Hours Tests
 
-    @Test("Alerts blocked during quiet hours")
+    // Alerts blocked during quiet hours
     func testQuietHoursBlocking() async throws {
         // Arrange: Set current time to 11pm (quiet hours: 10pm-7am)
         testUser.timezone = "America/Los_Angeles"
@@ -87,7 +87,7 @@ final class AlertServiceTests: XCTestCase {
 
     // MARK: - Deduplication Tests
 
-    @Test("Alert deduplication prevents duplicate alerts within 12h")
+    // Alert deduplication prevents duplicate alerts within 12h
     func testDeduplication() async throws {
         // Arrange: Same deal sent twice
         let deal = createTestDeal()
@@ -105,7 +105,7 @@ final class AlertServiceTests: XCTestCase {
 
     // MARK: - Watchlist-Only Mode Tests
 
-    @Test("Pro tier watchlist-only mode filters non-watchlist deals")
+    // Pro tier watchlist-only mode filters non-watchlist deals
     func testWatchlistOnlyMode() async throws {
         // Arrange: Pro user with watchlist-only mode enabled
         testUser = createTestUser(tier: .pro)
