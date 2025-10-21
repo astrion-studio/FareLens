@@ -176,10 +176,12 @@ Xcode created a basic project. Now add our actual code:
      - `Features/`
 
 3. **In the import dialog:**
-   - ✅ **Copy items if needed** (check this)
+   - ❌ **Copy items if needed** (UNCHECK this - files already in repo!)
    - ✅ **Create groups** (NOT folder references)
    - ✅ **Add to targets: FareLens** (check this)
    - Click **Finish**
+
+**⚠️ IMPORTANT:** Do NOT check "Copy items if needed"! The files already exist in the cloned repository. Copying them would duplicate every file and cause build errors.
 
 ### Step 3.5: Verify File Structure in Xcode
 
@@ -235,19 +237,17 @@ FareLens/
 3. **Bundle Identifier:** Should be `com.farelens.app`
    - If conflict: Change to `com.farelens.app.YOURNAME`
 
-### Step 4.3: Add Required Capabilities
+### Step 4.3: Leave Capabilities Default (Free Account)
 
-Click **+ Capability** button and add:
+- **Skip adding new capabilities if you're on the free Apple Developer account.**
+  - Push Notifications, Background Modes, and In-App Purchase require a paid Apple Developer Program membership and will trigger signing errors on free accounts.
+  - We'll enable them later once the paid program is active and the features are implemented.
 
-1. **Push Notifications**
-   - Required for flight deal alerts
+If you already have a paid Apple Developer Program membership, you can add them now so Xcode matches production signing:
 
-2. **Background Modes**
-   - Check: ✅ Background fetch
-   - Check: ✅ Remote notifications
-
-3. **In-App Purchase**
-   - Required for Pro subscription
+1. **Push Notifications** – Needed for flight deal alerts when we ship them
+2. **Background Modes** – Check ✅ Background fetch and ✅ Remote notifications
+3. **In-App Purchase** – Needed for the Pro subscription flow
 
 ### Step 4.4: Configure Deployment Target
 
@@ -519,15 +519,26 @@ open ios-app/FareLens.xcodeproj
 ### When You Make Changes
 
 ```bash
+# Create feature branch
+git checkout -b fix/my-bug-fix
+
 # Add files
 git add .
 
 # Commit
 git commit -m "fix: Description of your fix"
 
-# Push
-git push origin main
+# Push to feature branch
+git push -u origin fix/my-bug-fix
+
+# Create pull request (main branch is protected!)
+gh pr create --title "fix: Description of your fix" --fill
+
+# Enable auto-merge after Codex review
+gh pr merge --auto --squash
 ```
+
+**Note:** The `main` branch is protected - you cannot push directly to it. Always use feature branches and pull requests as described in [WORKFLOW.md](WORKFLOW.md).
 
 ---
 
