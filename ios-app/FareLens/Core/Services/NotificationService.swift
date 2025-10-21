@@ -12,16 +12,39 @@ protocol NotificationServiceProtocol {
     func sendDealAlert(deal: FlightDeal, userId: UUID) async
 }
 
-actor NotificationService: NSObject, NotificationServiceProtocol, UNUserNotificationCenterDelegate {
+actor NotificationService: NotificationServiceProtocol {
     static let shared = NotificationService()
 
     private let notificationCenter = UNUserNotificationCenter.current()
+    private let delegateProxy: NotificationCenterDelegateProxy
     private var isAuthorized = false
     private let logger = Logger(subsystem: "com.farelens.app", category: "notifications")
 
-    override init() {
-        super.init()
-        notificationCenter.delegate = self
+    init() {
+        let proxy = NotificationCenterDelegateProxy()
+        delegateProxy = proxy
+        proxy.service = self
+        notificationCenter.delegate = proxy
+    }
+
+    private final class NotificationCenterDelegateProxy: NSObject, UNUserNotificationCenterDelegate {
+        weak var service: NotificationService?
+
+        func userNotificationCenter(
+            _: UNUserNotificationCenter,
+            willPresent notification: UNNotification
+        ) async -> UNNotificationPresentationOptions {
+            guard let service else { return [] }
+            return await service.handleWillPresent(notification: notification)
+        }
+
+        func userNotificationCenter(
+            _: UNUserNotificationCenter,
+            didReceive response: UNNotificationResponse
+        ) async {
+            guard let service else { return }
+            await service.handleDidReceive(response: response)
+        }
     }
 
     /// Request notification permissions from user
@@ -103,20 +126,14 @@ actor NotificationService: NSObject, NotificationServiceProtocol, UNUserNotifica
         }
     }
 
-    // MARK: - UNUserNotificationCenterDelegate
+    // MARK: - Notification Handling
 
-    nonisolated func userNotificationCenter(
-        _: UNUserNotificationCenter,
-        willPresent _: UNNotification
-    ) async -> UNNotificationPresentationOptions {
+    func handleWillPresent(notification _: UNNotification) -> UNNotificationPresentationOptions {
         // Show notification even when app is in foreground
         [.banner, .sound, .badge]
     }
 
-    nonisolated func userNotificationCenter(
-        _: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse
-    ) async {
+    func handleDidReceive(response: UNNotificationResponse) async {
         let userInfo = response.notification.request.content.userInfo
 
         // Handle notification tap

@@ -13,7 +13,11 @@ final class OnboardingViewModel {
     var errorMessage: String?
     var currentStep: OnboardingStep = .welcome
 
-    init() {}
+    private let appState: AppState
+
+    init(appState: AppState) {
+        self.appState = appState
+    }
 
     var isFormValid: Bool {
         !email.isEmpty && email.contains("@") && password.count >= 8
@@ -29,9 +33,12 @@ final class OnboardingViewModel {
         errorMessage = nil
 
         do {
-            _ = try await AuthService.shared.signIn(email: email, password: password)
+            let user = try await AuthService.shared.signIn(email: email, password: password)
             isLoading = false
-            // Navigation handled by AppState
+
+            // Update AppState to transition to main app
+            appState.isAuthenticated = true
+            appState.currentUser = user
         } catch {
             errorMessage = error.localizedDescription
             isLoading = false
@@ -48,9 +55,12 @@ final class OnboardingViewModel {
         errorMessage = nil
 
         do {
-            _ = try await AuthService.shared.signUp(email: email, password: password)
+            let user = try await AuthService.shared.signUp(email: email, password: password)
             isLoading = false
-            // Navigation handled by AppState
+
+            // Update AppState to transition to main app
+            appState.isAuthenticated = true
+            appState.currentUser = user
         } catch {
             errorMessage = error.localizedDescription
             isLoading = false
