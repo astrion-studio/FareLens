@@ -45,10 +45,13 @@ actor DealsRepository: DealsRepositoryProtocol {
         let endpoint = APIEndpoint.getDeals(origin: origin)
         let response: DealsResponse = try await apiClient.request(endpoint)
 
-        // Cache deals
-        await persistenceService.saveDeals(response.deals)
+        // Filter deals by origin before caching and returning
+        let filteredDeals = filterByOrigin(response.deals, origin: origin)
 
-        return response.deals
+        // Cache filtered deals
+        await persistenceService.saveDeals(filteredDeals)
+
+        return filteredDeals
     }
 
     /// Fetch single deal detail
