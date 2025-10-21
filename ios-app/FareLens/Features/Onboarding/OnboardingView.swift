@@ -1,6 +1,7 @@
 // FareLens - Flight Deal Alert App
 // Copyright © 2025 FareLens. All rights reserved.
 
+import Observation
 import SwiftUI
 
 struct OnboardingView: View {
@@ -29,7 +30,7 @@ struct OnboardingView: View {
 }
 
 struct WelcomeScreen: View {
-    var viewModel: OnboardingViewModel
+    @Bindable var viewModel: OnboardingViewModel
 
     var body: some View {
         ZStack {
@@ -75,7 +76,7 @@ struct WelcomeScreen: View {
 }
 
 struct BenefitsScreen: View {
-    var viewModel: OnboardingViewModel
+    @Bindable var viewModel: OnboardingViewModel
 
     var body: some View {
         ZStack {
@@ -181,7 +182,7 @@ struct BenefitRow: View {
 }
 
 struct AuthScreen: View {
-    var viewModel: OnboardingViewModel
+    @Bindable var viewModel: OnboardingViewModel
     @State private var isSignUp = false
 
     var body: some View {
