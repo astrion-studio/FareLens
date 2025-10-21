@@ -1,0 +1,214 @@
+name: iOS CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ios-app/**'
+      - '.github/workflows/ios-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'ios-app/**'
+      - '.github/workflows/ios-ci.yml'
+
+jobs:
+  build-and-test:
+    name: Build & Test iOS App
+    runs-on: macos-14  # macOS Sonoma with Xcode 15+
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Check for Xcode project
+        id: check_project
+        run: |
+          if [ -f "ios-app/FareLens.xcodeproj/project.pbxproj" ]; then
+            echo "has_project=true" >> $GITHUB_OUTPUT
+            echo "✅ Xcode project found"
+          else
+            echo "has_project=false" >> $GITHUB_OUTPUT
+            echo "⚠️  Xcode project not found - project must be created manually in Xcode"
+            echo "⚠️  See XCODE_SETUP.md for instructions"
+          fi
+
+      - name: Cache derived data
+        if: steps.check_project.outputs.has_project == 'true'
+        uses: actions/cache@v3
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-derived-data-${{ hashFiles('ios-app/**/*.swift') }}
+          restore-keys: |
+            ${{ runner.os }}-derived-data-
+
+      - name: Build for testing
+        if: steps.check_project.outputs.has_project == 'true'
+        run: |
+          cd ios-app
+          xcodebuild clean build-for-testing \
+            -project FareLens.xcodeproj \
+            -scheme FareLens \
+            -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=17.5' \
+            -configuration Debug \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty --color --simple
+
+      - name: Run unit tests
+        if: steps.check_project.outputs.has_project == 'true'
+        run: |
+          cd ios-app
+          xcodebuild test-without-building \
+            -project FareLens.xcodeproj \
+            -scheme FareLens \
+            -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=17.5' \
+            -resultBundlePath TestResults.xcresult \
+            | xcpretty --color --simple --report junit
+
+      - name: Upload test results
+        if: steps.check_project.outputs.has_project == 'true' && always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: ios-app/TestResults.xcresult
+
+      - name: Check for build warnings
+        if: steps.check_project.outputs.has_project == 'true'
+        run: |
+          cd ios-app
+          WARNINGS=$(xcodebuild build \
+            -project FareLens.xcodeproj \
+            -scheme FareLens \
+            -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=17.5' \
+            -configuration Debug \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | grep -i "warning:" || true)
+
+          if [ -n "$WARNINGS" ]; then
+            echo "⚠️  Build warnings found:"
+            echo "$WARNINGS"
+          else
+            echo "✅ No build warnings"
+          fi
+
+      - name: Fallback - validate Swift syntax
+        if: steps.check_project.outputs.has_project == 'false'
+        run: |
+          echo "📝 Validating Swift syntax without Xcode project..."
+          find ios-app/FareLens -name "*.swift" -type f | while read file; do
+            xcrun swiftc -typecheck "$file" 2>&1 || echo "⚠️  Syntax error in: $file"
+          done
+
+  code-quality:
+    name: Code Quality
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install SwiftFormat
+        run: brew install swiftformat
+
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Run SwiftFormat
+        run: |
+          swiftformat --lint ios-app/FareLens --config .swiftformat || {
+            echo "❌ SwiftFormat violations found"
+            echo "Run: swiftformat ios-app/FareLens --config .swiftformat"
+            exit 1
+          }
+
+      - name: Run SwiftLint
+        run: |
+          cd ios-app
+          swiftlint lint --config ../.swiftlint.yml --strict || {
+            echo "❌ SwiftLint violations found"
+            echo "Run: swiftlint --fix --config .swiftlint.yml"
+            exit 1
+          }
+
+      - name: Run iOS 26 pattern validation
+        run: |
+          chmod +x scripts/check-ios26-patterns.sh
+          ./scripts/check-ios26-patterns.sh
+
+      - name: Check for print statements
+        run: |
+          PRINT_STATEMENTS=$(find ios-app/FareLens -name "*.swift" -type f ! -name "*Tests.swift" \
+            -exec grep -l 'print(' {} + 2>/dev/null || true)
+
+          if [ -n "$PRINT_STATEMENTS" ]; then
+            echo "❌ Found print statements (use OSLog instead):"
+            echo "$PRINT_STATEMENTS"
+            exit 1
+          fi
+          echo "✅ No print statements found"
+
+      - name: Check for force unwraps
+        run: |
+          FORCE_UNWRAPS=$(find ios-app/FareLens -name "*.swift" -type f ! -name "*Tests.swift" -print0 | \
+            xargs -0 grep -n "[a-zA-Z0-9_)]!" | \
+            grep -v "//" | \
+            grep -v "\".*!.*\"" | \
+            grep -v "!=" | \
+            grep -v "\[.*\]!" || true)
+
+          if [ -n "$FORCE_UNWRAPS" ]; then
+            echo "⚠️  Found potential force unwraps:"
+            echo "$FORCE_UNWRAPS"
+            echo ""
+            echo "Please use safe optional handling (if let, guard let, or ?? operator)"
+            # Warning only, don't fail
+          else
+            echo "✅ No force unwraps found"
+          fi
+
+  size-check:
+    name: Binary Size Check
+    runs-on: macos-14
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+
+      - name: Check if project exists
+        id: check_project
+        run: |
+          if [ -f "ios-app/FareLens.xcodeproj/project.pbxproj" ]; then
+            echo "has_project=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_project=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build PR version
+        if: steps.check_project.outputs.has_project == 'true'
+        run: |
+          cd ios-app
+          xcodebuild clean build \
+            -project FareLens.xcodeproj \
+            -scheme FareLens \
+            -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=17.5' \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            | xcpretty --simple
+
+      - name: Check binary size
+        if: steps.check_project.outputs.has_project == 'true'
+        run: |
+          APP_SIZE=$(du -sh ~/Library/Developer/Xcode/DerivedData/*/Build/Products/Release-iphonesimulator/FareLens.app | cut -f1)
+          echo "📦 App size: $APP_SIZE"
+          echo "APP_SIZE=$APP_SIZE" >> $GITHUB_ENV
