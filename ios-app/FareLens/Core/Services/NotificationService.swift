@@ -12,7 +12,7 @@ protocol NotificationServiceProtocol {
     func sendDealAlert(deal: FlightDeal, userId: UUID) async
 }
 
-actor NotificationService: NSObject, NotificationServiceProtocol, UNUserNotificationCenterDelegate {
+@MainActor final class NotificationService: NSObject, NotificationServiceProtocol, UNUserNotificationCenterDelegate {
     static let shared = NotificationService()
 
     private let notificationCenter = UNUserNotificationCenter.current()
@@ -105,7 +105,7 @@ actor NotificationService: NSObject, NotificationServiceProtocol, UNUserNotifica
 
     // MARK: - UNUserNotificationCenterDelegate
 
-    nonisolated func userNotificationCenter(
+    func userNotificationCenter(
         _: UNUserNotificationCenter,
         willPresent _: UNNotification
     ) async -> UNNotificationPresentationOptions {
@@ -113,7 +113,7 @@ actor NotificationService: NSObject, NotificationServiceProtocol, UNUserNotifica
         [.banner, .sound, .badge]
     }
 
-    nonisolated func userNotificationCenter(
+    func userNotificationCenter(
         _: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
