@@ -13,7 +13,7 @@ struct ContentView: View {
             } else if appState.isAuthenticated {
                 MainTabView()
             } else {
-                OnboardingView()
+                OnboardingView(appState: appState)
             }
         }
     }

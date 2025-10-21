@@ -452,10 +452,6 @@ extension FlightDeal {
         return components.day ?? 0
     }
 
-    var normalPrice: Double {
-        totalPrice / (1.0 - Double(discountPercent) / 100.0)
-    }
-
     var discountAmount: Double {
         normalPrice - totalPrice
     }
