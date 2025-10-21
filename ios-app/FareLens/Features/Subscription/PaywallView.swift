@@ -4,6 +4,7 @@
 import Observation
 import StoreKit
 import SwiftUI
+import UIKit
 
 struct PaywallView: View {
     @State private var viewModel = PaywallViewModel()
