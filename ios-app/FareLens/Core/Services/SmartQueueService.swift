@@ -62,7 +62,7 @@ extension SmartQueueService {
     /// Deal: LAX→NYC, $450, DealScore 85
     /// User has watchlist: LAX→NYC, preferred airport LAX (weight 0.6)
     /// Calculation: 85 × (1 + 0.2) × (1 + 0.6) = 85 × 1.2 × 1.6 = 163.2
-    static func example1() -> Double {
+    nonisolated static func example1() -> Double {
         let dealScore: Double = 85
         let watchlistBoost = 0.2 // Matches watchlist
         let airportWeight = 0.6 // LAX is preferred
@@ -73,7 +73,7 @@ extension SmartQueueService {
     /// Deal: SFO→London, $380, DealScore 90
     /// User has watchlist: LAX→NYC (doesn't match), no SFO in preferred airports
     /// Calculation: 90 × (1 + 0) × (1 + 0) = 90
-    static func example2() -> Double {
+    nonisolated static func example2() -> Double {
         let dealScore: Double = 90
         let watchlistBoost = 0.0 // No match
         let airportWeight = 0.0 // Not preferred
@@ -84,7 +84,7 @@ extension SmartQueueService {
     /// Deal A: LAX→Tokyo, $550, DealScore 85, finalScore 163.2
     /// Deal B: LAX→Paris, $480, DealScore 85, finalScore 163.2
     /// Tiebreaker: Deal B wins (lower price: $480 < $550)
-    static func example3Tiebreaker() -> String {
+    nonisolated static func example3Tiebreaker() -> String {
         "Deal A: $550 (163.2), Deal B: $480 (163.2) → Deal B wins (lower price)"
     }
 }
