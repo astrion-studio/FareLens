@@ -8,10 +8,10 @@ protocol PersistenceServiceProtocol {
     func saveUser(_ user: User) async
     func loadUser() async -> User?
     func clearUser() async
-    func saveDeals(_ deals: [FlightDeal]) async
-    func loadDeals() async -> [FlightDeal]
+    func saveDeals(_ deals: [FlightDeal], origin: String?) async
+    func loadDeals(origin: String?) async -> [FlightDeal]
     func clearDeals() async
-    func isCacheValid() async -> Bool
+    func isCacheValid(for origin: String?) async -> Bool
     func clearAllData() async
 }
 
@@ -19,13 +19,65 @@ actor PersistenceService: PersistenceServiceProtocol {
     static let shared = PersistenceService()
 
     private let userDefaults = UserDefaults.standard
-    private let fileManager = FileManager.default
     private let logger = Logger(subsystem: "com.farelens.app", category: "persistence")
+
+    private struct DealsCacheEntry: Codable {
+        let deals: [FlightDeal]
+        let lastRefresh: Date
+    }
+
+    private typealias DealsCacheStore = [String: DealsCacheEntry]
 
     private enum Keys {
         static let currentUser = "current_user"
         static let cachedDeals = "cached_deals"
         static let lastRefresh = "last_refresh"
+    }
+
+    private let cacheTTL: TimeInterval = 5 * 60 // 5 minutes per ARCHITECTURE.md line 335
+
+    private func cacheKey(for origin: String?) -> String {
+        guard let origin = origin?.trimmingCharacters(in: .whitespacesAndNewlines), !origin.isEmpty else {
+            return "__all__"
+        }
+        return origin.uppercased()
+    }
+
+    private func loadDealsStore() -> DealsCacheStore {
+        guard let data = userDefaults.data(forKey: Keys.cachedDeals) else {
+            return [:]
+        }
+
+        let decoder = JSONDecoder()
+        if let store = try? decoder.decode(DealsCacheStore.self, from: data) {
+            return store
+        }
+
+        // Legacy format fallback: cached array without origin separation
+        if let legacyDeals = try? decoder.decode([FlightDeal].self, from: data) {
+            let lastRefresh = (userDefaults.object(forKey: Keys.lastRefresh) as? Date) ?? .distantPast
+            let entry = DealsCacheEntry(deals: legacyDeals, lastRefresh: lastRefresh)
+            let store: DealsCacheStore = [cacheKey(for: nil): entry]
+
+            if let upgradedData = try? JSONEncoder().encode(store) {
+                userDefaults.set(upgradedData, forKey: Keys.cachedDeals)
+            }
+
+            return store
+        }
+
+        logger.error("Failed to decode deals cache store")
+        return [:]
+    }
+
+    private func saveDealsStore(_ store: DealsCacheStore) {
+        do {
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(store)
+            userDefaults.set(data, forKey: Keys.cachedDeals)
+        } catch {
+            logger.error("Failed to encode deals cache store: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     // MARK: - User Persistence
@@ -63,40 +115,30 @@ actor PersistenceService: PersistenceServiceProtocol {
 
     // MARK: - Deals Cache
 
-    func saveDeals(_ deals: [FlightDeal]) async {
-        do {
-            let encoder = JSONEncoder()
-            let data = try encoder.encode(deals)
-            userDefaults.set(data, forKey: Keys.cachedDeals)
-            userDefaults.set(Date(), forKey: Keys.lastRefresh)
-            logger.info("Saved \(deals.count) deals to cache")
-        } catch {
-            logger.error("Failed to save deals: \(error.localizedDescription, privacy: .public)")
-        }
+    func saveDeals(_ deals: [FlightDeal], origin: String? = nil) async {
+        var store = loadDealsStore()
+        store[cacheKey(for: origin)] = DealsCacheEntry(deals: deals, lastRefresh: Date())
+        saveDealsStore(store)
+        logger.info("Saved \(deals.count) deals to cache for origin: \(origin ?? "all", privacy: .public)")
     }
 
-    func loadDeals() async -> [FlightDeal] {
-        guard let data = userDefaults.data(forKey: Keys.cachedDeals) else {
+    func loadDeals(origin: String? = nil) async -> [FlightDeal] {
+        var store = loadDealsStore()
+        let key = cacheKey(for: origin)
+
+        guard let entry = store[key] else {
             return []
         }
 
-        // Check if cache is expired (5 minutes per ARCHITECTURE.md line 335)
-        if let lastRefresh = userDefaults.object(forKey: Keys.lastRefresh) as? Date {
-            let cacheAge = Date().timeIntervalSince(lastRefresh)
-            if cacheAge > 5 * 60 { // 5 minutes
-                return [] // Cache expired
-            }
-        }
-
-        do {
-            let decoder = JSONDecoder()
-            let deals = try decoder.decode([FlightDeal].self, from: data)
-            logger.info("Loaded \(deals.count) deals from cache")
-            return deals
-        } catch {
-            logger.error("Failed to load deals: \(error.localizedDescription, privacy: .public)")
+        let cacheAge = Date().timeIntervalSince(entry.lastRefresh)
+        if cacheAge > cacheTTL {
+            store.removeValue(forKey: key)
+            saveDealsStore(store)
             return []
         }
+
+        logger.info("Loaded \(entry.deals.count) deals from cache for origin: \(origin ?? "all", privacy: .public)")
+        return entry.deals
     }
 
     func clearDeals() async {
@@ -106,13 +148,14 @@ actor PersistenceService: PersistenceServiceProtocol {
 
     // MARK: - Cache Management
 
-    func isCacheValid() async -> Bool {
-        guard let lastRefresh = userDefaults.object(forKey: Keys.lastRefresh) as? Date else {
+    func isCacheValid(for origin: String? = nil) async -> Bool {
+        let store = loadDealsStore()
+        guard let entry = store[cacheKey(for: origin)] else {
             return false
         }
 
-        let cacheAge = Date().timeIntervalSince(lastRefresh)
-        return cacheAge < 5 * 60 // 5 minutes per ARCHITECTURE.md line 335
+        let cacheAge = Date().timeIntervalSince(entry.lastRefresh)
+        return cacheAge < cacheTTL
     }
 
     func clearAllData() async {
