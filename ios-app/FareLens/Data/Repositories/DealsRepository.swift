@@ -13,12 +13,12 @@ actor DealsRepository: DealsRepositoryProtocol {
     static let shared = DealsRepository()
 
     private let apiClient: APIClient
-    private let persistenceService: PersistenceService
+    private let persistenceService: PersistenceServiceProtocol
     private let smartQueueService: SmartQueueService
 
     init(
         apiClient: APIClient = .shared,
-        persistenceService: PersistenceService = .shared,
+        persistenceService: PersistenceServiceProtocol = PersistenceService.shared,
         smartQueueService: SmartQueueService = .shared
     ) {
         self.apiClient = apiClient
@@ -30,8 +30,8 @@ actor DealsRepository: DealsRepositoryProtocol {
     /// Implements 5-minute cache TTL per ARCHITECTURE.md line 335
     func fetchDeals(origin: String? = nil, forceRefresh: Bool = false) async throws -> [FlightDeal] {
         // Check cache if not forcing refresh
-        if !forceRefresh, await persistenceService.isCacheValid() {
-            let cachedDeals = await persistenceService.loadDeals()
+        if !forceRefresh, await persistenceService.isCacheValid(for: origin) {
+            let cachedDeals = await persistenceService.loadDeals(origin: origin)
             if !cachedDeals.isEmpty {
                 return filterByOrigin(cachedDeals, origin: origin)
             }
@@ -45,10 +45,8 @@ actor DealsRepository: DealsRepositoryProtocol {
         let endpoint = APIEndpoint.getDeals(origin: origin)
         let response: DealsResponse = try await apiClient.request(endpoint)
 
-        // Cache full unfiltered response to avoid cross-origin pollution
-        // Per Codex P1 feedback: filtering before cache causes wrong results
-        // when switching between origins within TTL window
-        await persistenceService.saveDeals(response.deals)
+        // Cache results using per-origin keys to avoid cross-origin pollution
+        await persistenceService.saveDeals(response.deals, origin: origin)
 
         // Filter deals by origin after caching
         return filterByOrigin(response.deals, origin: origin)
