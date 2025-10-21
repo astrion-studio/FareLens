@@ -4,7 +4,13 @@
 import SwiftUI
 
 struct OnboardingView: View {
-    @State private var viewModel = OnboardingViewModel()
+    let appState: AppState
+    @State private var viewModel: OnboardingViewModel
+
+    init(appState: AppState) {
+        self.appState = appState
+        _viewModel = State(initialValue: OnboardingViewModel(appState: appState))
+    }
 
     var body: some View {
         NavigationView {
