@@ -12,7 +12,7 @@ final class SmartQueueServiceTests: XCTestCase {
 
     // MARK: - Test Smart Queue Formula
 
-    @Test("Smart queue calculates score correctly with watchlist boost and airport weight")
+    // Smart queue calculates score correctly with watchlist boost and airport weight
     func testCalculateQueueScore_WithWatchlistAndAirport() async throws {
         // Arrange: Deal matches watchlist + preferred airport
         let deal = createTestDeal(
@@ -28,7 +28,7 @@ final class SmartQueueServiceTests: XCTestCase {
         XCTAssertEqual(score, 163.2, accuracy: 0.01)
     }
 
-    @Test("Smart queue calculates score correctly without watchlist boost")
+    // Smart queue calculates score correctly without watchlist boost
     func testCalculateQueueScore_NoWatchlist() async throws {
         // Arrange: Deal doesn't match watchlist
         let deal = createTestDeal(
@@ -44,7 +44,7 @@ final class SmartQueueServiceTests: XCTestCase {
         XCTAssertEqual(score, 90.0, accuracy: 0.01)
     }
 
-    @Test("Smart queue applies airport weight correctly")
+    // Smart queue applies airport weight correctly
     func testCalculateQueueScore_AirportWeightOnly() async throws {
         // Arrange: Deal from preferred airport but no watchlist match
         let deal = createTestDeal(
@@ -62,7 +62,7 @@ final class SmartQueueServiceTests: XCTestCase {
 
     // MARK: - Test Ranking Algorithm
 
-    @Test("Smart queue ranks deals by score (highest first)")
+    // Smart queue ranks deals by score (highest first)
     func testRankDeals_ByScore() async throws {
         // Arrange
         let deal1 = createTestDeal(origin: "LAX", destination: "JFK", dealScore: 85) // 163.2
@@ -78,7 +78,7 @@ final class SmartQueueServiceTests: XCTestCase {
         XCTAssertEqual(ranked[2].id, deal2.id)
     }
 
-    @Test("Smart queue applies tiebreaker by price when scores equal")
+    // Smart queue applies tiebreaker by price when scores equal
     func testRankDeals_TiebreakerByPrice() async throws {
         // Arrange: Same score, different prices
         let deal1 = createTestDeal(
@@ -102,7 +102,7 @@ final class SmartQueueServiceTests: XCTestCase {
         XCTAssertEqual(ranked[1].id, deal1.id)
     }
 
-    @Test("Smart queue applies tiebreaker by date when scores and prices equal")
+    // Smart queue applies tiebreaker by date when scores and prices equal
     func testRankDeals_TiebreakerByDate() async throws {
         // Arrange: Same score and price, different dates
         let deal1 = createTestDeal(
@@ -130,7 +130,7 @@ final class SmartQueueServiceTests: XCTestCase {
 
     // MARK: - Test Examples from ARCHITECTURE.md
 
-    @Test("Example 1: Watchlist priority")
+    // Example 1: Watchlist priority
     func testExample1_WatchlistPriority() async throws {
         // Deal: LAX→NYC, $450, DealScore 85
         // Calculation: 85 × (1 + 0.2) × (1 + 0.6) = 163.2
@@ -138,7 +138,7 @@ final class SmartQueueServiceTests: XCTestCase {
         XCTAssertEqual(score, 163.2, accuracy: 0.01)
     }
 
-    @Test("Example 2: No watchlist match")
+    // Example 2: No watchlist match
     func testExample2_NoWatchlistMatch() async throws {
         // Deal: SFO→London, $380, DealScore 90
         // Calculation: 90 × (1 + 0) × (1 + 0) = 90.0

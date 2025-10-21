@@ -475,7 +475,44 @@ done
 # Fix immediately before moving to next feature
 ```
 
-### Layer 3: PR Review (Before Merge)
+### Layer 3: Codex AI Review (Automated PR Review)
+
+**Workflow:**
+```bash
+# 1. Create PR
+gh pr create --title "feat: Add new feature" --fill
+
+# 2. Codex automatically reviews (triggered by PR creation)
+# Wait ~30 seconds for Codex to comment
+
+# 3. If Codex leaves comments:
+#    - Read the feedback
+#    - Make necessary changes
+#    - Commit and push
+
+# 4. Request re-review from Codex
+gh pr comment <PR#> --body "@codex review
+
+Addressed your feedback:
+- Fixed X issue
+- Updated Y implementation
+- Resolved Z concern
+
+Please re-review and resolve if satisfied."
+
+# 5. Codex re-reviews
+# - If satisfied: Resolves conversation thread
+# - If not: Leaves more comments
+
+# 6. Once all threads resolved: PR auto-merges
+```
+
+**Configuration:**
+- **Branch Protection:** Require conversation resolution before merging
+- **Auto-merge:** Enabled on PRs
+- **Codex Setup:** Trigger on all PRs to `main` branch
+
+### Layer 4: PR Automated Checks (Before Merge)
 
 ```yaml
 # GitHub Actions (.github/workflows/pr-quality-gate.yml)
@@ -528,7 +565,7 @@ jobs:
 - Coverage ≥80% (≥95% for critical paths)
 - Build succeeds
 
-### Layer 4: Integration Review (After All Features)
+### Layer 5: Integration Review (After All Features)
 
 ```bash
 # After all features merged:
@@ -887,6 +924,124 @@ linear issue list --state closed --updated-after "2025-10-01" | \
 # Closed: P0=5, P1=11, P2=6
 # Velocity: 22 issues/week
 ```
+
+---
+
+## Automation and Issue Tracking
+
+### Automated PR-to-Issue Linking
+
+When creating a PR, use keywords in the description to auto-close issues:
+
+```bash
+# Automatically closes issue #123 when PR merges
+gh pr create --title "fix: Date serialization bug" --body "Fixes #123
+
+Changes:
+- Convert Date to ISO8601 strings
+- Update tests
+
+Closes #123"
+```
+
+**Keywords that auto-close issues:**
+- `Fixes #123`
+- `Closes #123`
+- `Resolves #123`
+- `Fix #123`
+- `Close #123`
+- `Resolve #123`
+
+**Best Practices:**
+1. **One PR, One Issue**: Link PRs to specific issues
+2. **Use Keywords**: Always use `Fixes #X` or `Closes #X`
+3. **Describe What Fixed It**: Help future developers understand the fix
+
+### Dependabot Security Alert Workflow
+
+Dependabot automatically:
+1. **Detects** vulnerabilities in dependencies
+2. **Creates alerts** in Security tab
+3. **Opens PRs** to fix vulnerabilities
+4. **Re-checks** after PRs merge
+
+**Current Setup:**
+- Enabled for `backend/requirements.txt` (Python dependencies)
+- Enabled for `.github/workflows/*.yml` (GitHub Actions)
+- Future: Swift Package Manager (when added)
+
+**Security Alert Priority:**
+
+| Severity | Response Time | Action |
+|----------|---------------|--------|
+| **Critical** | Immediate (same day) | Create PR, review, merge ASAP |
+| **High** | 1-2 days | Create PR, schedule merge |
+| **Medium** | 1 week | Bundle with other updates |
+| **Low** | 1 month | Defer to quarterly maintenance |
+
+**Manual Intervention Required When:**
+1. **Breaking Changes** - Major version jumps
+2. **No Auto-Fix** - Dependabot can't create PR
+3. **Multiple Alternatives** - Need to choose replacement package
+
+### Deferred Dependency Tracking
+
+When deferring a dependency update:
+
+```bash
+# 1. Close the Dependabot PR with reason
+gh pr close <PR#> --comment "Deferring due to breaking changes. Tracked in #28"
+
+# 2. Create or update tracking issue
+gh issue create \
+  --title "Update deferred dependencies (mypy, pydantic-settings, etc.)" \
+  --body "## Deferred Updates
+
+- [ ] mypy: 1.13.0 → 1.18.2 (from #23)
+- [ ] pydantic-settings: 2.6.1 → 2.11.0 (from #24)
+
+## When to Address
+After backend API is stable and fully tested.
+
+## Checklist
+- [ ] Backend has >80% test coverage
+- [ ] All endpoints implemented
+- [ ] Create feature branch
+- [ ] Update dependencies one-by-one
+- [ ] Run full test suite
+- [ ] Check changelogs for breaking changes
+" \
+  --label "dependencies"
+```
+
+**Review Schedule:**
+- **Monthly**: Check tracking issue, decide if ready to apply
+- **Quarterly**: Force review all deferred updates
+- **Before v1.0 launch**: Must resolve all deferred updates
+
+### Automation Checklist
+
+**✅ Currently Automated:**
+- PR-to-issue linking (via keywords)
+- Dependabot security alerts
+- Dependabot dependency PRs
+- CI/CD on all PRs
+- Codex AI code review
+- Auto-merge when checks pass
+- Pre-commit hooks (local)
+
+**🔄 Partially Automated:**
+- Security vulnerability response (Dependabot creates PR, human reviews)
+- Deferred dependency tracking (manual issue creation)
+- Issue closure (requires PR merge)
+
+**⏳ Not Yet Automated (Future Enhancements):**
+- Auto-create issues from CI failures
+- Stale issue management
+- Auto-label issues based on content
+- Auto-assign issues to developers
+- Release note generation
+- Changelog updates
 
 ---
 
