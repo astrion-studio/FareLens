@@ -19,6 +19,10 @@ final class WatchlistsViewModel {
         self.user = user
     }
 
+    var userId: UUID {
+        user.id
+    }
+
     var canAddWatchlist: Bool {
         watchlists.count < user.maxWatchlists
     }
