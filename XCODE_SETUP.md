@@ -1,409 +1,635 @@
-# Xcode Project Setup Guide
+# FareLens iOS Setup Guide
 
-This guide walks through creating the Xcode project and integrating all Swift files.
+**Complete guide for setting up FareLens on your iPhone from GitHub**
+
+This is your first iOS project setup. This guide assumes NO prior Xcode experience.
+
+---
 
 ## Prerequisites
 
-- Xcode 15.0+ (for iOS 26.0+ support)
-- macOS Sonoma or later
-- Apple Developer account (for device testing and App Store submission)
+### Required Software
 
-## Step 1: Create New Xcode Project
+- **macOS Sonoma or later**
+- **Xcode 15.0+** (for iOS 17.0+ support with @Observable pattern)
+  - Download from Mac App Store: https://apps.apple.com/us/app/xcode/id497799835
+  - **Size:** ~15GB download, ~50GB installed
+  - **Time:** 1-2 hours download + install
+
+- **Apple Developer Account**
+  - Free account: ✅ Device testing (up to 3 devices)
+  - Paid ($99/year): App Store submission
+  - Sign up: https://developer.apple.com
+
+### Required Hardware
+
+- **iPhone** running iOS 17.0+
+  - Check: Settings → General → About → iOS Version
+  - Update if needed: Settings → General → Software Update
+- **USB-C or Lightning cable** to connect iPhone to Mac
+
+---
+
+## Part 1: Clone Repository from GitHub
+
+### Step 1.1: Install GitHub CLI (if not installed)
+
+```bash
+# Check if already installed
+which gh
+
+# If not installed:
+brew install gh
+
+# Login to GitHub
+gh auth login
+# Choose: GitHub.com → HTTPS → Yes (authenticate) → Login with web browser
+```
+
+### Step 1.2: Clone FareLens Repository
+
+```bash
+# Navigate to Projects folder (NOT Desktop!)
+cd ~/Projects
+
+# Clone the repository
+gh repo clone astrion-studio/FareLens
+
+# Navigate into project
+cd FareLens
+
+# Verify files exist
+ls -la
+# Should see: ios-app/, backend/, docs/, .github/, README.md, etc.
+```
+
+**Why ~/Projects instead of Desktop?**
+- Professional standard location
+- Avoids iCloud sync issues
+- Cleaner workspace organization
+- Already configured in your git
+
+### Step 1.3: Verify Project Structure
+
+```bash
+# Check iOS app files
+ls -la ios-app/FareLens/
+
+# Should see:
+# - App/
+# - Core/
+# - Data/
+# - DesignSystem/
+# - Features/
+```
+
+---
+
+## Part 2: Open Project in Xcode
+
+### Step 2.1: Check for Xcode Project File
+
+```bash
+# Look for .xcodeproj file
+find ios-app -name "*.xcodeproj"
+```
+
+**If file exists:** Skip to Step 2.2
+**If file DOESN'T exist:** You need to create it (see Part 3)
+
+### Step 2.2: Open in Xcode
+
+**Option A: From Finder**
+1. Open Finder
+2. Navigate to `~/Projects/FareLens/ios-app/`
+3. Double-click `FareLens.xcodeproj`
+4. Xcode opens automatically
+
+**Option B: From Terminal**
+```bash
+cd ~/Projects/FareLens/ios-app
+open FareLens.xcodeproj
+```
+
+**Option C: From Xcode**
+1. Open Xcode
+2. File → Open...
+3. Navigate to `~/Projects/FareLens/ios-app/`
+4. Select `FareLens.xcodeproj`
+5. Click **Open**
+
+---
+
+## Part 3: Create Xcode Project (If Needed)
+
+**Only follow this section if `.xcodeproj` doesn't exist yet.**
+
+### Step 3.1: Create New Project
 
 1. Open Xcode
-2. File → New → Project
+2. File → New → Project (or Cmd+Shift+N)
 3. Select **iOS → App**
-4. Configure project:
-   - **Product Name:** FareLens
-   - **Team:** Select your Apple Developer team
-   - **Organization Identifier:** com.farelens
-   - **Bundle Identifier:** com.farelens.app
-   - **Interface:** SwiftUI
-   - **Language:** Swift
-   - **Storage:** None (we're using custom persistence)
-   - **Include Tests:** Yes
-5. Save to: `/Users/Parvez/Desktop/FareLensApp/ios-app/`
+4. Click **Next**
 
-## Step 2: Project Structure
+### Step 3.2: Configure Project Settings
 
-Organize files in Xcode to match this structure:
+**Important: Use EXACT values below**
+
+| Setting | Value |
+|---------|-------|
+| **Product Name** | `FareLens` |
+| **Team** | Select your Apple Developer team |
+| **Organization Identifier** | `com.farelens` |
+| **Bundle Identifier** | `com.farelens.app` |
+| **Interface** | SwiftUI |
+| **Language** | Swift |
+| **Storage** | None *(we use custom persistence)* |
+| **Include Tests** | ✅ Yes |
+
+### Step 3.3: Save Project Location
+
+**CRITICAL:** Save to existing cloned repository location
+
+```
+Location: /Users/Parvez/Projects/FareLens/ios-app/
+```
+
+- ⚠️ **Do NOT** let Xcode create a new folder
+- ✅ **Do** save directly into `ios-app/` folder
+- Uncheck "Create Git repository" (already have one!)
+
+### Step 3.4: Add Existing Swift Files
+
+Xcode created a basic project. Now add our actual code:
+
+1. **Delete default files:**
+   - Right-click `ContentView.swift` in Xcode → Delete → **Move to Trash**
+   - Right-click `FareLensApp.swift` in Xcode → Delete → **Move to Trash**
+
+2. **Add our folders:**
+   - In Finder, navigate to `~/Projects/FareLens/ios-app/FareLens/`
+   - Drag these folders into Xcode's `FareLens` group:
+     - `App/`
+     - `Core/`
+     - `Data/`
+     - `DesignSystem/`
+     - `Features/`
+
+3. **In the import dialog:**
+   - ✅ **Copy items if needed** (check this)
+   - ✅ **Create groups** (NOT folder references)
+   - ✅ **Add to targets: FareLens** (check this)
+   - Click **Finish**
+
+### Step 3.5: Verify File Structure in Xcode
+
+Your Project Navigator should look like:
 
 ```
 FareLens/
 ├── App/
 │   ├── FareLensApp.swift
 │   ├── AppState.swift
-│   ├── ContentView.swift
 │   └── MainTabView.swift
 ├── Features/
 │   ├── Onboarding/
-│   │   ├── OnboardingView.swift
-│   │   └── OnboardingViewModel.swift
 │   ├── Deals/
-│   │   ├── DealsView.swift
-│   │   ├── DealsViewModel.swift
-│   │   └── DealDetailView.swift
 │   ├── Watchlists/
-│   │   ├── WatchlistsView.swift
-│   │   ├── CreateWatchlistView.swift
-│   │   └── WatchlistsViewModel.swift
-│   ├── Settings/
-│   │   ├── SettingsView.swift
-│   │   ├── AlertPreferencesView.swift
-│   │   ├── PreferredAirportsView.swift
-│   │   ├── NotificationSettingsView.swift
-│   │   └── SettingsViewModel.swift
 │   ├── Alerts/
-│   │   ├── AlertsView.swift
-│   │   └── AlertsViewModel.swift
+│   ├── Settings/
 │   └── Subscription/
-│       └── PaywallView.swift
 ├── Core/
 │   ├── Models/
-│   │   ├── User.swift
-│   │   ├── FlightDeal.swift
-│   │   ├── Watchlist.swift
-│   │   ├── AlertPreferences.swift
-│   │   └── PreferredAirport.swift
 │   └── Services/
-│       ├── AlertService.swift
-│       ├── SmartQueueService.swift
-│       ├── NotificationService.swift
-│       └── SubscriptionService.swift
 ├── Data/
+│   ├── Networking/
 │   ├── Repositories/
-│   │   ├── DealsRepository.swift
-│   │   └── WatchlistsRepository.swift
-│   ├── Network/
-│   │   └── APIClient.swift
 │   └── Persistence/
-│       └── PersistenceService.swift
 ├── DesignSystem/
 │   ├── Theme/
-│   │   ├── Colors.swift
-│   │   ├── Typography.swift
-│   │   └── Spacing.swift
 │   └── Components/
-│       ├── FLButton.swift
-│       ├── FLCard.swift
-│       ├── FLBadge.swift
-│       ├── FLCompactButton.swift
-│       ├── FLIconButton.swift
-│       └── InfoBox.swift
-├── Resources/
-│   ├── Assets.xcassets
-│   ├── Info.plist
-│   └── FareLens.entitlements
-└── Preview Content/
-    └── Preview Assets.xcassets
+├── Assets.xcassets
+├── Preview Content/
+└── FareLensTests/
 ```
 
-## Step 3: Add Files to Xcode
+---
 
-**Option A: Drag and Drop (Recommended)**
+## Part 4: Configure Code Signing
 
-1. In Finder, navigate to `ios-app/FareLens/`
-2. Drag each folder (App, Features, Core, Data, DesignSystem) into Xcode
-3. In the dialog:
-   - ✅ Copy items if needed
-   - ✅ Create groups
-   - ✅ Add to target: FareLens
-   - Click **Finish**
+**Required to run on your iPhone**
 
-**Option B: Manual Import**
+### Step 4.1: Select Project Settings
 
-1. Right-click on FareLens folder in Xcode
-2. **Add Files to "FareLens"...**
-3. Select all `.swift` files
-4. Ensure "Add to targets: FareLens" is checked
+1. In Xcode, click **FareLens** (blue icon) at top of Project Navigator
+2. Select **FareLens** target (under TARGETS, not PROJECT)
+3. Click **Signing & Capabilities** tab
 
-## Step 4: Configure Info.plist
+### Step 4.2: Enable Automatic Signing
 
-Add these keys to `Info.plist`:
+1. ✅ Check **Automatically manage signing**
+2. **Team:** Select your Apple Developer account
+   - If no team shows: Click "Add Account..." and sign in
+   - Free account works for device testing!
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <!-- Required for notifications -->
-    <key>UIBackgroundModes</key>
-    <array>
-        <string>fetch</string>
-        <string>remote-notification</string>
-    </array>
+3. **Bundle Identifier:** Should be `com.farelens.app`
+   - If conflict: Change to `com.farelens.app.YOURNAME`
 
-    <!-- Privacy descriptions -->
-    <key>NSUserTrackingUsageDescription</key>
-    <string>We use this to provide personalized flight deal alerts based on your preferences.</string>
+### Step 4.3: Add Required Capabilities
 
-    <key>NSLocationWhenInUseUsageDescription</key>
-    <string>We use your location to find deals from nearby airports.</string>
+Click **+ Capability** button and add:
 
-    <!-- Dark/Light mode support -->
-    <key>UIUserInterfaceStyle</key>
-    <string>Automatic</string>
+1. **Push Notifications**
+   - Required for flight deal alerts
 
-    <!-- Launch screen -->
-    <key>UILaunchScreen</key>
-    <dict>
-        <key>UIImageName</key>
-        <string>LaunchIcon</string>
-        <key>UIColorName</key>
-        <string>brandBlue</string>
-    </dict>
-</dict>
-</plist>
-```
+2. **Background Modes**
+   - Check: ✅ Background fetch
+   - Check: ✅ Remote notifications
 
-## Step 5: Create Entitlements File
+3. **In-App Purchase**
+   - Required for Pro subscription
 
-Create `FareLens.entitlements`:
+### Step 4.4: Configure Deployment Target
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <!-- Push Notifications -->
-    <key>aps-environment</key>
-    <string>development</string>
+1. Still in **General** tab
+2. **Minimum Deployments:** Change to **iOS 17.0**
+   - iOS 26.0 doesn't exist yet (Xcode uses iOS 17.0 for latest features)
+   - Our code uses iOS 17+ features (@Observable pattern)
 
-    <!-- In-App Purchase -->
-    <key>com.apple.developer.in-app-payments</key>
-    <array/>
+---
 
-    <!-- App Groups (for share extension in future) -->
-    <key>com.apple.security.application-groups</key>
-    <array>
-        <string>group.com.farelens.app</string>
-    </array>
-</dict>
-</plist>
-```
+## Part 5: Build and Fix Errors
 
-## Step 6: Configure Build Settings
+### Step 5.1: First Build Attempt
 
-### General Tab
+1. Select target: **FareLens** (top left, next to play button)
+2. Select device: **Any iOS Device (arm64)**
+3. Press **Cmd + B** to build
 
-- **Display Name:** FareLens
-- **Bundle Identifier:** com.farelens.app
-- **Version:** 1.0.0
-- **Build:** 1
-- **Minimum Deployments:** iOS 26.0
+**Expected:** Build will FAIL with errors. This is normal! We need to fix critical bugs first.
 
-### Signing & Capabilities
+### Step 5.2: View Build Errors
 
-1. **Automatic signing:** Enable
-2. **Team:** Select your Apple Developer team
-3. Add capabilities:
-   - ✅ Push Notifications
-   - ✅ In-App Purchase
-   - ✅ Background Modes (Remote notifications, Background fetch)
-   - ✅ App Groups: `group.com.farelens.app`
+1. Click **⚠️** icon in top toolbar (shows error count)
+2. Or press **Cmd + 5** to open Issue Navigator
 
-### Build Settings
+You should see errors like:
+- "Actor 'NotificationService' cannot inherit from NSObject"
+- "Cannot find 'normalPrice' in scope"
+- "@ObservedObject should be @Bindable"
+- etc.
 
-Search for these settings and configure:
+**Do NOT try to fix these manually!** These are tracked issues that will be fixed systematically.
 
-- **Swift Language Version:** Swift 5
-- **Enable Strict Concurrency Checking:** Minimal
-- **Deployment Target:** iOS 26.0
+---
 
-## Step 7: Configure StoreKit
+## Part 6: Prepare for Testing on iPhone
 
-1. File → New → File → StoreKit Configuration File
-2. Name: `Products.storekit`
-3. Add products:
+### Step 6.1: Connect iPhone
 
-**Product 1: Monthly Subscription**
-- Type: Auto-Renewable Subscription
-- Reference Name: FareLens Pro Monthly
-- Product ID: `com.farelens.pro.monthly`
-- Price: $4.99 (USD)
-- Subscription Duration: 1 Month
-- Free Trial: 14 Days
-- Family Sharing: No
+1. **Connect iPhone to Mac** via USB cable
+2. **Unlock iPhone**
+3. **Trust Computer:**
+   - iPhone shows: "Trust This Computer?"
+   - Tap **Trust**
+   - Enter iPhone passcode
 
-**Product 2: Annual Subscription**
-- Type: Auto-Renewable Subscription
-- Reference Name: FareLens Pro Annual
-- Product ID: `com.farelens.pro.annual`
-- Price: $49.99 (USD)
-- Subscription Duration: 1 Year
-- Free Trial: 14 Days
-- Family Sharing: No
+### Step 6.2: Select iPhone as Target
 
-4. In scheme editor: Edit Scheme → Run → Options
-   - StoreKit Configuration: Select `Products.storekit`
+1. In Xcode top toolbar, click device selector (says "Any iOS Device")
+2. Select your iPhone from list
+   - Shows as: "YourName's iPhone"
+   - May show iOS version: "iPhone (17.5)"
 
-## Step 8: Add App Icons
+### Step 6.3: Wait for Device Preparation
 
-1. Open `Assets.xcassets`
-2. Select **AppIcon**
-3. Add icon images for all required sizes:
-   - 1024×1024 (App Store)
-   - 180×180 (iPhone App iOS 14+)
-   - 120×120 (iPhone App iOS 7-13)
-   - 167×167 (iPad Pro)
-   - etc.
+First time connecting:
+- Xcode shows: "Preparing YourName's iPhone..."
+- **Time:** 2-5 minutes
+- Copies debug symbols from iPhone to Mac
+- **Do not disconnect during this process!**
 
-**Temporary Solution:** Use SF Symbol as placeholder:
-- Create a simple blue airplane icon using SF Symbols
-- Export at required sizes using Icon Generator tool
+---
 
-## Step 9: Build and Run
+## Part 7: Understanding Current State
 
-### Build for Simulator
+### What Works ✅
+- Repository cloned from GitHub
+- Project opens in Xcode
+- Code signing configured
+- Device connected
+
+### What Doesn't Work Yet ❌
+- **Build fails** - 5 critical bugs to fix
+- **Can't run on device** - needs compilation
+- **No backend** - APIs not implemented yet
+
+### Critical Bugs to Fix (Before Testing)
+
+These must be fixed before the app compiles:
+
+1. **NotificationService actor issue**
+   - File: `ios-app/FareLens/Core/Services/NotificationService.swift:15`
+   - Error: Actors can't inherit from NSObject
+   - Impact: Won't compile
+
+2. **Duplicate normalPrice**
+   - Files: `FlightDeal.swift:16` & `DealDetailView.swift:455`
+   - Error: Duplicate definition
+   - Impact: Compilation error
+
+3. **@ObservedObject with @Observable**
+   - Files: `AlertPreferencesView.swift`, `CreateWatchlistView.swift`, etc.
+   - Error: Wrong property wrapper
+   - Impact: UI won't update
+
+4. **DealsRepository filter bug**
+   - File: `DealsRepository.swift:45`
+   - Error: Origin filter not applied
+   - Impact: Wrong deals shown
+
+5. **Onboarding auth flow**
+   - File: `OnboardingViewModel.swift:25`
+   - Error: AppState not notified
+   - Impact: Stuck on onboarding
+
+---
+
+## Part 8: Testing After Bugs Fixed
+
+**Once critical bugs are fixed, you can test:**
+
+### Step 8.1: Build for Device
+
+1. Make sure iPhone is selected (not simulator)
+2. Press **Cmd + B** to build
+3. Build should succeed ✅
+
+### Step 8.2: Run on Device
+
+1. Press **Cmd + R** (or click ▶️ Play button)
+2. Xcode installs app on iPhone
+3. **First time only:** iPhone shows "Untrusted Developer"
+
+### Step 8.3: Trust Developer Certificate
+
+**On iPhone:**
+1. Settings → General → VPN & Device Management
+2. Under "Developer App", tap your Apple ID
+3. Tap **Trust "[Your Name]"**
+4. Tap **Trust** in confirmation dialog
+
+### Step 8.4: Launch App
+
+1. Return to Xcode
+2. Press **Cmd + R** again
+3. App launches on iPhone! 🎉
+
+---
+
+## Part 9: What to Test
+
+### Onboarding Flow
+- [ ] Welcome screen appears
+- [ ] Can swipe through 3 onboarding screens
+- [ ] "Get Started" button works
+- [ ] Sign up form accepts input
+- [ ] Terms & Privacy links work (even if blank)
+
+### Main App
+- [ ] Tab bar shows 4 tabs (Deals, Watchlists, Alerts, Settings)
+- [ ] Can switch between tabs
+- [ ] Each screen loads without crashing
+
+### Expected Issues
+- ⚠️ **No real data** - Backend not built yet, will show empty states
+- ⚠️ **Some features incomplete** - TODOs in DealDetailView, AlertsView
+- ⚠️ **Authentication doesn't persist** - Need to sign in every launch
+
+**This is NORMAL for current development stage.**
+
+---
+
+## Part 10: Keeping Code Updated
+
+### Pull Latest Changes from GitHub
 
 ```bash
-# Clean build
-xcodebuild clean \
-  -project FareLens.xcodeproj \
-  -scheme FareLens
+# Navigate to project
+cd ~/Projects/FareLens
 
-# Build
-xcodebuild build \
-  -project FareLens.xcodeproj \
-  -scheme FareLens \
-  -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 15 Pro'
+# Check current status
+git status
+
+# Pull latest changes
+git pull origin main
+
+# If Xcode is open: File → Close Project
+# Then reopen: open ios-app/FareLens.xcodeproj
 ```
 
-### Run in Xcode
+### After Pulling Changes
 
-1. Select target device: iPhone 15 Pro simulator
-2. Press **Cmd + R** to build and run
-3. App should launch and show onboarding flow
+1. Clean build: **Cmd + Shift + K**
+2. Build: **Cmd + B**
+3. Run: **Cmd + R**
 
-## Step 10: Fix Common Build Errors
+---
 
-### Error: "Cannot find type 'User' in scope"
+## Part 11: Common Issues & Solutions
 
-**Solution:** Ensure all model files are added to target membership
-1. Select each `.swift` file in Project Navigator
-2. File Inspector → Target Membership → Check "FareLens"
+### Error: "Developer Mode Required"
 
-### Error: "Module compiled with Swift X cannot be imported by Swift Y"
+**On iOS 16+ devices:**
 
-**Solution:** Clean build folder
-1. Product → Clean Build Folder (Shift + Cmd + K)
-2. Quit Xcode
-3. Delete DerivedData: `rm -rf ~/Library/Developer/Xcode/DerivedData`
-4. Reopen Xcode and rebuild
+1. iPhone → Settings → Privacy & Security
+2. Scroll down to **Developer Mode**
+3. Toggle **ON**
+4. iPhone will restart
+5. Unlock and allow Developer Mode
 
-### Error: Missing Design System files
+### Error: "Could not launch app"
 
-**Solution:** Verify all DesignSystem files are imported
-- Colors.swift
-- Typography.swift
-- Spacing.swift
-- All component files
+**Solution 1: Clean and rebuild**
+```bash
+# In terminal
+cd ~/Projects/FareLens/ios-app
+rm -rf ~/Library/Developer/Xcode/DerivedData/FareLens-*
+```
 
-## Step 11: Test on Physical Device
+**Solution 2: In Xcode**
+1. Product → Clean Build Folder (Cmd + Shift + K)
+2. Restart Xcode
+3. Build again (Cmd + B)
 
-1. Connect iPhone via USB
-2. Trust computer on iPhone
-3. In Xcode, select your iPhone from device list
-4. Press **Cmd + R** to build and run
-5. On first launch, go to Settings → General → Device Management
-6. Trust your developer certificate
+### Error: "Provisioning profile doesn't include signing certificate"
 
-## Step 12: Configure Push Notifications
+1. Xcode → Settings → Accounts
+2. Select your Apple ID
+3. Click **Download Manual Profiles**
+4. Try building again
 
-### Apple Developer Portal
+### Error: "iPhone is locked"
 
-1. Go to [developer.apple.com](https://developer.apple.com)
-2. Certificates, Identifiers & Profiles
-3. Keys → Create new key
-4. Enable: Apple Push Notifications service (APNs)
-5. Download `.p8` file
-6. Note: Key ID and Team ID
+1. Unlock your iPhone
+2. Keep iPhone unlocked during build/install
+3. App only needs unlock during install, not while debugging
 
-### Backend Setup (Later)
+### Error: Build succeeds but app crashes immediately
 
-You'll need these for backend APNs integration:
-- Key ID
-- Team ID
-- `.p8` authentication key file
-- Bundle ID: `com.farelens.app`
+1. Open Console.app (Mac application)
+2. Select your iPhone in sidebar
+3. Filter: "FareLens"
+4. Look for crash log showing error
+5. Report to Claude Code with exact error
 
-## Step 13: Verify All Features Work
+### App builds but screen is blank
 
-### Checklist
+1. In Xcode debugger (bottom panel):
+   - Look for errors in console
+   - Check if ContentView is being created
+2. Add breakpoint in `FareLensApp.swift` body
+3. Run again and check execution flow
 
-- [ ] App launches successfully
-- [ ] Onboarding flow completes (all 3 screens)
-- [ ] Sign up creates user
-- [ ] Tab bar shows all 4 tabs
-- [ ] Deals view displays (empty state OK)
-- [ ] Watchlists view displays
-- [ ] Create watchlist form works
-- [ ] Alerts view displays
-- [ ] Settings view displays
-- [ ] All settings sub-screens navigate correctly
-- [ ] Notification permission request works
-- [ ] Paywall displays correctly
-- [ ] StoreKit purchase flow initiates (will fail without backend)
+---
 
-## Next Steps
+## Part 12: Development Workflow
 
-After successful Xcode setup:
+### Daily Workflow
 
-1. **Backend Development**
-   - Set up Cloudflare Workers
-   - Configure Supabase database
-   - Implement API endpoints
-   - Set up Amadeus API integration
+```bash
+# 1. Pull latest code
+cd ~/Projects/FareLens
+git pull origin main
 
-2. **API Integration**
-   - Update APIClient.swift with real endpoints
-   - Wire up repositories to real backend
-   - Test end-to-end data flow
+# 2. Open in Xcode
+open ios-app/FareLens.xcodeproj
 
-3. **Testing**
-   - Write unit tests for ViewModels
-   - Write unit tests for Services
-   - Add UI tests for critical flows
-   - Test on multiple device sizes
+# 3. Build and run
+# Cmd + B (build)
+# Cmd + R (run)
 
-4. **App Store Preparation**
-   - Create App Store Connect listing
-   - Prepare screenshots
-   - Write app description
-   - Submit for review
+# 4. Make changes (if needed)
+# Edit files in Xcode
 
-## Troubleshooting
+# 5. Test on device
+# Cmd + R
+```
 
-### Build fails with "Command SwiftCompile failed"
+### When You Make Changes
 
-1. Clean build folder
-2. Close Xcode
-3. Delete DerivedData
-4. Reopen and rebuild
+```bash
+# Add files
+git add .
 
-### App crashes on launch
+# Commit
+git commit -m "fix: Description of your fix"
 
-1. Check Console.app for crash logs
-2. Look for force unwraps (!) causing nil crashes
-3. Verify all dependencies are properly injected
+# Push
+git push origin main
+```
 
-### Simulator shows blank screen
+---
 
-1. Check ContentView routing logic
-2. Verify AppState initializes correctly
-3. Add breakpoints to debug flow
+## Part 13: Next Steps After Setup
 
-### Notifications don't work
+### Immediate (Critical Bugs Fixed)
+1. ✅ Test core navigation (tabs, screens)
+2. ✅ Test onboarding flow
+3. ✅ Verify UI looks correct
 
-1. Simulator doesn't support real push notifications
-2. Test on physical device
-3. Verify entitlements are configured
-4. Check notification permission status
+### Short Term (Backend Integration)
+4. Backend API implementation
+5. Wire up real data flows
+6. Test end-to-end functionality
+
+### Before Launch
+7. Add app icon
+8. Create screenshots
+9. Write App Store description
+10. TestFlight beta testing
+
+---
+
+## Part 14: Getting Help
+
+### Build Errors
+
+1. Copy **exact error message**
+2. Note **file name and line number**
+3. Provide to Claude Code: "Xcode error in [file]:[line]: [error message]"
+
+### Runtime Crashes
+
+1. Open Console.app
+2. Find crash log for FareLens
+3. Copy **full stack trace**
+4. Provide to Claude Code
+
+### Feature Not Working
+
+1. Describe **what you expected**
+2. Describe **what actually happened**
+3. Note **which screen** you're on
+4. Include **screenshot** if possible
+
+---
 
 ## Resources
 
-- [Apple Developer Documentation](https://developer.apple.com/documentation/)
-- [SwiftUI Tutorials](https://developer.apple.com/tutorials/swiftui)
-- [StoreKit Documentation](https://developer.apple.com/documentation/storekit)
-- [App Store Review Guidelines](https://developer.apple.com/app-store/review/guidelines/)
+### Apple Documentation
+- **Xcode Help:** Help → Xcode Help (in Xcode menu)
+- **SwiftUI Tutorials:** https://developer.apple.com/tutorials/swiftui
+- **Developer Forums:** https://developer.apple.com/forums/
+
+### FareLens Documentation
+- **[WORKFLOW.md](WORKFLOW.md)** - Development workflow
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - App architecture
+- **[API.md](API.md)** - Backend API contracts
+- **[DESIGN.md](DESIGN.md)** - UI/UX guidelines
+
+### Tools
+- **Xcode:** Apple's IDE for iOS development
+- **Simulator:** Test iOS apps without device (slower than real device)
+- **Instruments:** Profiling and debugging tool
+- **Console.app:** View device logs and crashes
+
+---
+
+## Appendix: Xcode Keyboard Shortcuts
+
+### Essential Shortcuts
+
+| Action | Shortcut |
+|--------|----------|
+| **Build** | Cmd + B |
+| **Run** | Cmd + R |
+| **Stop** | Cmd + . |
+| **Clean Build** | Cmd + Shift + K |
+| **Open Quickly** | Cmd + Shift + O |
+| **Jump to Definition** | Cmd + Click |
+| **Show/Hide Debug Area** | Cmd + Shift + Y |
+| **Show/Hide Navigator** | Cmd + 0 |
+| **Issue Navigator** | Cmd + 5 |
+
+### Navigation
+
+| Action | Shortcut |
+|--------|----------|
+| **Next Issue** | Cmd + ' |
+| **Previous Issue** | Cmd + " |
+| **Jump to Line** | Cmd + L |
+| **Open File** | Cmd + Shift + O |
+
+### Debugging
+
+| Action | Shortcut |
+|--------|----------|
+| **Toggle Breakpoint** | Cmd + \ |
+| **Step Over** | F6 |
+| **Step Into** | F7 |
+| **Continue** | Cmd + Ctrl + Y |
+
+---
+
+**You're ready to test FareLens on your iPhone once critical bugs are fixed!** 🚀
