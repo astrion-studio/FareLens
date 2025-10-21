@@ -6,7 +6,7 @@ final class SmartQueueServiceTests: XCTestCase {
     var testUser: User!
 
     override func setUp() async throws {
-        sut = SmartQueueService()
+        sut = await MainActor.run { SmartQueueService() }
         testUser = createTestUser()
     }
 
