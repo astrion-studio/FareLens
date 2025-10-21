@@ -16,8 +16,8 @@ actor AlertService: AlertServiceProtocol {
     private let smartQueueService: SmartQueueService
     private let notificationService: NotificationService
     private let persistenceService: PersistenceService
+    private let userDefaults: UserDefaults
     private let logger = Logger(subsystem: "com.farelens.app", category: "alerts")
-    private let userDefaults = UserDefaults.standard
 
     private var alertsSentToday: [UUID: Int] = [:] // userId: count
     private var lastResetDate: [UUID: Date] = [:] // Per-user reset tracking
@@ -26,11 +26,13 @@ actor AlertService: AlertServiceProtocol {
     init(
         smartQueueService: SmartQueueService = .shared,
         notificationService: NotificationService = .shared,
-        persistenceService: PersistenceService = .shared
+        persistenceService: PersistenceService = .shared,
+        userDefaults: UserDefaults = .standard
     ) {
         self.smartQueueService = smartQueueService
         self.notificationService = notificationService
         self.persistenceService = persistenceService
+        self.userDefaults = userDefaults
 
         // Load persisted counters on init
         Task { await loadPersistedCounters() }
@@ -154,36 +156,47 @@ actor AlertService: AlertServiceProtocol {
 
     private func loadPersistedCounters() async {
         // Load alert counters
-        if let counterData = userDefaults.data(forKey: "alertCounters"),
-           let decoded = try? JSONDecoder().decode([String: Int].self, from: counterData)
-        {
-            var restoredCounters: [UUID: Int] = [:]
-            for (key, value) in decoded {
-                guard let uuid = UUID(uuidString: key) else {
-                    logger.warning("Invalid UUID in alert counters: \(key, privacy: .public)")
-                    continue
+        if let counterData = userDefaults.data(forKey: "alertCounters") {
+            do {
+                let decoded = try JSONDecoder().decode([String: Int].self, from: counterData)
+                var restoredCounters: [UUID: Int] = [:]
+                for (key, value) in decoded {
+                    guard let uuid = UUID(uuidString: key) else {
+                        logger.warning("Invalid UUID in alert counters: \(key, privacy: .public)")
+                        continue
+                    }
+                    restoredCounters[uuid] = value
                 }
-                restoredCounters[uuid] = value
+                alertsSentToday = restoredCounters
+            } catch {
+                logger.error("Failed to decode alert counters: \(error.localizedDescription, privacy: .public)")
             }
-            alertsSentToday = restoredCounters
         }
 
         // Load last reset dates
-        if let resetData = userDefaults.data(forKey: "lastResetDates"),
-           let decoded = try? JSONDecoder().decode([String: Date].self, from: resetData)
-        {
-            var restoredResetDates: [UUID: Date] = [:]
-            for (key, value) in decoded {
-                guard let uuid = UUID(uuidString: key) else {
-                    logger.warning("Invalid UUID in reset dates: \(key, privacy: .public)")
-                    continue
+        if let resetData = userDefaults.data(forKey: "lastResetDates") {
+            do {
+                let decoded = try JSONDecoder().decode([String: Date].self, from: resetData)
+                var restoredResetDates: [UUID: Date] = [:]
+                for (key, value) in decoded {
+                    guard let uuid = UUID(uuidString: key) else {
+                        logger.warning("Invalid UUID in reset dates: \(key, privacy: .public)")
+                        continue
+                    }
+                    restoredResetDates[uuid] = value
                 }
-                restoredResetDates[uuid] = value
+                lastResetDate = restoredResetDates
+            } catch {
+                logger.error("Failed to decode reset dates: \(error.localizedDescription, privacy: .public)")
             }
-            lastResetDate = restoredResetDates
         }
 
         logger.info("Loaded persisted alert counters: \(alertsSentToday.count) users")
+    }
+
+    /// Reload persisted alert counters and reset dates (primarily for testing support).
+    func refreshPersistedCounters() async {
+        await loadPersistedCounters()
     }
 
     private func persistCounters() async {
@@ -193,8 +206,11 @@ actor AlertService: AlertServiceProtocol {
             counterDict[key.uuidString] = value
         }
 
-        if let encoded = try? JSONEncoder().encode(counterDict) {
+        do {
+            let encoded = try JSONEncoder().encode(counterDict)
             userDefaults.set(encoded, forKey: "alertCounters")
+        } catch {
+            logger.error("Failed to encode alert counters: \(error.localizedDescription, privacy: .public)")
         }
 
         // Save last reset dates
@@ -203,8 +219,11 @@ actor AlertService: AlertServiceProtocol {
             resetDict[key.uuidString] = value
         }
 
-        if let encoded = try? JSONEncoder().encode(resetDict) {
+        do {
+            let encoded = try JSONEncoder().encode(resetDict)
             userDefaults.set(encoded, forKey: "lastResetDates")
+        } catch {
+            logger.error("Failed to encode reset dates: \(error.localizedDescription, privacy: .public)")
         }
     }
 }
