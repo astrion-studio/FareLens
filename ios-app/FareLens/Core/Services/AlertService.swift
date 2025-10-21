@@ -22,6 +22,7 @@ actor AlertService: AlertServiceProtocol {
     private var alertsSentToday: [UUID: Int] = [:] // userId: count
     private var lastResetDate: [UUID: Date] = [:] // Per-user reset tracking
     private let deduplicationCache = DeduplicationCache()
+    private var hasLoadedPersistedCounters = false
 
     init(
         smartQueueService: SmartQueueService = .shared,
@@ -33,13 +34,11 @@ actor AlertService: AlertServiceProtocol {
         self.notificationService = notificationService
         self.persistenceService = persistenceService
         self.userDefaults = userDefaults
-
-        // Load persisted counters on init
-        Task { await loadPersistedCounters() }
     }
 
     /// Process new deals and send alerts immediately (respecting caps and quiet hours)
     func processNewDeals(_ deals: [FlightDeal], for user: User) async throws -> [FlightDeal] {
+        await ensureCountersLoaded()
         // Reset daily counter if needed
         await resetDailyCounterIfNeeded(for: user)
 
@@ -143,10 +142,12 @@ actor AlertService: AlertServiceProtocol {
 
     /// Get number of alerts sent today for a specific user
     func getAlertsSentToday(for userId: UUID) async -> Int {
-        alertsSentToday[userId] ?? 0
+        await ensureCountersLoaded()
+        return alertsSentToday[userId] ?? 0
     }
 
     private func incrementAlertCounter(for userId: UUID) async {
+        await ensureCountersLoaded()
         let current = alertsSentToday[userId] ?? 0
         alertsSentToday[userId] = current + 1
         await persistCounters()
@@ -154,12 +155,20 @@ actor AlertService: AlertServiceProtocol {
 
     // MARK: - Persistence
 
+    private func ensureCountersLoaded() async {
+        if hasLoadedPersistedCounters {
+            return
+        }
+
+        await loadPersistedCounters()
+        hasLoadedPersistedCounters = true
+    }
+
     private func loadPersistedCounters() async {
-        // Load alert counters
+        var restoredCounters: [UUID: Int] = [:]
         if let counterData = userDefaults.data(forKey: "alertCounters") {
             do {
                 let decoded = try JSONDecoder().decode([String: Int].self, from: counterData)
-                var restoredCounters: [UUID: Int] = [:]
                 for (key, value) in decoded {
                     guard let uuid = UUID(uuidString: key) else {
                         logger.warning("Invalid UUID in alert counters: \(key, privacy: .public)")
@@ -167,17 +176,16 @@ actor AlertService: AlertServiceProtocol {
                     }
                     restoredCounters[uuid] = value
                 }
-                alertsSentToday = restoredCounters
             } catch {
                 logger.error("Failed to decode alert counters: \(error.localizedDescription, privacy: .public)")
+                userDefaults.removeObject(forKey: "alertCounters")
             }
         }
 
-        // Load last reset dates
+        var restoredResetDates: [UUID: Date] = [:]
         if let resetData = userDefaults.data(forKey: "lastResetDates") {
             do {
                 let decoded = try JSONDecoder().decode([String: Date].self, from: resetData)
-                var restoredResetDates: [UUID: Date] = [:]
                 for (key, value) in decoded {
                     guard let uuid = UUID(uuidString: key) else {
                         logger.warning("Invalid UUID in reset dates: \(key, privacy: .public)")
@@ -185,18 +193,22 @@ actor AlertService: AlertServiceProtocol {
                     }
                     restoredResetDates[uuid] = value
                 }
-                lastResetDate = restoredResetDates
             } catch {
                 logger.error("Failed to decode reset dates: \(error.localizedDescription, privacy: .public)")
+                userDefaults.removeObject(forKey: "lastResetDates")
             }
         }
+
+        alertsSentToday = restoredCounters
+        lastResetDate = restoredResetDates
 
         logger.info("Loaded persisted alert counters: \(alertsSentToday.count) users")
     }
 
     /// Reload persisted alert counters and reset dates (primarily for testing support).
     func refreshPersistedCounters() async {
-        await loadPersistedCounters()
+        hasLoadedPersistedCounters = false
+        await ensureCountersLoaded()
     }
 
     private func persistCounters() async {
