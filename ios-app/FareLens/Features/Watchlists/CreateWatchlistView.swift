@@ -172,7 +172,7 @@ struct CreateWatchlistView: View {
 
     private func saveWatchlist() {
         let watchlist = Watchlist(
-            userId: viewModel.user.id,
+            userId: viewModel.userId,
             name: name,
             origin: origin.uppercased(),
             destination: isFlexibleDestination ? "ANY" : destination.uppercased(),
