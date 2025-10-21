@@ -6,18 +6,42 @@ final class AlertServiceTests: XCTestCase {
     var mockSmartQueue: MockSmartQueueService!
     var mockNotification: MockNotificationService!
     var mockPersistence: MockPersistenceService!
+    var userDefaults: UserDefaults!
+    var userDefaultsSuiteName: String!
     var testUser: User!
 
     override func setUp() async throws {
         mockSmartQueue = MockSmartQueueService()
         mockNotification = MockNotificationService()
         mockPersistence = MockPersistenceService()
+        userDefaultsSuiteName = "AlertServiceTests-\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: userDefaultsSuiteName) else {
+            throw XCTSkip("Failed to create test user defaults suite")
+        }
+        defaults.removePersistentDomain(forName: userDefaultsSuiteName)
+        userDefaults = defaults
+
         sut = AlertService(
             smartQueueService: mockSmartQueue,
             notificationService: mockNotification,
-            persistenceService: mockPersistence
+            persistenceService: mockPersistence,
+            userDefaults: userDefaults
         )
         testUser = createTestUser(tier: .free)
+    }
+
+    override func tearDown() async throws {
+        sut = nil
+        mockSmartQueue = nil
+        mockNotification = nil
+        mockPersistence = nil
+        if let suiteName = userDefaultsSuiteName, let defaults = userDefaults {
+            defaults.removePersistentDomain(forName: suiteName)
+        }
+        userDefaults = nil
+        userDefaultsSuiteName = nil
+        testUser = nil
+        try await super.tearDown()
     }
 
     // MARK: - Alert Cap Tests
@@ -101,6 +125,60 @@ final class AlertServiceTests: XCTestCase {
         // Assert: Second alert blocked by deduplication
         XCTAssertEqual(sentDeals.count, 0)
         XCTAssertEqual(mockNotification.sentAlerts.count, 1)
+    }
+
+    func testLoadPersistedCountersRestoresValidData() async throws {
+        // Arrange
+        let userId = UUID()
+        let counters: [String: Int] = [userId.uuidString: 3]
+        let resetDates: [String: Date] = [userId.uuidString: Date()]
+        userDefaults.set(try JSONEncoder().encode(counters), forKey: "alertCounters")
+        userDefaults.set(try JSONEncoder().encode(resetDates), forKey: "lastResetDates")
+
+        sut = AlertService(
+            smartQueueService: mockSmartQueue,
+            notificationService: mockNotification,
+            persistenceService: mockPersistence,
+            userDefaults: userDefaults
+        )
+
+        // Act
+        await sut.refreshPersistedCounters()
+        let restoredCount = await sut.getAlertsSentToday(for: userId)
+
+        // Assert
+        XCTAssertEqual(restoredCount, 3)
+    }
+
+    func testLoadPersistedCountersSkipsInvalidUUIDs() async throws {
+        // Arrange
+        let validUserId = UUID()
+        let counters: [String: Int] = [
+            "invalid-uuid": 5,
+            validUserId.uuidString: 2,
+        ]
+        let resetDates: [String: Date] = [
+            "invalid-uuid": Date(),
+            validUserId.uuidString: Date(),
+        ]
+        userDefaults.set(try JSONEncoder().encode(counters), forKey: "alertCounters")
+        userDefaults.set(try JSONEncoder().encode(resetDates), forKey: "lastResetDates")
+
+        sut = AlertService(
+            smartQueueService: mockSmartQueue,
+            notificationService: mockNotification,
+            persistenceService: mockPersistence,
+            userDefaults: userDefaults
+        )
+
+        // Act
+        await sut.refreshPersistedCounters()
+        let restoredCount = await sut.getAlertsSentToday(for: validUserId)
+        let missingCount = await sut.getAlertsSentToday(for: UUID())
+
+        // Assert
+        XCTAssertEqual(restoredCount, 2)
+        XCTAssertEqual(missingCount, 0)
     }
 
     // MARK: - Watchlist-Only Mode Tests
