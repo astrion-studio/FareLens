@@ -21,12 +21,7 @@ final class AlertServiceTests: XCTestCase {
         defaults.removePersistentDomain(forName: userDefaultsSuiteName)
         userDefaults = defaults
 
-        sut = AlertService(
-            smartQueueService: mockSmartQueue,
-            notificationService: mockNotification,
-            persistenceService: mockPersistence,
-            userDefaults: userDefaults
-        )
+        rebuildSystemUnderTest()
         testUser = createTestUser(tier: .free)
     }
 
@@ -181,6 +176,52 @@ final class AlertServiceTests: XCTestCase {
         XCTAssertEqual(missingCount, 0)
     }
 
+    func testProcessNewDealsRespectsPersistedCountersWithoutExplicitRefresh() async throws {
+        // Arrange
+        let persistedUser = createTestUser(tier: .free)
+        let counters: [String: Int] = [persistedUser.id.uuidString: persistedUser.maxAlertsPerDay]
+        let resetDates: [String: Date] = [persistedUser.id.uuidString: Date()]
+        userDefaults.set(try JSONEncoder().encode(counters), forKey: "alertCounters")
+        userDefaults.set(try JSONEncoder().encode(resetDates), forKey: "lastResetDates")
+
+        mockSmartQueue = MockSmartQueueService()
+        mockNotification = MockNotificationService()
+        mockPersistence = MockPersistenceService()
+        testUser = persistedUser
+        rebuildSystemUnderTest()
+
+        let deals = (0..<persistedUser.maxAlertsPerDay).map { _ in createTestDeal() }
+
+        // Act
+        let sentDeals = try await sut.processNewDeals(deals, for: testUser)
+
+        // Assert
+        XCTAssertEqual(sentDeals.count, 0)
+        XCTAssertEqual(mockNotification.sentAlerts.count, 0)
+        let restoredCount = await sut.getAlertsSentToday(for: testUser.id)
+        XCTAssertEqual(restoredCount, persistedUser.maxAlertsPerDay)
+    }
+
+    func testRefreshPersistedCountersClearsCorruptedData() async throws {
+        // Arrange
+        userDefaults.set(Data("invalid".utf8), forKey: "alertCounters")
+        userDefaults.set(Data("invalid".utf8), forKey: "lastResetDates")
+
+        mockSmartQueue = MockSmartQueueService()
+        mockNotification = MockNotificationService()
+        mockPersistence = MockPersistenceService()
+        rebuildSystemUnderTest()
+
+        // Act
+        await sut.refreshPersistedCounters()
+
+        // Assert
+        let restoredCount = await sut.getAlertsSentToday(for: UUID())
+        XCTAssertEqual(restoredCount, 0)
+        XCTAssertNil(userDefaults.data(forKey: "alertCounters"))
+        XCTAssertNil(userDefaults.data(forKey: "lastResetDates"))
+    }
+
     // MARK: - Watchlist-Only Mode Tests
 
     // Pro tier watchlist-only mode filters non-watchlist deals
@@ -247,6 +288,19 @@ final class AlertServiceTests: XCTestCase {
             airline: "Test Airlines",
             stops: 0,
             deepLink: "https://example.com"
+        )
+    }
+}
+
+// MARK: - Helpers
+
+private extension AlertServiceTests {
+    func rebuildSystemUnderTest() {
+        sut = AlertService(
+            smartQueueService: mockSmartQueue,
+            notificationService: mockNotification,
+            persistenceService: mockPersistence,
+            userDefaults: userDefaults
         )
     }
 }
