@@ -29,6 +29,18 @@
 		52F6E4532EA738780002B95C /* FareLensUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FareLensUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		52F6E6452EA77A8F0002B95C /* Exceptions for "FareLensTests" folder in "FareLens" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				AlertServiceTests.swift,
+				DealsRepositoryTests.swift,
+				SmartQueueServiceTests.swift,
+			);
+			target = 52F6E43B2EA738750002B95C /* FareLens */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		52F6E43E2EA738750002B95C /* FareLens */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -42,6 +54,9 @@
 		};
 		52F6E5C82EA76F320002B95C /* FareLensTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				52F6E6452EA77A8F0002B95C /* Exceptions for "FareLensTests" folder in "FareLens" target */,
+			);
 			path = FareLensTests;
 			sourceTree = "<group>";
 		};
