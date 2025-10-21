@@ -157,26 +157,30 @@ actor AlertService: AlertServiceProtocol {
         if let counterData = userDefaults.data(forKey: "alertCounters"),
            let decoded = try? JSONDecoder().decode([String: Int].self, from: counterData)
         {
-            alertsSentToday = decoded.compactMap { key, value in
+            var restoredCounters: [UUID: Int] = [:]
+            for (key, value) in decoded {
                 guard let uuid = UUID(uuidString: key) else {
                     logger.warning("Invalid UUID in alert counters: \(key, privacy: .public)")
-                    return nil
+                    continue
                 }
-                return (uuid, value)
-            }.reduce(into: [:]) { $0[$1.0] = $1.1 }
+                restoredCounters[uuid] = value
+            }
+            alertsSentToday = restoredCounters
         }
 
         // Load last reset dates
         if let resetData = userDefaults.data(forKey: "lastResetDates"),
            let decoded = try? JSONDecoder().decode([String: Date].self, from: resetData)
         {
-            lastResetDate = decoded.compactMap { key, value in
+            var restoredResetDates: [UUID: Date] = [:]
+            for (key, value) in decoded {
                 guard let uuid = UUID(uuidString: key) else {
                     logger.warning("Invalid UUID in reset dates: \(key, privacy: .public)")
-                    return nil
+                    continue
                 }
-                return (uuid, value)
-            }.reduce(into: [:]) { $0[$1.0] = $1.1 }
+                restoredResetDates[uuid] = value
+            }
+            lastResetDate = restoredResetDates
         }
 
         logger.info("Loaded persisted alert counters: \(alertsSentToday.count) users")
@@ -184,13 +188,21 @@ actor AlertService: AlertServiceProtocol {
 
     private func persistCounters() async {
         // Save alert counters
-        let counterDict = Dictionary(uniqueKeysWithValues: alertsSentToday.map { ($0.key.uuidString, $0.value) })
+        var counterDict: [String: Int] = [:]
+        for (key, value) in alertsSentToday {
+            counterDict[key.uuidString] = value
+        }
+
         if let encoded = try? JSONEncoder().encode(counterDict) {
             userDefaults.set(encoded, forKey: "alertCounters")
         }
 
         // Save last reset dates
-        let resetDict = Dictionary(uniqueKeysWithValues: lastResetDate.map { ($0.key.uuidString, $0.value) })
+        var resetDict: [String: Date] = [:]
+        for (key, value) in lastResetDate {
+            resetDict[key.uuidString] = value
+        }
+
         if let encoded = try? JSONEncoder().encode(resetDict) {
             userDefaults.set(encoded, forKey: "lastResetDates")
         }
