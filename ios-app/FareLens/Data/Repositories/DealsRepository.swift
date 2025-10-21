@@ -45,13 +45,13 @@ actor DealsRepository: DealsRepositoryProtocol {
         let endpoint = APIEndpoint.getDeals(origin: origin)
         let response: DealsResponse = try await apiClient.request(endpoint)
 
-        // Filter deals by origin before caching and returning
-        let filteredDeals = filterByOrigin(response.deals, origin: origin)
+        // Cache full unfiltered response to avoid cross-origin pollution
+        // Per Codex P1 feedback: filtering before cache causes wrong results
+        // when switching between origins within TTL window
+        await persistenceService.saveDeals(response.deals)
 
-        // Cache filtered deals
-        await persistenceService.saveDeals(filteredDeals)
-
-        return filteredDeals
+        // Filter deals by origin after caching
+        return filterByOrigin(response.deals, origin: origin)
     }
 
     /// Fetch single deal detail
