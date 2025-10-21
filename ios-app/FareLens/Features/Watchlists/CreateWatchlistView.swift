@@ -1,10 +1,11 @@
 // FareLens - Flight Deal Alert App
 // Copyright © 2025 FareLens. All rights reserved.
 
+import Observation
 import SwiftUI
 
 struct CreateWatchlistView: View {
-    @ObservedObject var viewModel: WatchlistsViewModel
+    @Bindable var viewModel: WatchlistsViewModel
     @Environment(\.dismiss) var dismiss
 
     @State private var name = ""
