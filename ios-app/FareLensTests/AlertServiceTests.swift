@@ -93,15 +93,22 @@ final class AlertServiceTests: XCTestCase {
         testUser.alertPreferences.quietHoursStart = 22 // 10pm
         testUser.alertPreferences.quietHoursEnd = 7 // 7am
 
+        let timezone = try XCTUnwrap(TimeZone(identifier: testUser.timezone))
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timezone
+        let quietHourDate = try XCTUnwrap(
+            calendar.date(from: DateComponents(year: 2024, month: 1, day: 1, hour: 23))
+        )
+
+        rebuildSystemUnderTest(dateProvider: { quietHourDate })
+
         let deal = createTestDeal()
 
         // Act: Check if alert should be sent during quiet hours
         let shouldSend = await sut.shouldSendAlert(for: deal, user: testUser)
 
         // Assert: Alert blocked
-        // Note: This test depends on current time, would need time injection for proper testing
-        // For now, testing the logic flow
-        XCTAssertNotNil(shouldSend) // Test structure is correct
+        XCTAssertFalse(shouldSend)
     }
 
     // MARK: - Deduplication Tests
@@ -295,12 +302,13 @@ final class AlertServiceTests: XCTestCase {
 // MARK: - Helpers
 
 private extension AlertServiceTests {
-    func rebuildSystemUnderTest() {
+    func rebuildSystemUnderTest(dateProvider: @escaping () -> Date = { Date() }) {
         sut = AlertService(
             smartQueueService: mockSmartQueue,
             notificationService: mockNotification,
             persistenceService: mockPersistence,
-            userDefaults: userDefaults
+            userDefaults: userDefaults,
+            dateProvider: dateProvider
         )
     }
 }
