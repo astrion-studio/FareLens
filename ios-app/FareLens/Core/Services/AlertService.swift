@@ -18,6 +18,7 @@ actor AlertService: AlertServiceProtocol {
     private let persistenceService: PersistenceService
     private let userDefaults: UserDefaults
     private let logger = Logger(subsystem: "com.farelens.app", category: "alerts")
+    private let dateProvider: () -> Date
 
     private var alertsSentToday: [UUID: Int] = [:] // userId: count
     private var lastResetDate: [UUID: Date] = [:] // Per-user reset tracking
@@ -28,12 +29,14 @@ actor AlertService: AlertServiceProtocol {
         smartQueueService: SmartQueueService = .shared,
         notificationService: NotificationService = .shared,
         persistenceService: PersistenceService = .shared,
-        userDefaults: UserDefaults = .standard
+        userDefaults: UserDefaults = .standard,
+        dateProvider: @escaping () -> Date = { Date() }
     ) {
         self.smartQueueService = smartQueueService
         self.notificationService = notificationService
         self.persistenceService = persistenceService
         self.userDefaults = userDefaults
+        self.dateProvider = dateProvider
     }
 
     /// Process new deals and send alerts immediately (respecting caps and quiet hours)
@@ -86,7 +89,7 @@ actor AlertService: AlertServiceProtocol {
 
         // Check deduplication (12h window)
         let dedupeKey = "\(user.id.uuidString)-\(deal.id.uuidString)"
-        if deduplicationCache.wasRecentlySent(key: dedupeKey, within: 12) {
+        if deduplicationCache.wasRecentlySent(key: dedupeKey, within: 12, now: dateProvider()) {
             return false
         }
 
@@ -101,7 +104,7 @@ actor AlertService: AlertServiceProtocol {
 
         // Update counters
         let dedupeKey = "\(user.id.uuidString)-\(deal.id.uuidString)"
-        deduplicationCache.markAlertSent(key: dedupeKey, date: Date())
+        deduplicationCache.markAlertSent(key: dedupeKey, date: dateProvider())
 
         await incrementAlertCounter(for: user.id)
     }
@@ -115,7 +118,7 @@ actor AlertService: AlertServiceProtocol {
             timezone = TimeZone.current
         }
 
-        return user.alertPreferences.isQuietHour(at: Date(), timezone: timezone)
+        return user.alertPreferences.isQuietHour(at: dateProvider(), timezone: timezone)
     }
 
     private func resetDailyCounterIfNeeded(for user: User) async {
@@ -130,7 +133,7 @@ actor AlertService: AlertServiceProtocol {
         var calendar = Calendar.current
         calendar.timeZone = timezone
 
-        let now = Date()
+        let now = dateProvider()
         let lastReset = lastResetDate[user.id] ?? Date.distantPast
 
         // Check if we've crossed midnight in user's timezone
@@ -254,10 +257,10 @@ private class DeduplicationCache {
         cache.setObject(date as NSDate, forKey: key as NSString)
     }
 
-    func wasRecentlySent(key: String, within hours: TimeInterval) -> Bool {
+    func wasRecentlySent(key: String, within hours: TimeInterval, now: Date) -> Bool {
         guard let lastSent = cache.object(forKey: key as NSString) as Date? else {
             return false
         }
-        return Date().timeIntervalSince(lastSent) < hours * 3600
+        return now.timeIntervalSince(lastSent) < hours * 3600
     }
 }
