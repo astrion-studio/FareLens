@@ -6,9 +6,16 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Tuple
 from uuid import UUID
 
-from ..models.schemas import (AlertHistory, AlertPreferences, DealsResponse,
-                              FlightDeal, PreferredAirportsUpdate, Watchlist,
-                              WatchlistCreate, WatchlistUpdate)
+from ..models.schemas import (
+    AlertHistory,
+    AlertPreferences,
+    DealsResponse,
+    FlightDeal,
+    PreferredAirportsUpdate,
+    Watchlist,
+    WatchlistCreate,
+    WatchlistUpdate,
+)
 
 
 class DataProvider(ABC):

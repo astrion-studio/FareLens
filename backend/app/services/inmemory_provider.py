@@ -6,9 +6,16 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
 from uuid import UUID, uuid4
 
-from ..models.schemas import (AlertHistory, AlertPreferences, DealsResponse,
-                              FlightDeal, PreferredAirportsUpdate, Watchlist,
-                              WatchlistCreate, WatchlistUpdate)
+from ..models.schemas import (
+    AlertHistory,
+    AlertPreferences,
+    DealsResponse,
+    FlightDeal,
+    PreferredAirportsUpdate,
+    Watchlist,
+    WatchlistCreate,
+    WatchlistUpdate,
+)
 from .data_provider import DataProvider
 
 

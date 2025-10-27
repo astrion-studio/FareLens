@@ -4,10 +4,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
 
-from ..models.schemas import (AlertHistoryResponse, AlertPreferences,
-                              DeviceRegistrationRequest,
-                              DeviceRegistrationResponse,
-                              PreferredAirportsUpdate)
+from ..models.schemas import (
+    AlertHistoryResponse,
+    AlertPreferences,
+    DeviceRegistrationRequest,
+    DeviceRegistrationResponse,
+    PreferredAirportsUpdate,
+)
 from ..services.data_provider import DataProvider
 from ..services.provider_factory import get_data_provider
 

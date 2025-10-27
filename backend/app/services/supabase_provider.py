@@ -8,9 +8,16 @@ from uuid import UUID
 import asyncpg
 
 from ..core.config import settings
-from ..models.schemas import (AlertHistory, AlertPreferences, DealsResponse,
-                              FlightDeal, PreferredAirportsUpdate, Watchlist,
-                              WatchlistCreate, WatchlistUpdate)
+from ..models.schemas import (
+    AlertHistory,
+    AlertPreferences,
+    DealsResponse,
+    FlightDeal,
+    PreferredAirportsUpdate,
+    Watchlist,
+    WatchlistCreate,
+    WatchlistUpdate,
+)
 from .data_provider import DataProvider
 
 
