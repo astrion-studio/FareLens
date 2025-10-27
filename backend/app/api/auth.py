@@ -5,13 +5,8 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, status
 
-from ..models.schemas import (
-    AuthRequest,
-    AuthResponse,
-    ResetPasswordRequest,
-    SubscriptionInfo,
-    User,
-)
+from ..models.schemas import (AuthRequest, AuthResponse, ResetPasswordRequest,
+                              SubscriptionInfo, User)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
