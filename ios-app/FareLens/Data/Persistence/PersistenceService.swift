@@ -12,6 +12,9 @@ protocol PersistenceServiceProtocol {
     func loadDeals(origin: String?) async -> [FlightDeal]
     func clearDeals() async
     func isCacheValid(for origin: String?) async -> Bool
+    func saveAlerts(_ alerts: [AlertHistory]) async
+    func loadAlerts() async -> [AlertHistory]
+    func isAlertCacheValid() async -> Bool
     func clearAllData() async
 }
 

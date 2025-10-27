@@ -137,7 +137,7 @@ class ResetPasswordRequest(BaseModel):
 
 
 class SubscriptionInfo(BaseModel):
-    tier: str = Field("free", description="Subscription tier (free|pro)")
+    tier: str = Field(default="free", description="Subscription tier (free|pro)")
     max_watchlists: Optional[int] = 5
     max_alerts_per_day: int = 3
     trial_ends_at: Optional[datetime] = None
