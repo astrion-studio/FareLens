@@ -3,15 +3,6 @@
 
 import Foundation
 
-/// Protocol for deals repository with async operations
-///
-/// **Actor Isolation Requirements:**
-/// The reference implementation `DealsRepository` is an actor for thread safety.
-/// All methods must be called with `await` as they may cross actor boundaries.
-/// Implementations should consider using actor isolation to prevent data races
-/// when managing cache state and concurrent API requests.
-///
-/// Fixes Issue #9: Documents actor isolation expectations for implementations
 protocol DealsRepositoryProtocol {
     func fetchDeals(origin: String?, forceRefresh: Bool) async throws -> [FlightDeal]
     func fetchDealDetail(dealId: String) async throws -> FlightDeal
