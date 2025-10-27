@@ -12,14 +12,14 @@ protocol DealsRepositoryProtocol {
 actor DealsRepository: DealsRepositoryProtocol {
     static let shared = DealsRepository()
 
-    private let apiClient: APIClient
+    private let apiClient: any APIClientProtocol
     private let persistenceService: PersistenceServiceProtocol
-    private let smartQueueService: SmartQueueService
+    private let smartQueueService: any SmartQueueServiceProtocol
 
     init(
-        apiClient: APIClient = .shared,
+        apiClient: any APIClientProtocol = APIClient.shared,
         persistenceService: PersistenceServiceProtocol = PersistenceService.shared,
-        smartQueueService: SmartQueueService = .shared
+        smartQueueService: any SmartQueueServiceProtocol = SmartQueueService.shared
     ) {
         self.apiClient = apiClient
         self.persistenceService = persistenceService
