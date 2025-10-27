@@ -10,7 +10,7 @@ asyncpg==0.30.0
 alembic==1.14.0
 
 # Redis cache
-redis==5.2.0
+redis==7.0.0
 hiredis==3.0.0
 
 # Authentication
