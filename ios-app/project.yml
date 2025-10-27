@@ -48,13 +48,6 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         UIBackgroundModes:
           - fetch
-          - remote-notification
-        NSUserNotificationsUsageDescription: "FareLens sends you alerts when great flight deals match your preferences."
-    entitlements:
-      path: FareLens/FareLens.entitlements
-      properties:
-        aps-environment: development
-        com.apple.developer.usernotifications.filtering: true
     sources:
       - path: FareLens
         excludes:
