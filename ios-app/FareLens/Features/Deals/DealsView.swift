@@ -7,9 +7,10 @@ struct DealsView: View {
     @State var viewModel: DealsViewModel
     @Environment(AppState.self) var appState: AppState
     @State private var showingFilters = false
+    @State private var selectedDeal: FlightDeal?
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 // Background
                 Color.backgroundPrimary.ignoresSafeArea()
@@ -35,10 +36,13 @@ struct DealsView: View {
                         ScrollView {
                             LazyVStack(spacing: Spacing.cardSpacing) {
                                 ForEach(viewModel.deals) { deal in
-                                    FLDealCard(deal: deal)
-                                        .onTapGesture {
-                                            // Navigate to deal detail
-                                        }
+                                    Button {
+                                        selectedDeal = deal
+                                    } label: {
+                                        FLDealCard(deal: deal)
+                                            .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
                             .padding(Spacing.screenHorizontal)
@@ -51,6 +55,9 @@ struct DealsView: View {
             }
             .navigationTitle("Deals")
             .navigationBarTitleDisplayMode(.large)
+        }
+        .sheet(item: $selectedDeal) { deal in
+            DealDetailView(deal: deal)
         }
         .task {
             await viewModel.loadDeals()

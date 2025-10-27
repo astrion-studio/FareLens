@@ -16,15 +16,21 @@ final class AlertsViewModel {
     var errorMessage: String?
 
     private let alertService: AlertServiceProtocol
+    private let alertsRepository: AlertsRepositoryProtocol
     private let user: User
 
-    init(user: User, alertService: AlertServiceProtocol = AlertService.shared) {
+    init(
+        user: User,
+        alertService: AlertServiceProtocol = AlertService.shared,
+        alertsRepository: AlertsRepositoryProtocol = AlertsRepository.shared
+    ) {
         self.user = user
         self.alertService = alertService
+        self.alertsRepository = alertsRepository
         dailyLimit = user.maxAlertsPerDay
     }
 
-    func loadAlerts(forceRefresh _: Bool = false) async {
+    func loadAlerts(forceRefresh: Bool = false) async {
         guard !isLoading else { return }
 
         isLoading = true
@@ -32,10 +38,9 @@ final class AlertsViewModel {
         defer { isLoading = false }
 
         do {
-            // In production, fetch from repository
-            // For now, create mock data
-            alerts = []
-            filteredAlerts = alerts
+            let history = try await alertsRepository.fetchAlertHistory(forceRefresh: forceRefresh)
+            alerts = history
+            filteredAlerts = history
             alertsSentToday = await alertService.getAlertsSentToday(for: user.id)
         } catch {
             errorMessage = error.localizedDescription

@@ -7,6 +7,8 @@ FastAPI application entry point.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from .api import alerts, auth, deals, user, watchlists
+
 app = FastAPI(
     title="FareLens API",
     description="Flight deal tracking and alerts API",
@@ -43,9 +45,11 @@ async def health():
     }
 
 
-# TODO: Add API routers
-# from app.api import deals, watchlists, alerts, users
-# app.include_router(deals.router, prefix="/api/v1/deals", tags=["deals"])
-# app.include_router(watchlists.router, prefix="/api/v1/watchlists", tags=["watchlists"])
-# app.include_router(alerts.router, prefix="/api/v1/alerts", tags=["alerts"])
-# app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
+api_prefix = "/v1"
+
+app.include_router(auth.router, prefix=api_prefix)
+app.include_router(deals.router, prefix=api_prefix)
+app.include_router(watchlists.router, prefix=api_prefix)
+app.include_router(alerts.alerts_router, prefix=api_prefix)
+app.include_router(alerts.preferences_router, prefix=api_prefix)
+app.include_router(user.router, prefix=api_prefix)

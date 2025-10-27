@@ -17,15 +17,18 @@ actor AuthService: AuthServiceProtocol {
 
     private let apiClient: APIClient
     private let persistenceService: PersistenceService
+    private let tokenStore: AuthTokenStore
     private var currentUser: User?
     private var authToken: String?
 
     init(
         apiClient: APIClient = .shared,
-        persistenceService: PersistenceService = .shared
+        persistenceService: PersistenceService = .shared,
+        tokenStore: AuthTokenStore = .shared
     ) {
         self.apiClient = apiClient
         self.persistenceService = persistenceService
+        self.tokenStore = tokenStore
     }
 
     /// Sign in with email and password
@@ -52,6 +55,7 @@ actor AuthService: AuthServiceProtocol {
         // Store auth token
         authToken = response.token
         await apiClient.setAuthToken(response.token)
+        await tokenStore.saveToken(response.token)
 
         // Store user
         currentUser = response.user
@@ -81,6 +85,7 @@ actor AuthService: AuthServiceProtocol {
         // Store auth token
         authToken = response.token
         await apiClient.setAuthToken(response.token)
+        await tokenStore.saveToken(response.token)
 
         // Store user
         currentUser = response.user
@@ -94,6 +99,7 @@ actor AuthService: AuthServiceProtocol {
         authToken = nil
         currentUser = nil
         await apiClient.setAuthToken(nil)
+        await tokenStore.clearToken()
         await persistenceService.clearUser()
     }
 
@@ -105,8 +111,16 @@ actor AuthService: AuthServiceProtocol {
 
         // Try to load from persistence
         if let storedUser = await persistenceService.loadUser() {
-            currentUser = storedUser
-            return storedUser
+            if let token = await tokenStore.loadToken() {
+                authToken = token
+                await apiClient.setAuthToken(token)
+                currentUser = storedUser
+                return storedUser
+            } else {
+                await persistenceService.clearUser()
+                currentUser = nil
+                return nil
+            }
         }
 
         return nil

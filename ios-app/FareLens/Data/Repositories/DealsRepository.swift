@@ -9,17 +9,27 @@ protocol DealsRepositoryProtocol {
     func applySmartQueue(_ deals: [FlightDeal], for user: User) async -> [FlightDeal]
 }
 
+extension DealsRepositoryProtocol {
+    func fetchDeals(forceRefresh: Bool = false) async throws -> [FlightDeal] {
+        try await fetchDeals(origin: nil, forceRefresh: forceRefresh)
+    }
+}
+
+struct DealsResponse: Codable {
+    let deals: [FlightDeal]
+}
+
 actor DealsRepository: DealsRepositoryProtocol {
     static let shared = DealsRepository()
 
-    private let apiClient: APIClient
+    private let apiClient: any APIClientProtocol
     private let persistenceService: PersistenceServiceProtocol
-    private let smartQueueService: SmartQueueService
+    private let smartQueueService: any SmartQueueServiceProtocol
 
     init(
-        apiClient: APIClient = .shared,
+        apiClient: any APIClientProtocol = APIClient.shared,
         persistenceService: PersistenceServiceProtocol = PersistenceService.shared,
-        smartQueueService: SmartQueueService = .shared
+        smartQueueService: any SmartQueueServiceProtocol = SmartQueueService.shared
     ) {
         self.apiClient = apiClient
         self.persistenceService = persistenceService
@@ -38,10 +48,6 @@ actor DealsRepository: DealsRepositoryProtocol {
         }
 
         // Fetch from API
-        struct DealsResponse: Codable {
-            let deals: [FlightDeal]
-        }
-
         let endpoint = APIEndpoint.getDeals(origin: origin)
         let response: DealsResponse = try await apiClient.request(endpoint)
 

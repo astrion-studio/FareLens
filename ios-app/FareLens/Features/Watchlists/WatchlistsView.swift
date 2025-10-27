@@ -142,12 +142,14 @@ struct WatchlistCard: View {
                     VStack(alignment: .leading, spacing: Spacing.xs) {
                         if let dateRange = watchlist.displayDateRange {
                             Label(dateRange, systemImage: "calendar")
-                                .footnoteStyle()
+                                .font(.footnote)
+                                .foregroundColor(.textSecondary)
                         }
 
                         if let maxPrice = watchlist.displayMaxPrice {
                             Label(maxPrice, systemImage: "dollarsign.circle")
-                                .footnoteStyle()
+                                .font(.footnote)
+                                .foregroundColor(.textSecondary)
                         }
                     }
                 }
