@@ -1,7 +1,5 @@
 """Alert endpoints (API.md section 4)."""
 
-from uuid import UUID
-
 from fastapi import APIRouter, Depends, status
 
 from ..models.schemas import (

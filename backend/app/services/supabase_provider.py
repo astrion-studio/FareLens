@@ -38,7 +38,10 @@ class SupabaseProvider(DataProvider):
 
     async def list_deals(self, origin: Optional[str], limit: int) -> DealsResponse:
         pool = await self._ensure_pool()
-        query = "SELECT * FROM flight_deals WHERE ($1::text IS NULL OR origin = $1) ORDER BY deal_score DESC LIMIT $2"
+        query = (
+            "SELECT * FROM flight_deals WHERE ($1::text IS NULL OR origin = $1) "
+            "ORDER BY deal_score DESC LIMIT $2"
+        )
         async with pool.acquire() as conn:
             rows = await conn.fetch(query, origin.upper() if origin else None, limit)
         deals = [self._map_deal(row) for row in rows]
@@ -65,7 +68,8 @@ class SupabaseProvider(DataProvider):
     async def create_watchlist(self, payload: WatchlistCreate) -> Watchlist:
         pool = await self._ensure_pool()
         query = """
-            INSERT INTO watchlists (name, origin, destination, date_range_start, date_range_end, max_price, is_active)
+            INSERT INTO watchlists (name, origin, destination, date_range_start,
+                                   date_range_end, max_price, is_active)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
         """
@@ -129,8 +133,8 @@ class SupabaseProvider(DataProvider):
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
             await conn.execute(
-                "INSERT INTO alert_history (id, deal_id, sent_at, opened_at, clicked_through, expires_at)"
-                " VALUES ($1, $2, $3, $4, $5, $6)",
+                "INSERT INTO alert_history (id, deal_id, sent_at, opened_at, "
+                "clicked_through, expires_at) VALUES ($1, $2, $3, $4, $5, $6)",
                 alert.id,
                 alert.deal.id,
                 alert.sent_at,
