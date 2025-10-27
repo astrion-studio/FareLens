@@ -206,5 +206,8 @@ class MockPersistenceServiceForDeals: PersistenceServiceProtocol {
     }
     func clearDeals() async {}
     func isCacheValid(for origin: String?) async -> Bool { isCacheValidFlag }
+    func saveAlerts(_ alerts: [AlertHistory]) async {}
+    func loadAlerts() async -> [AlertHistory] { return [] }
+    func isAlertCacheValid() async -> Bool { return false }
     func clearAllData() async {}
 }

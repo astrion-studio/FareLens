@@ -127,10 +127,11 @@ actor MockAlertsPersistenceService: PersistenceServiceProtocol {
     func saveUser(_ user: User) async {}
     func loadUser() async -> User? { nil }
     func clearUser() async {}
-    func saveDeals(_ deals: [FlightDeal]) async {}
-    func loadDeals() async -> [FlightDeal] { [] }
+    func saveDeals(_ deals: [FlightDeal], origin: String?) async {}
+    func loadDeals(origin: String?) async -> [FlightDeal] { [] }
     func clearDeals() async {}
-    func isCacheValid() async -> Bool { false }
+    func isCacheValid(for origin: String?) async -> Bool { false }
+    func clearAllData() async {}
 
     func saveAlerts(_ alerts: [AlertHistory]) async {
         savedAlerts = alerts
