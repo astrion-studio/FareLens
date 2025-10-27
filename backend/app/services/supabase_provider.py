@@ -160,7 +160,8 @@ class SupabaseProvider(DataProvider):
         async with pool.acquire() as conn:
             await conn.execute("DELETE FROM alert_preferences")  # ensure single row
             await conn.execute(
-                "INSERT INTO alert_preferences (enabled, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, watchlist_only_mode)"
+                "INSERT INTO alert_preferences (enabled, quiet_hours_enabled, "
+                "quiet_hours_start, quiet_hours_end, watchlist_only_mode)"
                 " VALUES ($1, $2, $3, $4, $5)",
                 prefs.enabled,
                 prefs.quiet_hours_enabled,
@@ -190,7 +191,8 @@ class SupabaseProvider(DataProvider):
             await conn.execute(
                 "INSERT INTO device_tokens (id, token, platform, created_at)"
                 " VALUES ($1, $2, $3, NOW())"
-                " ON CONFLICT (id) DO UPDATE SET token = EXCLUDED.token, platform = EXCLUDED.platform, last_used_at = NOW()",
+                " ON CONFLICT (id) DO UPDATE SET token = EXCLUDED.token, "
+                "platform = EXCLUDED.platform, last_used_at = NOW()",
                 device_id,
                 token,
                 platform,
