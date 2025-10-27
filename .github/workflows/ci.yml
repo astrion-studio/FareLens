@@ -93,6 +93,6 @@ jobs:
           xcodebuild test \
             -scheme FareLens \
             -sdk iphonesimulator26.0 \
-            -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=26.0' \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' \
             -enableCodeCoverage YES
 

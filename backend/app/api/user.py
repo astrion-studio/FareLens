@@ -12,7 +12,9 @@ router = APIRouter(prefix="/user", tags=["user"])
 @router.patch("/", response_model=User)
 async def update_user(
     payload: UserUpdate,
-    provider: DataProvider = Depends(get_data_provider),  # noqa: ARG001 - provider reserved for future use
+    provider: DataProvider = Depends(
+        get_data_provider
+    ),  # noqa: ARG001 - provider reserved for future use
 ) -> User:
     user = _mock_user()
     if payload.timezone:

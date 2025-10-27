@@ -29,7 +29,9 @@ class SupabaseProvider(DataProvider):
 
     async def _ensure_pool(self) -> asyncpg.Pool:
         if self._pool is None:
-            self._pool = await asyncpg.create_pool(dsn=settings.database_url, min_size=1, max_size=5)
+            self._pool = await asyncpg.create_pool(
+                dsn=settings.database_url, min_size=1, max_size=5
+            )
         return self._pool
 
     # Deals -----------------------------------------------------------------
@@ -45,7 +47,9 @@ class SupabaseProvider(DataProvider):
     async def get_deal(self, deal_id: UUID) -> FlightDeal:
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
-            row = await conn.fetchrow("SELECT * FROM flight_deals WHERE id = $1", deal_id)
+            row = await conn.fetchrow(
+                "SELECT * FROM flight_deals WHERE id = $1", deal_id
+            )
             if row is None:
                 raise KeyError(str(deal_id))
         return self._map_deal(row)
@@ -78,10 +82,14 @@ class SupabaseProvider(DataProvider):
             )
         return self._map_watchlist(row)
 
-    async def update_watchlist(self, watchlist_id: UUID, payload: WatchlistUpdate) -> Watchlist:
+    async def update_watchlist(
+        self, watchlist_id: UUID, payload: WatchlistUpdate
+    ) -> Watchlist:
         pool = await self._ensure_pool()
         update_data = payload.model_dump(exclude_unset=True)
-        set_clause = ", ".join(f"{key} = ${idx}" for idx, key in enumerate(update_data.keys(), start=2))
+        set_clause = ", ".join(
+            f"{key} = ${idx}" for idx, key in enumerate(update_data.keys(), start=2)
+        )
         query = f"UPDATE watchlists SET {set_clause}, updated_at = NOW() WHERE id = $1 RETURNING *"
         params = [watchlist_id] + list(update_data.values())
         async with pool.acquire() as conn:
@@ -97,7 +105,9 @@ class SupabaseProvider(DataProvider):
 
     # Alerts ----------------------------------------------------------------
 
-    async def list_alert_history(self, page: int, per_page: int) -> Tuple[List[AlertHistory], int]:
+    async def list_alert_history(
+        self, page: int, per_page: int
+    ) -> Tuple[List[AlertHistory], int]:
         pool = await self._ensure_pool()
         offset = (page - 1) * per_page
         async with pool.acquire() as conn:
@@ -107,7 +117,9 @@ class SupabaseProvider(DataProvider):
                 per_page,
                 offset,
             )
-            total_row = await conn.fetchrow("SELECT COUNT(*) AS total FROM alert_history")
+            total_row = await conn.fetchrow(
+                "SELECT COUNT(*) AS total FROM alert_history"
+            )
         alerts = [self._map_alert(row) for row in rows]
         total = total_row["total"] if total_row else 0
         return alerts, total
@@ -140,12 +152,12 @@ class SupabaseProvider(DataProvider):
             watchlist_only_mode=row["watchlist_only_mode"],
         )
 
-    async def update_alert_preferences(self, prefs: AlertPreferences) -> AlertPreferences:
+    async def update_alert_preferences(
+        self, prefs: AlertPreferences
+    ) -> AlertPreferences:
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
-            await conn.execute(
-                "DELETE FROM alert_preferences"  # ensure single row
-            )
+            await conn.execute("DELETE FROM alert_preferences")  # ensure single row
             await conn.execute(
                 "INSERT INTO alert_preferences (enabled, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, watchlist_only_mode)"
                 " VALUES ($1, $2, $3, $4, $5)",
@@ -169,7 +181,9 @@ class SupabaseProvider(DataProvider):
                 )
         return {"status": "updated"}
 
-    async def register_device_token(self, device_id: UUID, token: str, platform: str) -> None:
+    async def register_device_token(
+        self, device_id: UUID, token: str, platform: str
+    ) -> None:
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
             await conn.execute(

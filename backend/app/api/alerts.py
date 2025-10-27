@@ -18,12 +18,18 @@ alerts_router = APIRouter(prefix="/alerts", tags=["alerts"])
 preferences_router = APIRouter(tags=["alerts"])
 
 
-@alerts_router.post("/register", response_model=DeviceRegistrationResponse, status_code=status.HTTP_201_CREATED)
+@alerts_router.post(
+    "/register",
+    response_model=DeviceRegistrationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def register_device(
     payload: DeviceRegistrationRequest,
     provider: DataProvider = Depends(get_data_provider),
 ) -> DeviceRegistrationResponse:
-    await provider.register_device_token(payload.device_id, payload.token, payload.platform)
+    await provider.register_device_token(
+        payload.device_id, payload.token, payload.platform
+    )
     return DeviceRegistrationResponse(status="registered", message="Device token saved")
 
 
@@ -34,7 +40,9 @@ async def get_history(
     provider: DataProvider = Depends(get_data_provider),
 ) -> AlertHistoryResponse:
     alerts, total = await provider.list_alert_history(page=page, per_page=per_page)
-    return AlertHistoryResponse(alerts=alerts, page=page, per_page=per_page, total=total)
+    return AlertHistoryResponse(
+        alerts=alerts, page=page, per_page=per_page, total=total
+    )
 
 
 @preferences_router.put("/alert-preferences", response_model=AlertPreferences)

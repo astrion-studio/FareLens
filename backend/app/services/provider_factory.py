@@ -16,7 +16,11 @@ except Exception:  # pragma: no cover - Supabase optional
 
 @lru_cache
 def get_provider() -> DataProvider:
-    if not settings.use_in_memory_store and settings.database_url and SupabaseProvider is not None:
+    if (
+        not settings.use_in_memory_store
+        and settings.database_url
+        and SupabaseProvider is not None
+    ):
         try:
             return SupabaseProvider()
         except Exception:  # fall back to in-memory if connection setup fails

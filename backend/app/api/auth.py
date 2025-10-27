@@ -5,7 +5,13 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, status
 
-from ..models.schemas import AuthRequest, AuthResponse, ResetPasswordRequest, SubscriptionInfo, User
+from ..models.schemas import (
+    AuthRequest,
+    AuthResponse,
+    ResetPasswordRequest,
+    SubscriptionInfo,
+    User,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -27,7 +33,9 @@ def _mock_user(email: str) -> User:
     )
 
 
-@router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED
+)
 async def signup(payload: AuthRequest) -> AuthResponse:
     """Create a new account and return JWT (placeholder implementation)."""
     user = _mock_user(payload.email)

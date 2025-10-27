@@ -94,7 +94,9 @@ class InMemoryProvider(DataProvider):
     # Watchlists ------------------------------------------------------------
 
     async def list_watchlists(self) -> List[Watchlist]:
-        return sorted(self._watchlists.values(), key=lambda w: w.created_at, reverse=True)
+        return sorted(
+            self._watchlists.values(), key=lambda w: w.created_at, reverse=True
+        )
 
     async def create_watchlist(self, payload: WatchlistCreate) -> Watchlist:
         watchlist = Watchlist(
@@ -113,7 +115,9 @@ class InMemoryProvider(DataProvider):
         self._watchlists[watchlist.id] = watchlist
         return watchlist
 
-    async def update_watchlist(self, watchlist_id: UUID, payload: WatchlistUpdate) -> Watchlist:
+    async def update_watchlist(
+        self, watchlist_id: UUID, payload: WatchlistUpdate
+    ) -> Watchlist:
         watchlist = self._watchlists[watchlist_id]
         update_data = payload.model_dump(exclude_unset=True)
         updated = watchlist.model_copy(update=update_data | {"updated_at": _now()})
@@ -125,7 +129,9 @@ class InMemoryProvider(DataProvider):
 
     # Alerts ----------------------------------------------------------------
 
-    async def list_alert_history(self, page: int, per_page: int) -> Tuple[List[AlertHistory], int]:
+    async def list_alert_history(
+        self, page: int, per_page: int
+    ) -> Tuple[List[AlertHistory], int]:
         alerts = sorted(self._alerts, key=lambda a: a.sent_at, reverse=True)
         start = (page - 1) * per_page
         end = start + per_page
@@ -137,15 +143,21 @@ class InMemoryProvider(DataProvider):
     async def get_alert_preferences(self) -> AlertPreferences:
         return self._alert_preferences
 
-    async def update_alert_preferences(self, prefs: AlertPreferences) -> AlertPreferences:
+    async def update_alert_preferences(
+        self, prefs: AlertPreferences
+    ) -> AlertPreferences:
         self._alert_preferences = prefs
         return prefs
 
     async def update_preferred_airports(self, payload: PreferredAirportsUpdate) -> dict:
-        self._preferred_airports = {item.iata.upper(): item.weight for item in payload.preferred_airports}
+        self._preferred_airports = {
+            item.iata.upper(): item.weight for item in payload.preferred_airports
+        }
         return {"status": "updated", "preferred_airports": self._preferred_airports}
 
-    async def register_device_token(self, device_id: UUID, token: str, platform: str) -> None:
+    async def register_device_token(
+        self, device_id: UUID, token: str, platform: str
+    ) -> None:
         self.device_tokens[device_id] = token
 
 

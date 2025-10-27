@@ -12,7 +12,9 @@ router = APIRouter(prefix="/watchlists", tags=["watchlists"])
 
 
 @router.get("/", response_model=list[Watchlist])
-async def list_watchlists(provider: DataProvider = Depends(get_data_provider)) -> list[Watchlist]:
+async def list_watchlists(
+    provider: DataProvider = Depends(get_data_provider),
+) -> list[Watchlist]:
     return await provider.list_watchlists()
 
 
