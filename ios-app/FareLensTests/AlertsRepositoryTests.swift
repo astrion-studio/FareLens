@@ -35,7 +35,7 @@ final class AlertsRepositoryTests: XCTestCase {
         let response = TestAlertHistoryResponse(alerts: [alert])
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        mockAPI.nextData = try encoder.encode(response)
+        await mockAPI.setNextData(try encoder.encode(response))
 
         // Act
         let history = try await sut.fetchAlertHistory(forceRefresh: true)
@@ -98,6 +98,10 @@ final class AlertsRepositoryTests: XCTestCase {
 actor MockAlertsAPIClient: APIClientProtocol {
     var nextData: Data?
     private(set) var requestCount = 0
+
+    func setNextData(_ data: Data?) {
+        nextData = data
+    }
 
     func request<T: Decodable>(_ endpoint: APIEndpoint) async throws -> T {
         requestCount += 1

@@ -13,9 +13,9 @@ protocol AlertServiceProtocol {
 actor AlertService: AlertServiceProtocol {
     static let shared = AlertService()
 
-    private let smartQueueService: SmartQueueService
-    private let notificationService: NotificationService
-    private let persistenceService: PersistenceService
+    private let smartQueueService: any SmartQueueServiceProtocol
+    private let notificationService: any NotificationServiceProtocol
+    private let persistenceService: any PersistenceServiceProtocol
     private let userDefaults: UserDefaults
     private let logger = Logger(subsystem: "com.farelens.app", category: "alerts")
     private let dateProvider: () -> Date
@@ -26,9 +26,9 @@ actor AlertService: AlertServiceProtocol {
     private var hasLoadedPersistedCounters = false
 
     init(
-        smartQueueService: SmartQueueService = .shared,
-        notificationService: NotificationService = .shared,
-        persistenceService: PersistenceService = .shared,
+        smartQueueService: any SmartQueueServiceProtocol = SmartQueueService.shared,
+        notificationService: any NotificationServiceProtocol = NotificationService.shared,
+        persistenceService: any PersistenceServiceProtocol = PersistenceService.shared,
         userDefaults: UserDefaults = .standard,
         dateProvider: @escaping () -> Date = { Date() }
     ) {

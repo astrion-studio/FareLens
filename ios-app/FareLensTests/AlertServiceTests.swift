@@ -294,6 +294,7 @@ final class AlertServiceTests: XCTestCase {
             expiresAt: Date().addingTimeInterval(24 * 3600),
             airline: "Test Airlines",
             stops: 0,
+            returnStops: 0,
             deepLink: "https://example.com"
         )
     }
