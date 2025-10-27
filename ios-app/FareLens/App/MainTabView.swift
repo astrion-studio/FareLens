@@ -44,6 +44,21 @@ struct MainTabView: View {
                     .tag(3)
                 }
                 .accentColor(.brandBlue)
+                .sheet(
+                    isPresented: Binding(
+                        get: { appState.isPresentingDeepLink },
+                        set: { newValue in
+                            appState.isPresentingDeepLink = newValue
+                            if !newValue {
+                                appState.dismissDeepLink()
+                            }
+                        }
+                    )
+                ) {
+                    if let deal = appState.deepLinkDeal {
+                        DealDetailView(deal: deal)
+                    }
+                }
             } else {
                 // Should never happen - ContentView ensures user exists before showing MainTabView
                 // But defensive programming requires handling this case

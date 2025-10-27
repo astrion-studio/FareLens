@@ -16,6 +16,7 @@ actor AlertService: AlertServiceProtocol {
     private let smartQueueService: SmartQueueService
     private let notificationService: NotificationService
     private let persistenceService: PersistenceService
+    private let alertsRepository: AlertsRepositoryProtocol
     private let logger = Logger(subsystem: "com.farelens.app", category: "alerts")
     private let userDefaults = UserDefaults.standard
 
@@ -26,11 +27,13 @@ actor AlertService: AlertServiceProtocol {
     init(
         smartQueueService: SmartQueueService = .shared,
         notificationService: NotificationService = .shared,
-        persistenceService: PersistenceService = .shared
+        persistenceService: PersistenceService = .shared,
+        alertsRepository: AlertsRepositoryProtocol = AlertsRepository.shared
     ) {
         self.smartQueueService = smartQueueService
         self.notificationService = notificationService
         self.persistenceService = persistenceService
+        self.alertsRepository = alertsRepository
 
         // Load persisted counters on init
         Task { await loadPersistedCounters() }
@@ -66,11 +69,18 @@ actor AlertService: AlertServiceProtocol {
 
         // Send alerts (respecting quiet hours and deduplication)
         var sentDeals: [FlightDeal] = []
+        var history: [AlertHistory] = []
         for rankedDeal in dealsToAlert {
             if await shouldSendAlert(for: rankedDeal.deal, user: user) {
-                await sendAlert(for: rankedDeal.deal, user: user)
-                sentDeals.append(rankedDeal.deal)
+                if let record = await sendAlert(for: rankedDeal.deal, user: user) {
+                    sentDeals.append(rankedDeal.deal)
+                    history.append(record)
+                }
             }
+        }
+
+        if !history.isEmpty {
+            await alertsRepository.appendLocalAlerts(history)
         }
 
         return sentDeals
@@ -94,7 +104,8 @@ actor AlertService: AlertServiceProtocol {
 
     // MARK: - Private Methods
 
-    private func sendAlert(for deal: FlightDeal, user: User) async {
+    private func sendAlert(for deal: FlightDeal, user: User) async -> AlertHistory? {
+        let sentAt = Date()
         // Send push notification
         await notificationService.sendDealAlert(deal: deal, userId: user.id)
 
@@ -103,6 +114,14 @@ actor AlertService: AlertServiceProtocol {
         deduplicationCache.markAlertSent(key: dedupeKey, date: Date())
 
         await incrementAlertCounter(for: user.id)
+
+        return AlertHistory(
+            id: UUID(),
+            deal: deal,
+            sentAt: sentAt,
+            wasClicked: false,
+            expiresAt: deal.expiresAt
+        )
     }
 
     private func isQuietHours(for user: User) async -> Bool {

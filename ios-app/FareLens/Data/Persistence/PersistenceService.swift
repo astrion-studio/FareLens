@@ -12,6 +12,10 @@ protocol PersistenceServiceProtocol {
     func loadDeals() async -> [FlightDeal]
     func clearDeals() async
     func isCacheValid() async -> Bool
+    func saveAlerts(_ alerts: [AlertHistory]) async
+    func loadAlerts() async -> [AlertHistory]
+    func clearAlerts() async
+    func isAlertCacheValid() async -> Bool
     func clearAllData() async
 }
 
@@ -26,6 +30,8 @@ actor PersistenceService: PersistenceServiceProtocol {
         static let currentUser = "current_user"
         static let cachedDeals = "cached_deals"
         static let lastRefresh = "last_refresh"
+        static let cachedAlerts = "cached_alerts"
+        static let alertsLastRefresh = "alerts_last_refresh"
     }
 
     // MARK: - User Persistence
@@ -115,8 +121,62 @@ actor PersistenceService: PersistenceServiceProtocol {
         return cacheAge < 5 * 60 // 5 minutes per ARCHITECTURE.md line 335
     }
 
+    // MARK: - Alert History Persistence
+
+    func saveAlerts(_ alerts: [AlertHistory]) async {
+        do {
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            let data = try encoder.encode(alerts)
+            userDefaults.set(data, forKey: Keys.cachedAlerts)
+            userDefaults.set(Date(), forKey: Keys.alertsLastRefresh)
+            logger.info("Saved \(alerts.count) alerts to cache")
+        } catch {
+            logger.error("Failed to save alerts: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func loadAlerts() async -> [AlertHistory] {
+        guard let data = userDefaults.data(forKey: Keys.cachedAlerts) else {
+            return []
+        }
+
+        if let lastRefresh = userDefaults.object(forKey: Keys.alertsLastRefresh) as? Date {
+            let cacheAge = Date().timeIntervalSince(lastRefresh)
+            if cacheAge > 5 * 60 {
+                return [] // Cache expired
+            }
+        }
+
+        do {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let alerts = try decoder.decode([AlertHistory].self, from: data)
+            logger.info("Loaded \(alerts.count) alerts from cache")
+            return alerts
+        } catch {
+            logger.error("Failed to load alerts: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
+    func clearAlerts() async {
+        userDefaults.removeObject(forKey: Keys.cachedAlerts)
+        userDefaults.removeObject(forKey: Keys.alertsLastRefresh)
+    }
+
+    func isAlertCacheValid() async -> Bool {
+        guard let lastRefresh = userDefaults.object(forKey: Keys.alertsLastRefresh) as? Date else {
+            return false
+        }
+
+        let cacheAge = Date().timeIntervalSince(lastRefresh)
+        return cacheAge < 5 * 60
+    }
+
     func clearAllData() async {
         await clearUser()
         await clearDeals()
+        await clearAlerts()
     }
 }

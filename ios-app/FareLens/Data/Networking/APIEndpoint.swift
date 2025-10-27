@@ -155,6 +155,17 @@ extension APIEndpoint {
         )
     }
 
+    static func getAlertHistory(page: Int = 1, perPage: Int = 50) -> APIEndpoint {
+        APIEndpoint(
+            path: "/alerts/history",
+            method: .get,
+            queryItems: [
+                URLQueryItem(name: "page", value: "\(page)"),
+                URLQueryItem(name: "per_page", value: "\(perPage)"),
+            ]
+        )
+    }
+
     // MARK: - User
 
     static func updateUser(_ user: User) -> APIEndpoint {
