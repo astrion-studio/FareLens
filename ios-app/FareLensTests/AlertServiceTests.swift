@@ -316,7 +316,9 @@ private extension AlertServiceTests {
 
 // MARK: - Mock Services
 
-class MockSmartQueueService: SmartQueueServiceProtocol {
+/// Mock SmartQueueService as actor to match real implementation's concurrency model
+/// Fixes Issue #8: Ensures tests catch concurrency bugs that would occur in production
+actor MockSmartQueueService: SmartQueueServiceProtocol {
     func rankDeals(_ deals: [FlightDeal], for user: User) async -> [RankedDeal] {
         // Simple mock: return deals wrapped in RankedDeal
         return deals.map { deal in

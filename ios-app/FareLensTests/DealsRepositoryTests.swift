@@ -128,6 +128,54 @@ final class DealsRepositoryTests: XCTestCase {
         XCTAssertEqual(deals.first?.dealScore, 95)
     }
 
+    // MARK: - Concurrency Tests
+
+    /// Test concurrent access to DealsRepository actor is properly serialized
+    /// Fixes Issue #12: Verifies actor isolation prevents race conditions
+    func testConcurrentFetchDeals_SerializedProperly() async throws {
+        // Arrange: Mock returns test deals
+        mockPersistence.isCacheValidFlag = false
+        let testDeals = [createTestDeal()]
+        mockAPIClient.mockDeals = testDeals
+
+        // Act: Call fetchDeals concurrently from multiple tasks
+        async let result1 = sut.fetchDeals(forceRefresh: false)
+        async let result2 = sut.fetchDeals(forceRefresh: false)
+        async let result3 = sut.fetchDeals(forceRefresh: false)
+
+        let (deals1, deals2, deals3) = try await (result1, result2, result3)
+
+        // Assert: All calls completed successfully (no crashes or data corruption)
+        XCTAssertEqual(deals1.count, 1)
+        XCTAssertEqual(deals2.count, 1)
+        XCTAssertEqual(deals3.count, 1)
+        // Each concurrent call should have incremented the request count
+        XCTAssertEqual(mockAPIClient.requestCount, 3)
+    }
+
+    /// Test concurrent cache operations don't corrupt state
+    /// Fixes Issue #12: Verifies cache consistency under concurrent access
+    func testConcurrentCacheAccess_RemainsConsistent() async throws {
+        // Arrange: Cache starts invalid
+        mockPersistence.isCacheValidFlag = false
+        let deal1 = createTestDeal(score: 80)
+        let deal2 = createTestDeal(score: 90)
+        mockAPIClient.mockDeals = [deal1, deal2]
+
+        // Act: Concurrent reads and cache validity checks
+        async let fetch1 = sut.fetchDeals(forceRefresh: false)
+        async let fetch2 = sut.fetchDeals(forceRefresh: true)
+
+        let (result1, result2) = try await (fetch1, fetch2)
+
+        // Assert: Both calls got correct data, no race conditions
+        XCTAssertEqual(result1.count, 2)
+        XCTAssertEqual(result2.count, 2)
+        // Verify cache was updated correctly by checking persistence
+        let cached = await mockPersistence.loadDeals(origin: nil)
+        XCTAssertEqual(cached.count, 2)
+    }
+
     // MARK: - Helper Methods
 
     private func createTestUser(tier: SubscriptionTier) -> User {
@@ -170,7 +218,7 @@ final class DealsRepositoryTests: XCTestCase {
 // MARK: - Mock API Client
 
 /// Mock API client with configurable responses for testing
-/// Fixes Issues #3, #5, #6: Realistic data, configurable responses, safe casting
+/// Fixes Issues #3, #5, #6, #10: Realistic data, configurable responses, safe casting, JSON decoding simulation
 class MockAPIClient: APIClientProtocol {
     var requestCount = 0
     var mockDeals: [FlightDeal] = []
@@ -184,13 +232,32 @@ class MockAPIClient: APIClientProtocol {
             throw error
         }
 
-        // Return mock response with safe casting
+        // Simulate JSON decoding process like real APIClient
+        // Fixes Issue #10: Tests now catch JSON decoding issues
         if T.self == DealsResponse.self {
             let response = DealsResponse(deals: mockDeals)
-            guard let result = response as? T else {
-                throw APIError.invalidResponse
+
+            // Simulate encoding/decoding round-trip to catch issues
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            encoder.keyEncodingStrategy = .convertToSnakeCase
+
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+
+            do {
+                let data = try encoder.encode(response)
+                let decodedResponse = try decoder.decode(DealsResponse.self, from: data)
+
+                guard let result = decodedResponse as? T else {
+                    throw APIError.invalidResponse
+                }
+                return result
+            } catch {
+                // Catch encoding/decoding errors that would occur with real API
+                throw APIError.decodingError(error)
             }
-            return result
         }
 
         throw APIError.invalidResponse
