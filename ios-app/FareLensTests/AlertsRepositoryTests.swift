@@ -131,7 +131,6 @@ actor MockAlertsPersistenceService: PersistenceServiceProtocol {
     func loadDeals(origin: String?) async -> [FlightDeal] { [] }
     func clearDeals() async {}
     func isCacheValid(for origin: String?) async -> Bool { false }
-    func clearAllData() async {}
 
     func saveAlerts(_ alerts: [AlertHistory]) async {
         savedAlerts = alerts
