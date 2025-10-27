@@ -80,41 +80,52 @@ final class DealsRepositoryTests: XCTestCase {
 
     // Deals fetched from cache when valid
     func testCacheFetch_WhenValid() async throws {
-        // Arrange: Cache is valid
+        // Arrange: Cache is valid with realistic test data
         mockPersistence.isCacheValidFlag = true
-        mockPersistence.cachedDeals = [createTestDeal()]
+        let testDeal = createTestDeal()
+        mockPersistence.cachedDeals = [testDeal]
 
         // Act
         let deals = try await sut.fetchDeals(forceRefresh: false)
 
-        // Assert: Deals from cache
+        // Assert: Deals from cache, no API call
         XCTAssertEqual(deals.count, 1)
-        XCTAssertEqual(mockAPIClient.requestCount, 0) // No API call
+        XCTAssertEqual(deals.first?.id, testDeal.id)
+        XCTAssertEqual(deals.first?.origin, "LAX")
+        XCTAssertEqual(mockAPIClient.requestCount, 0)
     }
 
     // Deals fetched from API when cache invalid
     func testAPIFetch_WhenCacheInvalid() async throws {
-        // Arrange: Cache is invalid
+        // Arrange: Cache is invalid, mock will return test deals
         mockPersistence.isCacheValidFlag = false
+        let testDeals = [createTestDeal(), createTestDeal(score: 90)]
+        mockAPIClient.mockDeals = testDeals
 
         // Act
-        _ = try await sut.fetchDeals(forceRefresh: false)
+        let deals = try await sut.fetchDeals(forceRefresh: false)
 
-        // Assert: API called
+        // Assert: API called and deals returned
         XCTAssertEqual(mockAPIClient.requestCount, 1)
+        XCTAssertEqual(deals.count, 2)
+        XCTAssertEqual(deals.first?.origin, "LAX")
     }
 
     // Force refresh ignores cache
     func testForceRefresh_IgnoresCache() async throws {
-        // Arrange: Cache is valid but force refresh
+        // Arrange: Cache is valid but force refresh requested
         mockPersistence.isCacheValidFlag = true
         mockPersistence.cachedDeals = [createTestDeal()]
+        let freshDeals = [createTestDeal(score: 95)]
+        mockAPIClient.mockDeals = freshDeals
 
         // Act
-        _ = try await sut.fetchDeals(forceRefresh: true)
+        let deals = try await sut.fetchDeals(forceRefresh: true)
 
-        // Assert: API called despite valid cache
+        // Assert: API called despite valid cache, fresh deals returned
         XCTAssertEqual(mockAPIClient.requestCount, 1)
+        XCTAssertEqual(deals.count, 1)
+        XCTAssertEqual(deals.first?.dealScore, 95)
     }
 
     // MARK: - Helper Methods
@@ -158,16 +169,28 @@ final class DealsRepositoryTests: XCTestCase {
 
 // MARK: - Mock API Client
 
+/// Mock API client with configurable responses for testing
+/// Fixes Issues #3, #5, #6: Realistic data, configurable responses, safe casting
 class MockAPIClient: APIClientProtocol {
     var requestCount = 0
+    var mockDeals: [FlightDeal] = []
+    var shouldThrowError: APIError?
 
     func request<T: Decodable>(_ endpoint: APIEndpoint) async throws -> T {
         requestCount += 1
 
-        // Return mock response
+        // Allow test to configure error responses
+        if let error = shouldThrowError {
+            throw error
+        }
+
+        // Return mock response with safe casting
         if T.self == DealsResponse.self {
-            let response = DealsResponse(deals: [])
-            return response as! T
+            let response = DealsResponse(deals: mockDeals)
+            guard let result = response as? T else {
+                throw APIError.invalidResponse
+            }
+            return result
         }
 
         throw APIError.invalidResponse
@@ -175,14 +198,22 @@ class MockAPIClient: APIClientProtocol {
 
     func requestNoResponse(_ endpoint: APIEndpoint) async throws {
         requestCount += 1
+
+        if let error = shouldThrowError {
+            throw error
+        }
     }
 }
 
-// MockPersistenceService for testing (already defined in AlertServiceTests)
+// MARK: - Mock Persistence Service
+
+/// Mock persistence service for testing deals repository
+/// Fixes Issue #11: Consistent cache key logic documented
 class MockPersistenceServiceForDeals: PersistenceServiceProtocol {
     var isCacheValidFlag: Bool = false
     var cachedDealsByOrigin: [String: [FlightDeal]] = [:]
 
+    /// Generate cache key for origin (uppercase IATA code or "__ALL__" for all deals)
     private func key(for origin: String?) -> String {
         origin?.uppercased() ?? "__ALL__"
     }
@@ -193,18 +224,21 @@ class MockPersistenceServiceForDeals: PersistenceServiceProtocol {
     }
 
     func saveUser(_ user: User) async {}
-    func loadUser() async -> User? { return nil }
+    func loadUser() async -> User? { nil }
     func clearUser() async {}
+
     func saveDeals(_ deals: [FlightDeal], origin: String?) async {
         cachedDealsByOrigin[key(for: origin)] = deals
     }
+
     func loadDeals(origin: String?) async -> [FlightDeal] {
         cachedDealsByOrigin[key(for: origin)] ?? []
     }
+
     func clearDeals() async {}
     func isCacheValid(for origin: String?) async -> Bool { isCacheValidFlag }
     func saveAlerts(_ alerts: [AlertHistory]) async {}
-    func loadAlerts() async -> [AlertHistory] { return [] }
-    func isAlertCacheValid() async -> Bool { return false }
+    func loadAlerts() async -> [AlertHistory] { [] }
+    func isAlertCacheValid() async -> Bool { false }
     func clearAllData() async {}
 }
