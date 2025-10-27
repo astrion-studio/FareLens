@@ -6,18 +6,37 @@ final class AlertServiceTests: XCTestCase {
     var mockSmartQueue: MockSmartQueueService!
     var mockNotification: MockNotificationService!
     var mockPersistence: MockPersistenceService!
+    var userDefaults: UserDefaults!
+    var userDefaultsSuiteName: String!
     var testUser: User!
 
     override func setUp() async throws {
         mockSmartQueue = MockSmartQueueService()
         mockNotification = MockNotificationService()
         mockPersistence = MockPersistenceService()
-        sut = AlertService(
-            smartQueueService: mockSmartQueue,
-            notificationService: mockNotification,
-            persistenceService: mockPersistence
-        )
+        userDefaultsSuiteName = "AlertServiceTests-\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: userDefaultsSuiteName) else {
+            throw XCTSkip("Failed to create test user defaults suite")
+        }
+        defaults.removePersistentDomain(forName: userDefaultsSuiteName)
+        userDefaults = defaults
+
+        rebuildSystemUnderTest()
         testUser = createTestUser(tier: .free)
+    }
+
+    override func tearDown() async throws {
+        sut = nil
+        mockSmartQueue = nil
+        mockNotification = nil
+        mockPersistence = nil
+        if let suiteName = userDefaultsSuiteName, let defaults = userDefaults {
+            defaults.removePersistentDomain(forName: suiteName)
+        }
+        userDefaults = nil
+        userDefaultsSuiteName = nil
+        testUser = nil
+        try await super.tearDown()
     }
 
     // MARK: - Alert Cap Tests
@@ -74,15 +93,22 @@ final class AlertServiceTests: XCTestCase {
         testUser.alertPreferences.quietHoursStart = 22 // 10pm
         testUser.alertPreferences.quietHoursEnd = 7 // 7am
 
+        let timezone = try XCTUnwrap(TimeZone(identifier: testUser.timezone))
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timezone
+        let quietHourDate = try XCTUnwrap(
+            calendar.date(from: DateComponents(year: 2024, month: 1, day: 1, hour: 23))
+        )
+
+        rebuildSystemUnderTest(dateProvider: { quietHourDate })
+
         let deal = createTestDeal()
 
         // Act: Check if alert should be sent during quiet hours
         let shouldSend = await sut.shouldSendAlert(for: deal, user: testUser)
 
         // Assert: Alert blocked
-        // Note: This test depends on current time, would need time injection for proper testing
-        // For now, testing the logic flow
-        XCTAssertNotNil(shouldSend) // Test structure is correct
+        XCTAssertFalse(shouldSend)
     }
 
     // MARK: - Deduplication Tests
@@ -101,6 +127,106 @@ final class AlertServiceTests: XCTestCase {
         // Assert: Second alert blocked by deduplication
         XCTAssertEqual(sentDeals.count, 0)
         XCTAssertEqual(mockNotification.sentAlerts.count, 1)
+    }
+
+    func testLoadPersistedCountersRestoresValidData() async throws {
+        // Arrange
+        let userId = UUID()
+        let counters: [String: Int] = [userId.uuidString: 3]
+        let resetDates: [String: Date] = [userId.uuidString: Date()]
+        userDefaults.set(try JSONEncoder().encode(counters), forKey: "alertCounters")
+        userDefaults.set(try JSONEncoder().encode(resetDates), forKey: "lastResetDates")
+
+        sut = AlertService(
+            smartQueueService: mockSmartQueue,
+            notificationService: mockNotification,
+            persistenceService: mockPersistence,
+            userDefaults: userDefaults
+        )
+
+        // Act
+        await sut.refreshPersistedCounters()
+        let restoredCount = await sut.getAlertsSentToday(for: userId)
+
+        // Assert
+        XCTAssertEqual(restoredCount, 3)
+    }
+
+    func testLoadPersistedCountersSkipsInvalidUUIDs() async throws {
+        // Arrange
+        let validUserId = UUID()
+        let counters: [String: Int] = [
+            "invalid-uuid": 5,
+            validUserId.uuidString: 2,
+        ]
+        let resetDates: [String: Date] = [
+            "invalid-uuid": Date(),
+            validUserId.uuidString: Date(),
+        ]
+        userDefaults.set(try JSONEncoder().encode(counters), forKey: "alertCounters")
+        userDefaults.set(try JSONEncoder().encode(resetDates), forKey: "lastResetDates")
+
+        sut = AlertService(
+            smartQueueService: mockSmartQueue,
+            notificationService: mockNotification,
+            persistenceService: mockPersistence,
+            userDefaults: userDefaults
+        )
+
+        // Act
+        await sut.refreshPersistedCounters()
+        let restoredCount = await sut.getAlertsSentToday(for: validUserId)
+        let missingCount = await sut.getAlertsSentToday(for: UUID())
+
+        // Assert
+        XCTAssertEqual(restoredCount, 2)
+        XCTAssertEqual(missingCount, 0)
+    }
+
+    func testProcessNewDealsRespectsPersistedCountersWithoutExplicitRefresh() async throws {
+        // Arrange
+        let persistedUser = createTestUser(tier: .free)
+        let counters: [String: Int] = [persistedUser.id.uuidString: persistedUser.maxAlertsPerDay]
+        let resetDates: [String: Date] = [persistedUser.id.uuidString: Date()]
+        userDefaults.set(try JSONEncoder().encode(counters), forKey: "alertCounters")
+        userDefaults.set(try JSONEncoder().encode(resetDates), forKey: "lastResetDates")
+
+        mockSmartQueue = MockSmartQueueService()
+        mockNotification = MockNotificationService()
+        mockPersistence = MockPersistenceService()
+        testUser = persistedUser
+        rebuildSystemUnderTest()
+
+        let deals = (0..<persistedUser.maxAlertsPerDay).map { _ in createTestDeal() }
+
+        // Act
+        let sentDeals = try await sut.processNewDeals(deals, for: testUser)
+
+        // Assert
+        XCTAssertEqual(sentDeals.count, 0)
+        XCTAssertEqual(mockNotification.sentAlerts.count, 0)
+        let restoredCount = await sut.getAlertsSentToday(for: testUser.id)
+        XCTAssertEqual(restoredCount, persistedUser.maxAlertsPerDay)
+    }
+
+    func testRefreshPersistedCountersClearsCorruptedData() async throws {
+        // Arrange
+        userDefaults.set(Data("invalid".utf8), forKey: "alertCounters")
+        userDefaults.set(Data("invalid".utf8), forKey: "lastResetDates")
+
+        mockSmartQueue = MockSmartQueueService()
+        mockNotification = MockNotificationService()
+        mockPersistence = MockPersistenceService()
+        rebuildSystemUnderTest()
+
+        // Act
+        await sut.refreshPersistedCounters()
+
+        // Assert
+        let restoredCount = await sut.getAlertsSentToday(for: UUID())
+        XCTAssertEqual(restoredCount, 0)
+        XCTAssertNil(userDefaults.data(forKey: "alertCounters"))
+        XCTAssertNil(userDefaults.data(forKey: "lastResetDates"))
     }
 
     // MARK: - Watchlist-Only Mode Tests
@@ -173,6 +299,20 @@ final class AlertServiceTests: XCTestCase {
     }
 }
 
+// MARK: - Helpers
+
+private extension AlertServiceTests {
+    func rebuildSystemUnderTest(dateProvider: @escaping () -> Date = { Date() }) {
+        sut = AlertService(
+            smartQueueService: mockSmartQueue,
+            notificationService: mockNotification,
+            persistenceService: mockPersistence,
+            userDefaults: userDefaults,
+            dateProvider: dateProvider
+        )
+    }
+}
+
 // MARK: - Mock Services
 
 class MockSmartQueueService: SmartQueueServiceProtocol {
@@ -208,13 +348,9 @@ class MockPersistenceService: PersistenceServiceProtocol {
     func saveUser(_ user: User) async {}
     func loadUser() async -> User? { return nil }
     func clearUser() async {}
-    func saveDeals(_ deals: [FlightDeal]) async {}
-    func loadDeals() async -> [FlightDeal] { return [] }
+    func saveDeals(_ deals: [FlightDeal], origin: String?) async {}
+    func loadDeals(origin: String?) async -> [FlightDeal] { return [] }
     func clearDeals() async {}
-    func isCacheValid() async -> Bool { return false }
-    func saveAlerts(_ alerts: [AlertHistory]) async {}
-    func loadAlerts() async -> [AlertHistory] { return [] }
-    func clearAlerts() async {}
-    func isAlertCacheValid() async -> Bool { false }
+    func isCacheValid(for origin: String?) async -> Bool { return false }
     func clearAllData() async {}
 }

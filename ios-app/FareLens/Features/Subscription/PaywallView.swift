@@ -354,11 +354,24 @@ final class PaywallViewModel {
         isLoading = true
         defer { isLoading = false }
 
+        let noRestoreMessage = "We couldn't find any previous purchases to restore."
+
         do {
-            try await subscriptionService.restorePurchases()
-            showingSuccess = true
+            showingSuccess = false
+
+            let restoreSucceeded = try await subscriptionService.restorePurchases()
+
+            if restoreSucceeded {
+                errorMessage = nil
+                showingError = false
+                showingSuccess = true
+            } else {
+                errorMessage = noRestoreMessage
+                showingError = true
+            }
         } catch {
-            errorMessage = "No previous purchases found"
+            showingSuccess = false
+            errorMessage = noRestoreMessage
             showingError = true
         }
     }

@@ -184,18 +184,27 @@ struct DealsResponse: Codable {
 // MockPersistenceService for testing (already defined in AlertServiceTests)
 class MockPersistenceServiceForDeals: PersistenceServiceProtocol {
     var isCacheValidFlag: Bool = false
-    var cachedDeals: [FlightDeal] = []
+    var cachedDealsByOrigin: [String: [FlightDeal]] = [:]
+
+    private func key(for origin: String?) -> String {
+        origin?.uppercased() ?? "__ALL__"
+    }
+
+    var cachedDeals: [FlightDeal] {
+        get { cachedDealsByOrigin[key(for: nil)] ?? [] }
+        set { cachedDealsByOrigin[key(for: nil)] = newValue }
+    }
 
     func saveUser(_ user: User) async {}
     func loadUser() async -> User? { return nil }
     func clearUser() async {}
-    func saveDeals(_ deals: [FlightDeal]) async {}
-    func loadDeals() async -> [FlightDeal] { return cachedDeals }
+    func saveDeals(_ deals: [FlightDeal], origin: String?) async {
+        cachedDealsByOrigin[key(for: origin)] = deals
+    }
+    func loadDeals(origin: String?) async -> [FlightDeal] {
+        cachedDealsByOrigin[key(for: origin)] ?? []
+    }
     func clearDeals() async {}
-    func isCacheValid() async -> Bool { return isCacheValidFlag }
-    func saveAlerts(_ alerts: [AlertHistory]) async {}
-    func loadAlerts() async -> [AlertHistory] { return [] }
-    func clearAlerts() async {}
-    func isAlertCacheValid() async -> Bool { false }
+    func isCacheValid(for origin: String?) async -> Bool { isCacheValidFlag }
     func clearAllData() async {}
 }

@@ -71,11 +71,10 @@ final class SmartQueueServiceTests: XCTestCase {
 
         // Act
         let ranked = await sut.rankDeals([deal1, deal2, deal3], for: testUser)
+        let rankedIDs = ranked.map(\.id)
 
         // Assert: Order should be deal1 (163.2), deal3 (128.0), deal2 (90.0)
-        XCTAssertEqual(ranked[0].id, deal1.id)
-        XCTAssertEqual(ranked[1].id, deal3.id)
-        XCTAssertEqual(ranked[2].id, deal2.id)
+        XCTAssertEqual(rankedIDs, [deal1.id, deal3.id, deal2.id])
     }
 
     // Smart queue applies tiebreaker by price when scores equal
@@ -96,10 +95,10 @@ final class SmartQueueServiceTests: XCTestCase {
 
         // Act
         let ranked = await sut.rankDeals([deal1, deal2], for: testUser)
+        let rankedIDs = ranked.map(\.id)
 
         // Assert: deal2 should be first (lower price)
-        XCTAssertEqual(ranked[0].id, deal2.id)
-        XCTAssertEqual(ranked[1].id, deal1.id)
+        XCTAssertEqual(rankedIDs, [deal2.id, deal1.id])
     }
 
     // Smart queue applies tiebreaker by date when scores and prices equal
@@ -122,10 +121,10 @@ final class SmartQueueServiceTests: XCTestCase {
 
         // Act
         let ranked = await sut.rankDeals([deal1, deal2], for: testUser)
+        let rankedIDs = ranked.map(\.id)
 
         // Assert: deal2 should be first (sooner departure)
-        XCTAssertEqual(ranked[0].id, deal2.id)
-        XCTAssertEqual(ranked[1].id, deal1.id)
+        XCTAssertEqual(rankedIDs, [deal2.id, deal1.id])
     }
 
     // MARK: - Test Examples from ARCHITECTURE.md
@@ -177,7 +176,8 @@ final class SmartQueueServiceTests: XCTestCase {
         destination: String,
         dealScore: Int,
         price: Double = 500.0,
-        departureDate: Date = Date()
+        departureDate: Date = Date(),
+        returnStops: Int? = 0
     ) -> FlightDeal {
         FlightDeal(
             id: UUID(),
@@ -194,6 +194,7 @@ final class SmartQueueServiceTests: XCTestCase {
             expiresAt: Date().addingTimeInterval(24 * 3600),
             airline: "Test Airlines",
             stops: 0,
+            returnStops: returnStops,
             deepLink: "https://example.com"
         )
     }
