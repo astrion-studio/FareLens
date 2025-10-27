@@ -94,8 +94,11 @@ class SupabaseProvider(DataProvider):
         set_clause = ", ".join(
             f"{key} = ${idx}" for idx, key in enumerate(update_data.keys(), start=2)
         )
-        # nosec B608 - Column names from Pydantic model fields (not user input)
-        query = f"UPDATE watchlists SET {set_clause}, updated_at = NOW() WHERE id = $1 RETURNING *"
+        # Column names from Pydantic model fields (not user input)
+        query = (
+            f"UPDATE watchlists SET {set_clause}, updated_at = NOW() "  # nosec
+            f"WHERE id = $1 RETURNING *"
+        )
         params = [watchlist_id] + list(update_data.values())
         async with pool.acquire() as conn:
             row = await conn.fetchrow(query, *params)
@@ -139,7 +142,7 @@ class SupabaseProvider(DataProvider):
                 alert.deal.id,
                 alert.sent_at,
                 alert.opened_at,
-                alert.was_clicked,
+                alert.clicked_through,
                 alert.expires_at,
             )
 

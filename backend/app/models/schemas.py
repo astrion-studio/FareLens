@@ -149,7 +149,7 @@ class User(BaseModel):
     subscription_tier: str = "free"
     timezone: str = "America/Los_Angeles"
     created_at: datetime
-    subscription: SubscriptionInfo = Field(default_factory=SubscriptionInfo)
+    subscription: SubscriptionInfo = Field(default_factory=lambda: SubscriptionInfo())
 
 
 class UserUpdate(BaseModel):

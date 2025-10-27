@@ -1,6 +1,6 @@
 """Authentication endpoints (see API.md section 1)."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, status
@@ -28,7 +28,7 @@ def _mock_user(email: str) -> User:
             tier="free",
             max_watchlists=5,
             max_alerts_per_day=3,
-            trial_ends_at=now + (60 * 60 * 24 * 14),
+            trial_ends_at=now + timedelta(days=14),
         ),
     )
 
