@@ -1,5 +1,6 @@
 """Deals endpoints referencing API.md section 2."""
 
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
@@ -44,7 +45,7 @@ async def background_refresh() -> BackgroundRefreshResponse:
     return BackgroundRefreshResponse(status="ok", new_deals=0, refreshed_at=_utcnow())
 
 
-def _utcnow():
+def _utcnow() -> datetime:
     from datetime import datetime, timezone
 
     return datetime.now(timezone.utc)
