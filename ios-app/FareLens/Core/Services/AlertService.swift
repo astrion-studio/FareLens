@@ -13,9 +13,9 @@ protocol AlertServiceProtocol {
 actor AlertService: AlertServiceProtocol {
     static let shared = AlertService()
 
-    private let smartQueueService: SmartQueueService
-    private let notificationService: NotificationService
-    private let persistenceService: PersistenceService
+    private let smartQueueService: any SmartQueueServiceProtocol
+    private let notificationService: any NotificationServiceProtocol
+    private let persistenceService: any PersistenceServiceProtocol
     private let userDefaults: UserDefaults
     private let logger = Logger(subsystem: "com.farelens.app", category: "alerts")
     private let dateProvider: () -> Date
@@ -26,9 +26,9 @@ actor AlertService: AlertServiceProtocol {
     private var hasLoadedPersistedCounters = false
 
     init(
-        smartQueueService: SmartQueueService = .shared,
-        notificationService: NotificationService = .shared,
-        persistenceService: PersistenceService = .shared,
+        smartQueueService: any SmartQueueServiceProtocol = SmartQueueService.shared,
+        notificationService: any NotificationServiceProtocol = NotificationService.shared,
+        persistenceService: any PersistenceServiceProtocol = PersistenceService.shared,
         userDefaults: UserDefaults = .standard,
         dateProvider: @escaping () -> Date = { Date() }
     ) {
@@ -72,8 +72,9 @@ actor AlertService: AlertServiceProtocol {
         var sentDeals: [FlightDeal] = []
         for rankedDeal in dealsToAlert {
             if await shouldSendAlert(for: rankedDeal.deal, user: user) {
-                await sendAlert(for: rankedDeal.deal, user: user)
-                sentDeals.append(rankedDeal.deal)
+                if await sendAlert(for: rankedDeal.deal, user: user) != nil {
+                    sentDeals.append(rankedDeal.deal)
+                }
             }
         }
 
@@ -98,7 +99,8 @@ actor AlertService: AlertServiceProtocol {
 
     // MARK: - Private Methods
 
-    private func sendAlert(for deal: FlightDeal, user: User) async {
+    private func sendAlert(for deal: FlightDeal, user: User) async -> AlertHistory? {
+        let sentAt = Date()
         // Send push notification
         await notificationService.sendDealAlert(deal: deal, userId: user.id)
 
@@ -107,6 +109,14 @@ actor AlertService: AlertServiceProtocol {
         deduplicationCache.markAlertSent(key: dedupeKey, date: dateProvider())
 
         await incrementAlertCounter(for: user.id)
+
+        return AlertHistory(
+            id: UUID(),
+            deal: deal,
+            sentAt: sentAt,
+            wasClicked: false,
+            expiresAt: deal.expiresAt
+        )
     }
 
     private func isQuietHours(for user: User) async -> Bool {
@@ -205,7 +215,7 @@ actor AlertService: AlertServiceProtocol {
         alertsSentToday = restoredCounters
         lastResetDate = restoredResetDates
 
-        logger.info("Loaded persisted alert counters: \(alertsSentToday.count) users")
+        logger.info("Loaded persisted alert counters: \(self.alertsSentToday.count) users")
     }
 
     /// Reload persisted alert counters and reset dates (primarily for testing support).

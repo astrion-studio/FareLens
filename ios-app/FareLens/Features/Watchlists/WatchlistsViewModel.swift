@@ -13,7 +13,7 @@ final class WatchlistsViewModel {
     var showingCreateSheet = false
     var showingUpgradeAlert = false
 
-    private let user: User
+    let user: User
 
     init(user: User) {
         self.user = user

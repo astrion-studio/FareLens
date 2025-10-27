@@ -9,7 +9,7 @@ on:
 jobs:
   code-quality:
     name: Code Quality Checks
-    runs-on: macos-latest
+    runs-on: macos-15  # Stable runner with Xcode 16 (iOS 26 SDK available)
     
     steps:
       - name: Checkout code
@@ -63,7 +63,7 @@ jobs:
 
   tests:
     name: Run Tests
-    runs-on: macos-latest
+    runs-on: macos-15  # Stable runner with Xcode 16 (iOS 26 SDK available)
     needs: code-quality
 
     steps:
@@ -90,5 +90,9 @@ jobs:
         if: steps.check_project.outputs.has_project == 'true'
         run: |
           cd ios-app
-          xcodebuild test -scheme FareLens -destination 'platform=iOS Simulator,name=iPhone 15 Pro'
+          xcodebuild test \
+            -scheme FareLens \
+            -sdk iphonesimulator26.0 \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' \
+            -enableCodeCoverage YES
 

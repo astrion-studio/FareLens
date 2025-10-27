@@ -294,6 +294,7 @@ final class AlertServiceTests: XCTestCase {
             expiresAt: Date().addingTimeInterval(24 * 3600),
             airline: "Test Airlines",
             stops: 0,
+            returnStops: 0,
             deepLink: "https://example.com"
         )
     }
@@ -352,5 +353,8 @@ class MockPersistenceService: PersistenceServiceProtocol {
     func loadDeals(origin: String?) async -> [FlightDeal] { return [] }
     func clearDeals() async {}
     func isCacheValid(for origin: String?) async -> Bool { return false }
+    func saveAlerts(_ alerts: [AlertHistory]) async {}
+    func loadAlerts() async -> [AlertHistory] { return [] }
+    func isAlertCacheValid() async -> Bool { return false }
     func clearAllData() async {}
 }

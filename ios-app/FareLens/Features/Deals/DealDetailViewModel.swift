@@ -17,15 +17,21 @@ final class DealDetailViewModel {
     var showingError = false
     var errorMessage: String?
 
-    init(deal: FlightDeal) {
-        self.deal = deal
-        checkIfSaved()
-    }
+    private let savedDealsRepository: SavedDealsRepositoryProtocol
 
-    func checkIfSaved() {
-        // TODO: Check if deal matches any watchlist
-        // For now, just set to false
-        isSaved = false
+    init(
+        deal: FlightDeal,
+        savedDealsRepository: SavedDealsRepositoryProtocol = SavedDealsRepository.shared
+    ) {
+        self.deal = deal
+        self.savedDealsRepository = savedDealsRepository
+
+        Task { [deal] in
+            let saved = await savedDealsRepository.isDealSaved(deal.id)
+            await MainActor.run {
+                self.isSaved = saved
+            }
+        }
     }
 
     func toggleSave() async {
@@ -34,16 +40,14 @@ final class DealDetailViewModel {
 
         do {
             if isSaved {
-                // Remove from watchlists
-                // TODO: Implement remove logic
+                try await savedDealsRepository.removeDeal(deal.id)
                 isSaved = false
             } else {
-                // Add to watchlists or create new one
-                // TODO: Implement add logic
+                try await savedDealsRepository.saveDeal(deal)
                 isSaved = true
             }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = "We couldn't update your saved deals. Please try again."
             showingError = true
         }
     }

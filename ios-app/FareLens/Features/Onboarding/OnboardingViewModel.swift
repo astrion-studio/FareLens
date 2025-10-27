@@ -39,6 +39,8 @@ final class OnboardingViewModel {
             // Update AppState to transition to main app
             appState.isAuthenticated = true
             appState.currentUser = user
+            appState.subscriptionTier = user.subscriptionTier
+            await registerForNotifications()
         } catch {
             errorMessage = error.localizedDescription
             isLoading = false
@@ -61,6 +63,8 @@ final class OnboardingViewModel {
             // Update AppState to transition to main app
             appState.isAuthenticated = true
             appState.currentUser = user
+            appState.subscriptionTier = user.subscriptionTier
+            await registerForNotifications()
         } catch {
             errorMessage = error.localizedDescription
             isLoading = false
@@ -86,6 +90,13 @@ final class OnboardingViewModel {
             currentStep = .welcome
         case .auth:
             currentStep = .benefits
+        }
+    }
+
+    private func registerForNotifications() async {
+        let granted = await NotificationService.shared.requestAuthorization()
+        if granted {
+            await NotificationService.shared.registerForRemoteNotifications()
         }
     }
 }
