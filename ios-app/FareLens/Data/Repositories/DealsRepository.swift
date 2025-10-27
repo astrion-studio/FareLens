@@ -9,6 +9,10 @@ protocol DealsRepositoryProtocol {
     func applySmartQueue(_ deals: [FlightDeal], for user: User) async -> [FlightDeal]
 }
 
+struct DealsResponse: Codable {
+    let deals: [FlightDeal]
+}
+
 actor DealsRepository: DealsRepositoryProtocol {
     static let shared = DealsRepository()
 
@@ -38,10 +42,6 @@ actor DealsRepository: DealsRepositoryProtocol {
         }
 
         // Fetch from API
-        struct DealsResponse: Codable {
-            let deals: [FlightDeal]
-        }
-
         let endpoint = APIEndpoint.getDeals(origin: origin)
         let response: DealsResponse = try await apiClient.request(endpoint)
 

@@ -41,7 +41,8 @@
 # Disable rules that conflict with iOS 26 patterns and Swift 6 concurrency
 --disable hoistTry
 --disable redundantFileprivate
---disable redundantSelf  # Swift 6 requires explicit self in closures
+# Swift 6 requires explicit self in closures, so disable redundantSelf
+--disable redundantSelf
 
 # File header
 --header strip
