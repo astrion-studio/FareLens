@@ -178,10 +178,6 @@ class MockAPIClient: APIClientProtocol {
     }
 }
 
-struct DealsResponse: Codable {
-    let deals: [FlightDeal]
-}
-
 // MockPersistenceService for testing (already defined in AlertServiceTests)
 class MockPersistenceServiceForDeals: PersistenceServiceProtocol {
     var isCacheValidFlag: Bool = false

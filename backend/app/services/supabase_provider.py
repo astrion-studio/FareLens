@@ -121,7 +121,7 @@ class SupabaseProvider(DataProvider):
         async with pool.acquire() as conn:
             rows = await conn.fetch(
                 "SELECT "
-                "a.id AS alert_id, a.deal_id, a.sent_at, a.opened_at, "
+                "a.id AS alert_id, a.sent_at, a.opened_at, "
                 "a.clicked_through, a.expires_at AS alert_expires_at, "
                 "fd.id AS deal_id, fd.origin, fd.destination, fd.departure_date, "
                 "fd.return_date, fd.total_price, fd.currency, fd.deal_score, "
