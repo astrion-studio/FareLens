@@ -23,6 +23,16 @@ async def list_deals(
     return response
 
 
+@router.get(
+    "/background-refresh",
+    response_model=BackgroundRefreshResponse,
+    summary="Background refresh task",
+)
+async def background_refresh() -> BackgroundRefreshResponse:
+    """Placeholder background refresh endpoint (see API.md `GET /v1/background-refresh`)."""
+    return BackgroundRefreshResponse(status="ok", new_deals=0, refreshed_at=_utcnow())
+
+
 @router.get("/{deal_id}", response_model=FlightDeal, summary="Deal detail")
 async def get_deal(
     deal_id: UUID, provider: DataProvider = Depends(get_data_provider)
@@ -33,16 +43,6 @@ async def get_deal(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Deal not found"
         ) from exc
-
-
-@router.get(
-    "/background-refresh",
-    response_model=BackgroundRefreshResponse,
-    summary="Background refresh task",
-)
-async def background_refresh() -> BackgroundRefreshResponse:
-    """Placeholder background refresh endpoint (see API.md `GET /v1/background-refresh`)."""
-    return BackgroundRefreshResponse(status="ok", new_deals=0, refreshed_at=_utcnow())
 
 
 def _utcnow() -> datetime:
