@@ -120,8 +120,16 @@ class SupabaseProvider(DataProvider):
         offset = (page - 1) * per_page
         async with pool.acquire() as conn:
             rows = await conn.fetch(
-                "SELECT a.*, fd.* FROM alert_history a JOIN flight_deals fd ON a.deal_id = fd.id"
-                " ORDER BY a.sent_at DESC LIMIT $1 OFFSET $2",
+                "SELECT "
+                "a.id AS alert_id, a.deal_id, a.sent_at, a.opened_at, "
+                "a.clicked_through, a.expires_at AS alert_expires_at, "
+                "fd.id AS deal_id, fd.origin, fd.destination, fd.departure_date, "
+                "fd.return_date, fd.total_price, fd.currency, fd.deal_score, "
+                "fd.discount_percent, fd.normal_price, fd.created_at, "
+                "fd.expires_at AS deal_expires_at, fd.airline, fd.stops, "
+                "fd.return_stops, fd.deep_link "
+                "FROM alert_history a JOIN flight_deals fd ON a.deal_id = fd.id "
+                "ORDER BY a.sent_at DESC LIMIT $1 OFFSET $2",
                 per_page,
                 offset,
             )
@@ -243,12 +251,30 @@ class SupabaseProvider(DataProvider):
         )
 
     def _map_alert(self, row: asyncpg.Record) -> AlertHistory:
-        deal = self._map_deal(row)
+        # Map the deal portion using aliased column names
+        deal = FlightDeal(
+            id=row["deal_id"],
+            origin=row["origin"],
+            destination=row["destination"],
+            departure_date=row["departure_date"],
+            return_date=row["return_date"],
+            total_price=row["total_price"],
+            currency=row["currency"],
+            deal_score=row["deal_score"],
+            discount_percent=row["discount_percent"],
+            normal_price=row["normal_price"],
+            created_at=row["created_at"],
+            expires_at=row["deal_expires_at"],
+            airline=row["airline"],
+            stops=row["stops"],
+            return_stops=row.get("return_stops"),
+            deep_link=row["deep_link"],
+        )
         return AlertHistory(
-            id=row["id"],
+            id=row["alert_id"],
             deal=deal,
             sent_at=row["sent_at"],
             opened_at=row.get("opened_at"),
             clicked_through=row.get("clicked_through"),
-            expires_at=row.get("expires_at"),
+            expires_at=row.get("alert_expires_at"),
         )

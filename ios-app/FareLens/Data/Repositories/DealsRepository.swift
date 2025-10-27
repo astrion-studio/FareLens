@@ -9,6 +9,12 @@ protocol DealsRepositoryProtocol {
     func applySmartQueue(_ deals: [FlightDeal], for user: User) async -> [FlightDeal]
 }
 
+extension DealsRepositoryProtocol {
+    func fetchDeals(forceRefresh: Bool = false) async throws -> [FlightDeal] {
+        try await fetchDeals(origin: nil, forceRefresh: forceRefresh)
+    }
+}
+
 struct DealsResponse: Codable {
     let deals: [FlightDeal]
 }
