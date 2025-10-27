@@ -215,7 +215,7 @@ actor AlertService: AlertServiceProtocol {
         alertsSentToday = restoredCounters
         lastResetDate = restoredResetDates
 
-        logger.info("Loaded persisted alert counters: \(alertsSentToday.count) users")
+        logger.info("Loaded persisted alert counters: \(self.alertsSentToday.count) users")
     }
 
     /// Reload persisted alert counters and reset dates (primarily for testing support).
