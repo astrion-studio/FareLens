@@ -72,9 +72,20 @@ jobs:
 
       - name: Setup Secrets for CI
         run: |
-          # Copy example secrets file for CI builds
-          cp ios-app/FareLens/Config/Secrets.xcconfig.example ios-app/FareLens/Config/Secrets.xcconfig
-          echo "✅ Created Secrets.xcconfig from example template"
+          # Create Secrets.xcconfig with dummy values for CI testing
+          # These are valid URLs but don't point to real services
+          cat > ios-app/FareLens/Config/Secrets.xcconfig << 'EOF'
+// FareLens Secrets Configuration - CI/CD Testing
+// Auto-generated for automated testing - not real credentials
+
+// Supabase Configuration (dummy values for CI)
+SUPABASE_URL = https://example.supabase.co
+SUPABASE_PUBLISHABLE_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4YW1wbGUiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTYwOTQ1OTIwMCwiZXhwIjoxOTI1MDM1MjAwfQ.placeholder
+
+// Cloudflare Workers API (dummy endpoint for CI)
+CLOUDFLARE_WORKER_URL = https://farelens-api.example.workers.dev
+EOF
+          echo "✅ Created Secrets.xcconfig with CI dummy values"
 
       - name: Check for Xcode project
         id: check_project
