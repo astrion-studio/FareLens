@@ -69,15 +69,18 @@ actor AuthService: AuthServiceProtocol {
             return user
         } catch let error as AuthError {
             throw error
-        } catch {
-            // Map Supabase errors to app errors
-            logger.error("Sign in failed: \(error.localizedDescription)")
-
-            // Check for invalid credentials (400 status from Supabase)
-            if let urlError = error as? URLError, urlError.code.rawValue == 400 {
-                throw AuthError.invalidCredentials
+        } catch let error as GoTrueError {
+            // Map Supabase GoTrueError to app errors for better UX
+            if case let .api(apiError) = error {
+                if apiError.statusCode == 400 {
+                    // Supabase returns 400 for invalid email/password
+                    throw AuthError.invalidCredentials
+                }
             }
-
+            logger.error("Sign in failed: \(error.localizedDescription)")
+            throw AuthError.networkError
+        } catch {
+            logger.error("An unexpected error occurred during sign in: \(error.localizedDescription)")
             throw AuthError.networkError
         }
     }
@@ -123,16 +126,20 @@ actor AuthService: AuthServiceProtocol {
             return user
         } catch let error as AuthError {
             throw error
-        } catch {
-            // Map Supabase errors to app errors
-            logger.error("Sign up failed: \(error.localizedDescription)")
-
-            // Check if email already exists - look for user already registered message
-            let errorMessage = error.localizedDescription.lowercased()
-            if errorMessage.contains("user already registered") || errorMessage.contains("already exists") {
-                throw AuthError.emailAlreadyExists
+        } catch let error as GoTrueError {
+            // Map Supabase GoTrueError to app errors for better UX
+            if case let .api(apiError) = error {
+                // Check for specific API error messages
+                if apiError.message.lowercased().contains("user already registered")
+                    || apiError.message.lowercased().contains("already exists")
+                {
+                    throw AuthError.emailAlreadyExists
+                }
             }
-
+            logger.error("Supabase sign up failed: \(error.localizedDescription)")
+            throw AuthError.networkError
+        } catch {
+            logger.error("An unexpected error occurred during sign up: \(error.localizedDescription)")
             throw AuthError.networkError
         }
     }
