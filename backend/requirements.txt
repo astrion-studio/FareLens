@@ -8,11 +8,11 @@ email-validator==2.1.0.post1
 # Database
 sqlalchemy==2.0.44
 asyncpg==0.30.0
-alembic==1.14.0
+alembic==1.17.0
 
 # Redis cache
 redis==7.0.0
-hiredis==3.0.0
+hiredis==3.3.0
 
 # Authentication
 # Replaced python-jose with PyJWT (more secure, actively maintained)
