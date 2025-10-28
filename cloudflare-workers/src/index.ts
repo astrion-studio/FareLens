@@ -50,9 +50,14 @@ export default {
         return jsonResponse({ status: 'healthy', version: env.API_VERSION }, 200, {}, env);
       }
 
-      // Amadeus proxy endpoints
+      // Amadeus proxy endpoints (requires authentication to prevent quota abuse)
       if (path.startsWith('/api/flights')) {
-        return await handleFlightSearch(request, env);
+        // Verify authentication before proxying to Amadeus
+        const authResult = await verifyAuth(request, env);
+        if (!authResult.authenticated) {
+          return authResult.response!;
+        }
+        return await handleFlightSearch(request, env, authResult.userId!);
       }
 
       // Supabase proxy endpoints (for authenticated requests)
@@ -78,8 +83,9 @@ export default {
 /**
  * Handle flight search requests (proxies to Amadeus API)
  * Implements caching and quota tracking
+ * @param userId - Verified user ID from JWT authentication
  */
-async function handleFlightSearch(request: Request, env: Env): Promise<Response> {
+async function handleFlightSearch(request: Request, env: Env, userId: string): Promise<Response> {
   // Parse query params
   const url = new URL(request.url);
   const origin = url.searchParams.get('origin');
@@ -88,6 +94,36 @@ async function handleFlightSearch(request: Request, env: Env): Promise<Response>
 
   if (!origin || !destination || !departureDate) {
     return jsonResponse({ error: 'Missing required parameters' }, 400, {}, env);
+  }
+
+  // Validate input parameters to prevent injection attacks
+  // Airport codes: 3 uppercase letters (IATA format)
+  const airportCodeRegex = /^[A-Z]{3}$/;
+  if (!airportCodeRegex.test(origin)) {
+    return jsonResponse({ error: 'Invalid origin airport code. Must be 3 uppercase letters.' }, 400, {}, env);
+  }
+  if (!airportCodeRegex.test(destination)) {
+    return jsonResponse({ error: 'Invalid destination airport code. Must be 3 uppercase letters.' }, 400, {}, env);
+  }
+
+  // Date validation: YYYY-MM-DD format
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(departureDate)) {
+    return jsonResponse({ error: 'Invalid date format. Must be YYYY-MM-DD.' }, 400, {}, env);
+  }
+
+  // Validate date is not in the past and not too far in future (1 year)
+  const requestedDate = new Date(departureDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const oneYearFromNow = new Date(today);
+  oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
+  if (requestedDate < today) {
+    return jsonResponse({ error: 'Departure date cannot be in the past.' }, 400, {}, env);
+  }
+  if (requestedDate > oneYearFromNow) {
+    return jsonResponse({ error: 'Departure date cannot be more than 1 year in the future.' }, 400, {}, env);
   }
 
   // Check cache first (5-min TTL)
@@ -119,9 +155,10 @@ async function handleFlightSearch(request: Request, env: Env): Promise<Response>
   );
 
   if (!amadeusResponse.ok) {
-    const error = await amadeusResponse.text();
-    console.error('Amadeus API error:', error);
-    return jsonResponse({ error: 'Failed to fetch flight data', details: error }, amadeusResponse.status, {}, env);
+    const errorText = await amadeusResponse.text();
+    console.error('Amadeus API error:', errorText);
+    // Don't leak internal error details to client for security
+    return jsonResponse({ error: 'Failed to fetch flight data' }, amadeusResponse.status, {}, env);
   }
 
   const data = await amadeusResponse.json();
@@ -135,14 +172,20 @@ async function handleFlightSearch(request: Request, env: Env): Promise<Response>
 }
 
 /**
- * Handle deals endpoint (queries Supabase)
- * Uses ANON_KEY to respect Row-Level Security policies
+ * Verify JWT authentication with Supabase
+ * Returns authentication result with user ID if successful
  */
-async function handleDeals(request: Request, env: Env): Promise<Response> {
-  // Verify JWT token from request
+async function verifyAuth(request: Request, env: Env): Promise<{
+  authenticated: boolean;
+  userId?: string;
+  response?: Response;
+}> {
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return jsonResponse({ error: 'Unauthorized' }, 401, {}, env);
+    return {
+      authenticated: false,
+      response: jsonResponse({ error: 'Unauthorized' }, 401, {}, env),
+    };
   }
 
   const token = authHeader.replace('Bearer ', '');
@@ -156,10 +199,31 @@ async function handleDeals(request: Request, env: Env): Promise<Response> {
   });
 
   if (!userResponse.ok) {
-    return jsonResponse({ error: 'Invalid token' }, 401, {}, env);
+    return {
+      authenticated: false,
+      response: jsonResponse({ error: 'Invalid token' }, 401, {}, env),
+    };
   }
 
   const user = await userResponse.json<SupabaseUser>();
+  return {
+    authenticated: true,
+    userId: user.id,
+  };
+}
+
+/**
+ * Handle deals endpoint (queries Supabase)
+ * Uses ANON_KEY to respect Row-Level Security policies
+ */
+async function handleDeals(request: Request, env: Env): Promise<Response> {
+  // Verify authentication
+  const authResult = await verifyAuth(request, env);
+  if (!authResult.authenticated) {
+    return authResult.response!;
+  }
+
+  const token = request.headers.get('Authorization')!.replace('Bearer ', '');
 
   // Query flight deals from Supabase using anon key
   // RLS policies will automatically filter results based on the user's JWT
@@ -182,7 +246,7 @@ async function handleDeals(request: Request, env: Env): Promise<Response> {
 
   const deals = await dealsResponse.json();
 
-  return jsonResponse({ deals, user_id: user.id }, 200, {}, env);
+  return jsonResponse({ deals, user_id: authResult.userId }, 200, {}, env);
 }
 
 /**

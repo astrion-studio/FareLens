@@ -136,7 +136,31 @@ npm install -g wrangler
 wrangler login
 ```
 
-### Step 3: Create Worker Project (I DO THIS)
+### Step 3: Configure Your Environment (YOU - 5 minutes)
+
+The `cloudflare-workers/wrangler.toml` file contains some hardcoded values that are specific to the original developer's Cloudflare account. You need to update these for your environment:
+
+1. **Get your Cloudflare Account ID:**
+   - Go to https://dash.cloudflare.com
+   - Select "Workers & Pages" from the left sidebar
+   - Your Account ID is displayed on the right side of the overview page
+   - Copy this value
+
+2. **Create KV Namespace for caching:**
+   ```bash
+   cd cloudflare-workers
+   wrangler kv:namespace create CACHE
+   ```
+   - This will output an ID like: `{ binding = "CACHE", id = "your-kv-id-here" }`
+   - Copy the ID value
+
+3. **Update `wrangler.toml`:**
+   - Replace `account_id` with your Cloudflare Account ID from step 1
+   - Replace the KV namespace `id` with your KV ID from step 2
+
+**Important:** These values are environment-specific and different for each developer. If you're deploying to multiple environments (dev, staging, production), you can create a `.dev.vars` file (already in `.gitignore`) to override values locally without modifying the committed `wrangler.toml`.
+
+### Step 4: Create Worker Project (I DO THIS)
 
 I'll create the Cloudflare Worker code that:
 - Proxies requests to Supabase

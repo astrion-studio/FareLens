@@ -70,6 +70,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Secrets for CI
+        run: |
+          # Copy example secrets file for CI builds
+          cp ios-app/FareLens/Config/Secrets.xcconfig.example ios-app/FareLens/Config/Secrets.xcconfig
+          echo "✅ Created Secrets.xcconfig from example template"
+
       - name: Check for Xcode project
         id: check_project
         run: |
