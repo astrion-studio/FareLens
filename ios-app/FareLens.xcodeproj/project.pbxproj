@@ -15,6 +15,7 @@
 		0BD8EA6F23D1EE94CC56F0F0 /* AlertServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE481D92ADF17E64D08990E /* AlertServiceTests.swift */; };
 		0C14405E85BFB6F72726C046 /* AlertsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3D8DE91236DD2DEA6D129BC /* AlertsRepository.swift */; };
 		148F81E1375A561D040C8D29 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67F9E4C11CADA404400FCED1 /* SettingsView.swift */; };
+		19778419C61BE0BB319F2D67 /* Secrets.xcconfig.local in Resources */ = {isa = PBXBuildFile; fileRef = 97C966EA1FD07E16BD36DD8F /* Secrets.xcconfig.local */; };
 		1D2B073B8B5FD20F672A2506 /* FLBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = D73D474FBB6B92B641F6368B /* FLBadge.swift */; };
 		1F1F65F17C0E8CE98471C8B9 /* DealDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 753E73E6FF94861A986E57BB /* DealDetailViewModel.swift */; };
 		20D23A0D6F76C72D0B0F1B89 /* SavedDealsRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D08C59F322A14AF1541CD65D /* SavedDealsRepositoryTests.swift */; };
@@ -108,6 +109,7 @@
 		88087F75DA8A84E6C01147D2 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		8DA3969D738954B97706F183 /* WatchlistRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchlistRepository.swift; sourceTree = "<group>"; };
 		912442EDFA73A60E5BACADBC /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		97C966EA1FD07E16BD36DD8F /* Secrets.xcconfig.local */ = {isa = PBXFileReference; path = Secrets.xcconfig.local; sourceTree = "<group>"; };
 		A5FC6C79B3216189BA4E7733 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		ABE70352116288814E2C56FD /* Spacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Spacing.swift; sourceTree = "<group>"; };
 		ACCA7D3EE71693299485D505 /* AlertService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertService.swift; sourceTree = "<group>"; };
@@ -333,6 +335,7 @@
 				88087F75DA8A84E6C01147D2 /* Config.swift */,
 				C8BEE19675754DE7A6590C08 /* Secrets.xcconfig */,
 				B9E028400BC2ECB305B12948 /* Secrets.xcconfig.example */,
+				97C966EA1FD07E16BD36DD8F /* Secrets.xcconfig.local */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -401,7 +404,7 @@
 			path = Persistence;
 			sourceTree = "<group>";
 		};
-		"TEMP_8E23B634-1A34-43A2-A7E6-4C83BE49C26E" /* Localizations */ = {
+		"TEMP_03C85886-6B2E-4D35-AA7B-1ADFD48515AF" /* Localizations */ = {
 			isa = PBXGroup;
 			children = (
 			);
@@ -498,6 +501,7 @@
 			files = (
 				FC5838FEA7CE5D9BCD89CA31 /* PrivacyInfo.xcprivacy in Resources */,
 				9A7189732F540B915D84BD38 /* Secrets.xcconfig.example in Resources */,
+				19778419C61BE0BB319F2D67 /* Secrets.xcconfig.local in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -695,7 +699,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = FareLens/FareLens.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "";
@@ -722,7 +725,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = FareLens/FareLens.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "";

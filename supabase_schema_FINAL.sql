@@ -243,6 +243,17 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ============================================================================
 -- GRANTS
 -- ============================================================================
+-- IMPORTANT: These GRANTs are SAFE because Row Level Security (RLS) is enabled
+-- on all tables (see lines 139-144) with 20 policies (lines 146-170).
+--
+-- GRANTs give permission to ATTEMPT operations, but RLS policies determine
+-- what data can be accessed. With RLS enabled:
+-- - Users can only see/modify their own data (enforced by auth.uid() = user_id)
+-- - Extracting the anon key does NOT bypass RLS policies
+-- - RLS policies are evaluated on the server side for every query
+--
+-- This is the recommended Supabase security model. Without these GRANTs,
+-- authenticated users couldn't perform any operations, even on their own data.
 
 GRANT SELECT, UPDATE ON public.users TO authenticated;
 GRANT ALL ON public.watchlists TO authenticated;
