@@ -1,0 +1,38 @@
+# Cloudflare Workers Configuration for FareLens
+# This worker acts as a secure API proxy between iOS app and backend services
+
+name = "farelens-api"
+main = "src/index.ts"
+compatibility_date = "2025-10-27"
+workers_dev = true
+
+# Account ID
+account_id = "c52361313e434072dd440217a6751467"
+
+# KV Namespaces (for caching Amadeus API responses)
+[[kv_namespaces]]
+binding = "CACHE"
+id = "826a67096e374c299e588290236d99b5"
+
+# Environment Variables (NON-SECRET, safe to commit)
+[vars]
+ENVIRONMENT = "development"
+API_VERSION = "v1"
+CORS_ALLOW_ORIGIN = "farelens://app"  # iOS app deep link scheme
+
+# Secrets (NEVER COMMIT THESE - set via `wrangler secret put <KEY>`)
+# After deployment, run these commands:
+# npx wrangler secret put SUPABASE_URL
+# npx wrangler secret put SUPABASE_SECRET_KEY
+# npx wrangler secret put AMADEUS_API_KEY
+# npx wrangler secret put AMADEUS_API_SECRET
+
+# Routes (production domain mapping)
+# Uncomment when you have a custom domain
+# routes = [
+#   { pattern = "api.farelens.app/*", zone_name = "farelens.app" }
+# ]
+
+# Build configuration
+[build]
+command = "npm run build"

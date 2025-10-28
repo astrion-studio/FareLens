@@ -24,11 +24,13 @@
 		305FA63F7DB938D6101906B0 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B98EE21EE4676692AA8EE93B /* AppState.swift */; };
 		384B38A507C95C982B1DCD2E /* WatchlistsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59E41FE1C5E4F816F58635DB /* WatchlistsViewModel.swift */; };
 		4A3EC269C1FD0F58CC94217E /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05719B8B15627F4F40AB290B /* PersistenceService.swift */; };
+		4A95F600233A9B9EC4FD5CC1 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = DE65B31C2082899F3075015F /* Supabase */; };
 		4D017101E859A7A67B902DB8 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF41BCD6253E6C1FB134397A /* NotificationService.swift */; };
 		4E2846FF3BC997BAA8DCEDEE /* FlightDeal.swift in Sources */ = {isa = PBXBuildFile; fileRef = E582A67E1588BB0BD3A07D29 /* FlightDeal.swift */; };
 		53FE6C82DB40460F02A40A1B /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA9925AC48AEBF3115A44C45 /* OnboardingViewModel.swift */; };
 		59073B5D34F347C6525922CE /* CreateWatchlistView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56C2441AA039D22FFE0AF311 /* CreateWatchlistView.swift */; };
 		597C51ABA2F139B04E5C067A /* DealsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4504340B7860133AD132C412 /* DealsViewModel.swift */; };
+		5A1F475B6AC8D53897E3215F /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88087F75DA8A84E6C01147D2 /* Config.swift */; };
 		5BB030E98997CF9503BE55D4 /* WatchlistsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E060B596BE921D588851A7 /* WatchlistsView.swift */; };
 		5CB9232AC0845FF963D4FC5C /* AuthTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17524802C287C8DBEFC0EB09 /* AuthTokenStore.swift */; };
 		602BC99CC2C1DAC6B0BDE48A /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD194B4FF85A142850CF960A /* SettingsViewModel.swift */; };
@@ -102,6 +104,7 @@
 		753E73E6FF94861A986E57BB /* DealDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DealDetailViewModel.swift; sourceTree = "<group>"; };
 		7A33200F9C341BB8FBEEF9DC /* AlertPreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPreferencesView.swift; sourceTree = "<group>"; };
 		7CDE0955462003CE74DB7237 /* FareLens.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FareLens.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		88087F75DA8A84E6C01147D2 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		8DA3969D738954B97706F183 /* WatchlistRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchlistRepository.swift; sourceTree = "<group>"; };
 		912442EDFA73A60E5BACADBC /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		A5FC6C79B3216189BA4E7733 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
@@ -113,6 +116,7 @@
 		B0718AAC7D0BA66103025FD2 /* PreferredAirportsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferredAirportsView.swift; sourceTree = "<group>"; };
 		B98EE21EE4676692AA8EE93B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		BEE6BFEEE1781D83F54D0278 /* AlertsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsView.swift; sourceTree = "<group>"; };
+		C8BEE19675754DE7A6590C08 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		D08C59F322A14AF1541CD65D /* SavedDealsRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedDealsRepositoryTests.swift; sourceTree = "<group>"; };
 		D3D8DE91236DD2DEA6D129BC /* AlertsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsRepository.swift; sourceTree = "<group>"; };
 		D73D474FBB6B92B641F6368B /* FLBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FLBadge.swift; sourceTree = "<group>"; };
@@ -123,7 +127,6 @@
 		E498BF8B641B8EA2B70CAEA9 /* NotificationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsView.swift; sourceTree = "<group>"; };
 		E582A67E1588BB0BD3A07D29 /* FlightDeal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightDeal.swift; sourceTree = "<group>"; };
 		E5EBD8B474A88F6C2C6814A4 /* Watchlist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Watchlist.swift; sourceTree = "<group>"; };
-		E7C2495699223DD8CDE9907C /* FareLens.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FareLens.entitlements; sourceTree = "<group>"; };
 		F08AF646F06CC584486AC7EC /* SavedDealsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedDealsRepository.swift; sourceTree = "<group>"; };
 		F1E060B596BE921D588851A7 /* WatchlistsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchlistsView.swift; sourceTree = "<group>"; };
 		F39F83F76EF0F7C7E3F81B35 /* AlertsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsViewModel.swift; sourceTree = "<group>"; };
@@ -132,6 +135,17 @@
 		FEFC4819FE3883BCDC0E3A7E /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		FF41BCD6253E6C1FB134397A /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D4D5FCB6ABF2E2F14EB580CB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4A95F600233A9B9EC4FD5CC1 /* Supabase in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		087061A9A598FC236C96AB3A /* Services */ = {
@@ -151,12 +165,12 @@
 			isa = PBXGroup;
 			children = (
 				8DDC80F7E90A29D33D586824 /* App */,
+				927EC51F9053B75D359A6DF5 /* Config */,
 				205DC6DF121E151DD7057460 /* Core */,
 				E53E336F4BE4C2BCB5B10F38 /* Data */,
 				C94E8B2793CD5DEA8E87EFED /* DesignSystem */,
 				0B0753F6EB32A95A889882A0 /* Features */,
 				C68E1A746616FA2359750627 /* Resources */,
-				E7C2495699223DD8CDE9907C /* FareLens.entitlements */,
 			);
 			path = FareLens;
 			sourceTree = "<group>";
@@ -309,6 +323,15 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		927EC51F9053B75D359A6DF5 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				88087F75DA8A84E6C01147D2 /* Config.swift */,
+				C8BEE19675754DE7A6590C08 /* Secrets.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
 		BAA9A6684EA1065AE054D56D /* Subscription */ = {
 			isa = PBXGroup;
 			children = (
@@ -373,7 +396,7 @@
 			path = Persistence;
 			sourceTree = "<group>";
 		};
-		"TEMP_F5C85C8D-B745-4A91-8A77-5873D9FF851E" /* Localizations */ = {
+		"TEMP_5925D329-728F-40F9-AF32-B3D50DB2FC76" /* Localizations */ = {
 			isa = PBXGroup;
 			children = (
 			);
@@ -407,6 +430,7 @@
 			buildPhases = (
 				AD19D3EB12E3BACDEC39D955 /* Sources */,
 				8222BD7E859AA429B4E463AF /* Resources */,
+				D4D5FCB6ABF2E2F14EB580CB /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -414,6 +438,7 @@
 			);
 			name = FareLens;
 			packageProductDependencies = (
+				DE65B31C2082899F3075015F /* Supabase */,
 			);
 			productName = FareLens;
 			productReference = 7CDE0955462003CE74DB7237 /* FareLens.app */;
@@ -448,6 +473,9 @@
 			);
 			mainGroup = 3742C7475079FB6C36D395D1;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				2A68864A817C91F5FDE48EC8 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
@@ -486,6 +514,7 @@
 				FD1F1535649C2C94FB9F79CA /* AuthService.swift in Sources */,
 				5CB9232AC0845FF963D4FC5C /* AuthTokenStore.swift in Sources */,
 				AEE1BFDD786901B7516EB977 /* Colors.swift in Sources */,
+				5A1F475B6AC8D53897E3215F /* Config.swift in Sources */,
 				DB1F018DC75FC0F23F12300B /* ContentView.swift in Sources */,
 				59073B5D34F347C6525922CE /* CreateWatchlistView.swift in Sources */,
 				9021A8050CC06CA3A22BAE08 /* DealDetailView.swift in Sources */,
@@ -660,7 +689,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = FareLens/FareLens.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "";
@@ -678,6 +706,7 @@
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				xcconfig = FareLens/Config/Secrets.xcconfig;
 			};
 			name = Debug;
 		};
@@ -686,7 +715,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = FareLens/FareLens.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "";
@@ -704,6 +732,7 @@
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				xcconfig = FareLens/Config/Secrets.xcconfig;
 			};
 			name = Release;
 		};
@@ -798,6 +827,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		2A68864A817C91F5FDE48EC8 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		DE65B31C2082899F3075015F /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2A68864A817C91F5FDE48EC8 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = BECF10248251B181FFB10BEE /* Project object */;
 }
