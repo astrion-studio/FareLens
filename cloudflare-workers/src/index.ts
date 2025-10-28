@@ -126,18 +126,20 @@ async function handleFlightSearch(request: Request, env: Env, userId: string): P
   }
 
   // Validate date is not in the past and not too far in future (1 year)
-  const requestedDate = new Date(departureDate);
+  const requestedDate = new Date(`${departureDate}T00:00:00.000Z`);
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const oneYearFromNow = new Date(today);
-  oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+  const todayUTCStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
 
-  if (requestedDate < today) {
+  const oneYearFromNow = new Date(todayUTCStart);
+  oneYearFromNow.setUTCFullYear(oneYearFromNow.getUTCFullYear() + 1);
+
+  if (requestedDate < todayUTCStart) {
     return jsonResponse({ error: 'Departure date cannot be in the past.' }, 400, {}, env);
   }
   if (requestedDate > oneYearFromNow) {
     return jsonResponse({ error: 'Departure date cannot be more than 1 year in the future.' }, 400, {}, env);
   }
+
 
   // Check cache first (5-min TTL)
   const cacheKey = `amadeus:${origin}:${destination}:${departureDate}`;
