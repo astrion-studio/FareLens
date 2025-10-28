@@ -1,1 +1,41 @@
 .DS_Store
+
+# Environment variables and secrets
+.env
+.env.local
+.env.production
+*.secret
+**/secrets/
+
+# iOS Configuration secrets
+# Note: Secrets.xcconfig contains safe placeholders and is committed for CI
+# Your actual secrets should go in Secrets.xcconfig.local (gitignored)
+ios-app/FareLens/Config/Secrets.xcconfig.local
+ios-app/FareLens/Config/Production.xcconfig
+
+# Xcode user data
+xcuserdata/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+
+# Cloudflare Wrangler
+.wrangler/
+wrangler.toml.local
+cloudflare-workers/node_modules/
+cloudflare-workers/dist/
+cloudflare-workers/src/**/*.js
+cloudflare-workers/src/**/*.js.map
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+venv/
+env/
+
+# Backend secrets
+backend/.env
+backend/.env.local
+backend/secrets/

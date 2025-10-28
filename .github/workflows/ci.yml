@@ -70,6 +70,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Secrets for CI
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          CLOUDFLARE_WORKER_URL: ${{ secrets.CLOUDFLARE_WORKER_URL }}
+        run: |
+          # Create Secrets.xcconfig from GitHub Secrets (production values)
+          cat > ios-app/FareLens/Config/Secrets.xcconfig << 'EOF'
+          // FareLens Secrets Configuration - CI/CD
+          // Auto-generated from GitHub Secrets
+
+          // Supabase Configuration
+          SUPABASE_URL = ${SUPABASE_URL}
+          SUPABASE_PUBLISHABLE_KEY = ${SUPABASE_PUBLISHABLE_KEY}
+
+          // Cloudflare Workers API
+          CLOUDFLARE_WORKER_URL = ${CLOUDFLARE_WORKER_URL}
+          EOF
+          # Replace environment variables
+          sed -i '' "s|\${SUPABASE_URL}|${SUPABASE_URL}|g" ios-app/FareLens/Config/Secrets.xcconfig
+          sed -i '' "s|\${SUPABASE_PUBLISHABLE_KEY}|${SUPABASE_PUBLISHABLE_KEY}|g" ios-app/FareLens/Config/Secrets.xcconfig
+          sed -i '' "s|\${CLOUDFLARE_WORKER_URL}|${CLOUDFLARE_WORKER_URL}|g" ios-app/FareLens/Config/Secrets.xcconfig
+          echo "✅ Created Secrets.xcconfig from GitHub Secrets"
+
       - name: Check for Xcode project
         id: check_project
         run: |

@@ -11,12 +11,14 @@ protocol APIClientProtocol {
 actor APIClient: APIClientProtocol {
     static let shared = APIClient()
 
-    private let baseURL = "https://api.farelens.app" // Cloudflare Workers endpoint
+    private let baseURL: String
     private let session: URLSession
     private var authToken: String?
 
     init(session: URLSession = .shared) {
         self.session = session
+        // Use Cloudflare Worker URL from configuration
+        self.baseURL = Config.cloudflareWorkerURL
     }
 
     func setAuthToken(_ token: String?) {

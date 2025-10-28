@@ -16,11 +16,20 @@ struct FareLensApp: App {
             ContentView()
                 .environment(appState)
                 .onAppear {
+                    // Skip initialization when running unit tests to avoid crashes
+                    // Tests should mock/inject their own dependencies
+                    guard !isRunningTests else { return }
+
                     Task {
                         await appState.initialize()
                     }
                 }
         }
+    }
+
+    /// Detects if the app is running in a test environment
+    private var isRunningTests: Bool {
+        NSClassFromString("XCTestCase") != nil
     }
 
     private func configureAppearance() {
