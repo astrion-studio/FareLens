@@ -159,7 +159,7 @@ async function handleDeals(request: Request, env: Env): Promise<Response> {
     return jsonResponse({ error: 'Invalid token' }, 401, {}, env);
   }
 
-  const user = await userResponse.json() as { id: string };
+  const user = await userResponse.json<SupabaseUser>();
 
   // Query flight deals from Supabase using anon key
   // RLS policies will automatically filter results based on the user's JWT
@@ -182,6 +182,24 @@ async function handleDeals(request: Request, env: Env): Promise<Response> {
   const deals = await dealsResponse.json();
 
   return jsonResponse({ deals, user_id: user.id }, 200, {}, env);
+}
+
+/**
+ * Amadeus OAuth token response
+ */
+interface AmadeusTokenResponse {
+  access_token: string;
+  expires_in: number;
+  token_type: string;
+}
+
+/**
+ * Supabase user response
+ */
+interface SupabaseUser {
+  id: string;
+  email?: string;
+  [key: string]: unknown;
 }
 
 /**
@@ -212,7 +230,7 @@ async function getAmadeusToken(env: Env): Promise<string> {
     throw new Error('Failed to get Amadeus token');
   }
 
-  const data: any = await response.json();
+  const data = await response.json<AmadeusTokenResponse>();
   const token = data.access_token;
   const expiresIn = data.expires_in || 1800; // Default 30 min
 

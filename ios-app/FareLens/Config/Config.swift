@@ -7,26 +7,24 @@ import Foundation
 /// These values are embedded during compilation and never hardcoded in source
 enum Config {
     /// Supabase project URL
-    static let supabaseURL: String = {
-        guard let url = Bundle.main.infoDictionary?["SUPABASE_URL"] as? String, !url.isEmpty else {
-            fatalError("SUPABASE_URL not found in Info.plist. Check Secrets.xcconfig configuration.")
-        }
-        return url
-    }()
+    static let supabaseURL: String = value(for: "SUPABASE_URL")
 
     /// Supabase publishable (anon) key - safe to use in client-side code
-    static let supabasePublishableKey: String = {
-        guard let key = Bundle.main.infoDictionary?["SUPABASE_PUBLISHABLE_KEY"] as? String, !key.isEmpty else {
-            fatalError("SUPABASE_PUBLISHABLE_KEY not found in Info.plist. Check Secrets.xcconfig configuration.")
-        }
-        return key
-    }()
+    static let supabasePublishableKey: String = value(for: "SUPABASE_PUBLISHABLE_KEY")
 
     /// Cloudflare Worker API URL (deployed endpoint)
-    static let cloudflareWorkerURL: String = {
-        guard let url = Bundle.main.infoDictionary?["CLOUDFLARE_WORKER_URL"] as? String, !url.isEmpty else {
-            fatalError("CLOUDFLARE_WORKER_URL not found in Info.plist. Check Secrets.xcconfig configuration.")
+    static let cloudflareWorkerURL: String = value(for: "CLOUDFLARE_WORKER_URL")
+
+    // MARK: - Private Helpers
+
+    /// Retrieves and validates a configuration value from Info.plist
+    /// - Parameter key: The configuration key to retrieve
+    /// - Returns: The configuration value
+    /// - Note: Crashes with a descriptive error if the key is missing or empty
+    private static func value(for key: String) -> String {
+        guard let value = Bundle.main.infoDictionary?[key] as? String, !value.isEmpty else {
+            fatalError("\(key) not found in Info.plist. Check Secrets.xcconfig configuration.")
         }
-        return url
-    }()
+        return value
+    }
 }

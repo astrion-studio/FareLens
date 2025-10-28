@@ -68,6 +68,14 @@ actor AuthService: AuthServiceProtocol {
         } catch let error as AuthError {
             throw error
         } catch {
+            // Map Supabase errors to app errors
+            logger.error("Sign in failed: \(error.localizedDescription)")
+
+            // Check for invalid credentials (400 status from Supabase)
+            if let urlError = error as? URLError, urlError.code.rawValue == 400 {
+                throw AuthError.invalidCredentials
+            }
+
             throw AuthError.networkError
         }
     }
@@ -111,10 +119,15 @@ actor AuthService: AuthServiceProtocol {
         } catch let error as AuthError {
             throw error
         } catch {
-            // Check if email already exists
-            if error.localizedDescription.contains("already registered") {
+            // Map Supabase errors to app errors
+            logger.error("Sign up failed: \(error.localizedDescription)")
+
+            // Check if email already exists - look for user already registered message
+            let errorMessage = error.localizedDescription.lowercased()
+            if errorMessage.contains("user already registered") || errorMessage.contains("already exists") {
                 throw AuthError.emailAlreadyExists
             }
+
             throw AuthError.networkError
         }
     }
@@ -166,12 +179,7 @@ actor AuthService: AuthServiceProtocol {
             }
         }
 
-        // Try to load from persistence (fallback)
-        if let storedUser = await persistenceService.loadUser() {
-            currentUser = storedUser
-            return storedUser
-        }
-
+        // No valid token - user is not authenticated
         return nil
     }
 
