@@ -55,10 +55,12 @@ actor AuthService: AuthServiceProtocol {
             // Convert Supabase user to app User model
             let user = try await convertSupabaseUser(response.user)
 
-            // Store auth token (JWT) and forward to API client
-            let token = response.accessToken
-            await tokenStore.saveToken(token)
-            await apiClient.setAuthToken(token)
+            // Store both access and refresh tokens for session persistence
+            await tokenStore.saveTokens(
+                accessToken: response.accessToken,
+                refreshToken: response.refreshToken
+            )
+            await apiClient.setAuthToken(response.accessToken)
 
             // Store user
             currentUser = user
@@ -107,8 +109,11 @@ actor AuthService: AuthServiceProtocol {
             // Convert Supabase user to app User model
             let user = try await convertSupabaseUser(response.user)
 
-            // Store auth token (JWT) and forward to API client
-            await tokenStore.saveToken(session.accessToken)
+            // Store both access and refresh tokens for session persistence
+            await tokenStore.saveTokens(
+                accessToken: session.accessToken,
+                refreshToken: session.refreshToken
+            )
             await apiClient.setAuthToken(session.accessToken)
 
             // Store user only after we have a valid session
@@ -142,7 +147,7 @@ actor AuthService: AuthServiceProtocol {
         }
 
         currentUser = nil
-        await tokenStore.clearToken()
+        await tokenStore.clearTokens()
         await apiClient.setAuthToken(nil)
         await persistenceService.clearUser()
     }
@@ -154,24 +159,37 @@ actor AuthService: AuthServiceProtocol {
             return user
         }
 
-        // Try to restore session from stored token
-        if let token = await tokenStore.loadToken() {
+        // Try to restore session from stored tokens
+        if let tokens = await tokenStore.loadTokens() {
             do {
-                // Verify token is still valid with Supabase
-                let session = try await supabaseClient.auth.session
+                // Restore the Supabase session using both access and refresh tokens
+                // This allows the SDK to automatically refresh expired access tokens
+                let session = try await supabaseClient.auth.setSession(
+                    accessToken: tokens.accessToken,
+                    refreshToken: tokens.refreshToken
+                )
 
                 // Convert to app User model
                 let user = try await convertSupabaseUser(session.user)
                 currentUser = user
                 await persistenceService.saveUser(user)
 
-                // Restore token to API client
-                await apiClient.setAuthToken(token)
+                // If tokens were refreshed, save the new tokens
+                if session.accessToken != tokens.accessToken {
+                    await tokenStore.saveTokens(
+                        accessToken: session.accessToken,
+                        refreshToken: session.refreshToken
+                    )
+                }
+
+                // Restore access token to API client
+                await apiClient.setAuthToken(session.accessToken)
 
                 return user
             } catch {
-                // Token expired or invalid - clear everything
-                await tokenStore.clearToken()
+                // Session restore failed - tokens expired or invalid, clear everything
+                logger.error("Failed to restore session: \(error.localizedDescription)")
+                await tokenStore.clearTokens()
                 await apiClient.setAuthToken(nil)
                 await persistenceService.clearUser()
                 currentUser = nil
@@ -179,7 +197,7 @@ actor AuthService: AuthServiceProtocol {
             }
         }
 
-        // No valid token - user is not authenticated
+        // No valid tokens - user is not authenticated
         return nil
     }
 

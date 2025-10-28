@@ -44,6 +44,7 @@
 		8CED9C038BB6A56F08DFCB0E /* InfoBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69263D029AFA8F51AF063627 /* InfoBox.swift */; };
 		9021A8050CC06CA3A22BAE08 /* DealDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20DF27A3F0C912E505B21DB5 /* DealDetailView.swift */; };
 		97D9968E2F06AD493AF0AC1E /* Watchlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5EBD8B474A88F6C2C6814A4 /* Watchlist.swift */; };
+		9A7189732F540B915D84BD38 /* Secrets.xcconfig.example in Resources */ = {isa = PBXBuildFile; fileRef = B9E028400BC2ECB305B12948 /* Secrets.xcconfig.example */; };
 		9C8ACC98E852201027661A7A /* DealsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2F11A469B03BFC410D038E /* DealsRepository.swift */; };
 		A1F9D841C37BFB9FE59C78C5 /* AlertPreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A33200F9C341BB8FBEEF9DC /* AlertPreferencesView.swift */; };
 		A5E2220FE913DB88B7F1BA12 /* FLButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2069BB3D7431040F6C0F3EAC /* FLButton.swift */; };
@@ -115,6 +116,7 @@
 		AE33560253DD4CE30E8A45FF /* DealsRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DealsRepositoryTests.swift; sourceTree = "<group>"; };
 		B0718AAC7D0BA66103025FD2 /* PreferredAirportsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferredAirportsView.swift; sourceTree = "<group>"; };
 		B98EE21EE4676692AA8EE93B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		B9E028400BC2ECB305B12948 /* Secrets.xcconfig.example */ = {isa = PBXFileReference; path = Secrets.xcconfig.example; sourceTree = "<group>"; };
 		BEE6BFEEE1781D83F54D0278 /* AlertsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsView.swift; sourceTree = "<group>"; };
 		C8BEE19675754DE7A6590C08 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		D08C59F322A14AF1541CD65D /* SavedDealsRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedDealsRepositoryTests.swift; sourceTree = "<group>"; };
@@ -127,6 +129,7 @@
 		E498BF8B641B8EA2B70CAEA9 /* NotificationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsView.swift; sourceTree = "<group>"; };
 		E582A67E1588BB0BD3A07D29 /* FlightDeal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightDeal.swift; sourceTree = "<group>"; };
 		E5EBD8B474A88F6C2C6814A4 /* Watchlist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Watchlist.swift; sourceTree = "<group>"; };
+		E7C2495699223DD8CDE9907C /* FareLens.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FareLens.entitlements; sourceTree = "<group>"; };
 		F08AF646F06CC584486AC7EC /* SavedDealsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedDealsRepository.swift; sourceTree = "<group>"; };
 		F1E060B596BE921D588851A7 /* WatchlistsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchlistsView.swift; sourceTree = "<group>"; };
 		F39F83F76EF0F7C7E3F81B35 /* AlertsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsViewModel.swift; sourceTree = "<group>"; };
@@ -171,6 +174,7 @@
 				C94E8B2793CD5DEA8E87EFED /* DesignSystem */,
 				0B0753F6EB32A95A889882A0 /* Features */,
 				C68E1A746616FA2359750627 /* Resources */,
+				E7C2495699223DD8CDE9907C /* FareLens.entitlements */,
 			);
 			path = FareLens;
 			sourceTree = "<group>";
@@ -328,6 +332,7 @@
 			children = (
 				88087F75DA8A84E6C01147D2 /* Config.swift */,
 				C8BEE19675754DE7A6590C08 /* Secrets.xcconfig */,
+				B9E028400BC2ECB305B12948 /* Secrets.xcconfig.example */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -396,7 +401,7 @@
 			path = Persistence;
 			sourceTree = "<group>";
 		};
-		"TEMP_5925D329-728F-40F9-AF32-B3D50DB2FC76" /* Localizations */ = {
+		"TEMP_8E23B634-1A34-43A2-A7E6-4C83BE49C26E" /* Localizations */ = {
 			isa = PBXGroup;
 			children = (
 			);
@@ -492,6 +497,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FC5838FEA7CE5D9BCD89CA31 /* PrivacyInfo.xcprivacy in Resources */,
+				9A7189732F540B915D84BD38 /* Secrets.xcconfig.example in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -689,6 +695,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FareLens/FareLens.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "";
@@ -715,6 +722,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FareLens/FareLens.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "";
