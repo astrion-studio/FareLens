@@ -173,11 +173,12 @@ async function handleFlightSearch(request: Request, env: Env, userId: string): P
 
 /**
  * Verify JWT authentication with Supabase
- * Returns authentication result with user ID if successful
+ * Returns authentication result with user ID and token if successful
  */
 async function verifyAuth(request: Request, env: Env): Promise<{
   authenticated: boolean;
   userId?: string;
+  token?: string;
   response?: Response;
 }> {
   const authHeader = request.headers.get('Authorization');
@@ -209,6 +210,7 @@ async function verifyAuth(request: Request, env: Env): Promise<{
   return {
     authenticated: true,
     userId: user.id,
+    token: token,
   };
 }
 
@@ -223,7 +225,7 @@ async function handleDeals(request: Request, env: Env): Promise<Response> {
     return authResult.response!;
   }
 
-  const token = request.headers.get('Authorization')!.replace('Bearer ', '');
+  const token = authResult.token!;
 
   // Query flight deals from Supabase using anon key
   // RLS policies will automatically filter results based on the user's JWT

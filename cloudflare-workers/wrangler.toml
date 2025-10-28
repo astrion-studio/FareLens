@@ -6,13 +6,17 @@ main = "src/index.ts"
 compatibility_date = "2025-10-27"
 workers_dev = true
 
-# Account ID
-account_id = "c52361313e434072dd440217a6751467"
+# Account ID - REPLACE WITH YOUR CLOUDFLARE ACCOUNT ID
+# Find it at: https://dash.cloudflare.com (Workers & Pages > right sidebar)
+# Or override locally with wrangler.toml.local (already in .gitignore)
+account_id = "YOUR_ACCOUNT_ID_HERE"
 
 # KV Namespaces (for caching Amadeus API responses)
+# Create with: wrangler kv:namespace create CACHE
+# Then replace the ID below with the output from that command
 [[kv_namespaces]]
 binding = "CACHE"
-id = "826a67096e374c299e588290236d99b5"
+id = "YOUR_KV_NAMESPACE_ID_HERE"
 
 # Environment Variables (NON-SECRET, safe to commit)
 [vars]

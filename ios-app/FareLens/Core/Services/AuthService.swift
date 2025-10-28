@@ -52,15 +52,20 @@ actor AuthService: AuthServiceProtocol {
                 password: password
             )
 
+            // Ensure we have a valid session
+            guard let session = response.session else {
+                throw AuthError.invalidCredentials
+            }
+
             // Convert Supabase user to app User model
-            let user = try await convertSupabaseUser(response.user)
+            let user = try await convertSupabaseUser(session.user)
 
             // Store both access and refresh tokens for session persistence
             await tokenStore.saveTokens(
-                accessToken: response.accessToken,
-                refreshToken: response.refreshToken
+                accessToken: session.accessToken,
+                refreshToken: session.refreshToken
             )
-            await apiClient.setAuthToken(response.accessToken)
+            await apiClient.setAuthToken(session.accessToken)
 
             // Store user
             currentUser = user
@@ -110,7 +115,7 @@ actor AuthService: AuthServiceProtocol {
             }
 
             // Convert Supabase user to app User model
-            let user = try await convertSupabaseUser(response.user)
+            let user = try await convertSupabaseUser(session.user)
 
             // Store both access and refresh tokens for session persistence
             await tokenStore.saveTokens(
