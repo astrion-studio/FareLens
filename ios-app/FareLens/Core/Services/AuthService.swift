@@ -219,7 +219,7 @@ actor AuthService: AuthServiceProtocol {
 
     /// Get current auth token (JWT)
     func getAuthToken() async -> String? {
-        await tokenStore.loadToken()
+        await tokenStore.loadTokens()?.accessToken
     }
 
     // MARK: - Private Helpers
