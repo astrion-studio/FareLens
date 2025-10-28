@@ -71,21 +71,28 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Secrets for CI
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          CLOUDFLARE_WORKER_URL: ${{ secrets.CLOUDFLARE_WORKER_URL }}
         run: |
-          # Create Secrets.xcconfig with dummy values for CI testing
-          # These are valid URLs but don't point to real services
+          # Create Secrets.xcconfig from GitHub Secrets (production values)
           cat > ios-app/FareLens/Config/Secrets.xcconfig << 'EOF'
-// FareLens Secrets Configuration - CI/CD Testing
-// Auto-generated for automated testing - not real credentials
+          // FareLens Secrets Configuration - CI/CD
+          // Auto-generated from GitHub Secrets
 
-// Supabase Configuration (dummy values for CI)
-SUPABASE_URL = https://example.supabase.co
-SUPABASE_PUBLISHABLE_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4YW1wbGUiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTYwOTQ1OTIwMCwiZXhwIjoxOTI1MDM1MjAwfQ.placeholder
+          // Supabase Configuration
+          SUPABASE_URL = ${SUPABASE_URL}
+          SUPABASE_PUBLISHABLE_KEY = ${SUPABASE_PUBLISHABLE_KEY}
 
-// Cloudflare Workers API (dummy endpoint for CI)
-CLOUDFLARE_WORKER_URL = https://farelens-api.example.workers.dev
-EOF
-          echo "✅ Created Secrets.xcconfig with CI dummy values"
+          // Cloudflare Workers API
+          CLOUDFLARE_WORKER_URL = ${CLOUDFLARE_WORKER_URL}
+          EOF
+          # Replace environment variables
+          sed -i '' "s|\${SUPABASE_URL}|${SUPABASE_URL}|g" ios-app/FareLens/Config/Secrets.xcconfig
+          sed -i '' "s|\${SUPABASE_PUBLISHABLE_KEY}|${SUPABASE_PUBLISHABLE_KEY}|g" ios-app/FareLens/Config/Secrets.xcconfig
+          sed -i '' "s|\${CLOUDFLARE_WORKER_URL}|${CLOUDFLARE_WORKER_URL}|g" ios-app/FareLens/Config/Secrets.xcconfig
+          echo "✅ Created Secrets.xcconfig from GitHub Secrets"
 
       - name: Check for Xcode project
         id: check_project
