@@ -87,7 +87,6 @@ export default {
         {},
         env
       );
-      );
     }
   },
 };
@@ -123,7 +122,6 @@ async function handleFlightSearch(request: Request, env: Env, userId: string): P
   const testDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
   if (!dateRegex.test(departureDate) || testDate.getMonth() !== dateParts[1] - 1) {
     return jsonResponse({ error: 'Invalid date format. Must be a valid YYYY-MM-DD date.' }, 400, {}, env);
-  }
   }
 
   // Validate date is not in the past and not too far in future (1 year)
