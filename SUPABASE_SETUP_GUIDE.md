@@ -60,7 +60,7 @@ Once project is ready:
 
 1. Go to **SQL Editor**
 2. Click **New Query**
-3. Copy the entire contents of `/supabase_schema.sql` (in the project root)
+3. Copy the entire contents of `/supabase_schema_FINAL.sql` (in the project root)
 4. Paste into the SQL Editor
 5. Click **Run** (bottom right)
 6. Wait ~30 seconds for schema creation
