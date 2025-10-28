@@ -18,7 +18,8 @@
 interface Env {
   // Secrets (set via `wrangler secret put`)
   SUPABASE_URL: string;
-  SUPABASE_SECRET_KEY: string;
+  SUPABASE_ANON_KEY: string;      // Publishable key for RLS-protected queries
+  SUPABASE_SECRET_KEY: string;    // Service role key (admin) - use sparingly
   AMADEUS_API_KEY: string;
   AMADEUS_API_SECRET: string;
 
@@ -29,6 +30,7 @@ interface Env {
   ENVIRONMENT: string;
   API_VERSION: string;
   CORS_ALLOW_ORIGIN: string;
+  AMADEUS_BASE_URL?: string;      // Optional: override for production
 }
 
 export default {
@@ -101,9 +103,12 @@ async function handleFlightSearch(request: Request, env: Env): Promise<Response>
   // Get Amadeus access token
   const amadeusToken = await getAmadeusToken(env);
 
+  // Get Amadeus base URL (defaults to test environment)
+  const amadeusBaseUrl = env.AMADEUS_BASE_URL || 'https://test.api.amadeus.com';
+
   // Call Amadeus Flight Offers API
   const amadeusResponse = await fetch(
-    `https://test.api.amadeus.com/v2/shopping/flight-offers?` +
+    `${amadeusBaseUrl}/v2/shopping/flight-offers?` +
     `originLocationCode=${origin}&destinationLocationCode=${destination}&departureDate=${departureDate}&adults=1`,
     {
       headers: {
@@ -131,6 +136,7 @@ async function handleFlightSearch(request: Request, env: Env): Promise<Response>
 
 /**
  * Handle deals endpoint (queries Supabase)
+ * Uses ANON_KEY to respect Row-Level Security policies
  */
 async function handleDeals(request: Request, env: Env): Promise<Response> {
   // Verify JWT token from request
@@ -141,11 +147,11 @@ async function handleDeals(request: Request, env: Env): Promise<Response> {
 
   const token = authHeader.replace('Bearer ', '');
 
-  // Verify token with Supabase
+  // Verify token with Supabase using anon key (respects RLS)
   const userResponse = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
     headers: {
       'Authorization': `Bearer ${token}`,
-      'apikey': env.SUPABASE_SECRET_KEY,
+      'apikey': env.SUPABASE_ANON_KEY,
     },
   });
 
@@ -155,13 +161,14 @@ async function handleDeals(request: Request, env: Env): Promise<Response> {
 
   const user = await userResponse.json() as { id: string };
 
-  // Query flight deals from Supabase
+  // Query flight deals from Supabase using anon key
+  // RLS policies will automatically filter results based on the user's JWT
   const dealsResponse = await fetch(
     `${env.SUPABASE_URL}/rest/v1/flight_deals?order=deal_score.desc&limit=20`,
     {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'apikey': env.SUPABASE_SECRET_KEY,
+        'apikey': env.SUPABASE_ANON_KEY,  // Use anon key to respect RLS
         'Content-Type': 'application/json',
       },
     }
@@ -189,8 +196,11 @@ async function getAmadeusToken(env: Env): Promise<string> {
     }
   }
 
+  // Get Amadeus base URL (defaults to test environment)
+  const amadeusBaseUrl = env.AMADEUS_BASE_URL || 'https://test.api.amadeus.com';
+
   // Request new token
-  const response = await fetch('https://test.api.amadeus.com/v1/security/oauth2/token', {
+  const response = await fetch(`${amadeusBaseUrl}/v1/security/oauth2/token`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -231,19 +241,19 @@ function handleCORS(env: Env): Response {
 
 /**
  * Helper to create JSON responses with CORS headers
+ * env parameter is required to ensure CORS origin is always properly configured
  */
 function jsonResponse(
   data: any,
-  status = 200,
-  extraHeaders: Record<string, string> = {},
-  env?: Env
+  status: number,
+  extraHeaders: Record<string, string>,
+  env: Env
 ): Response {
-  const corsOrigin = env?.CORS_ALLOW_ORIGIN || '*';
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': corsOrigin,
+      'Access-Control-Allow-Origin': env.CORS_ALLOW_ORIGIN,
       'Access-Control-Allow-Credentials': 'true',
       ...extraHeaders,
     },

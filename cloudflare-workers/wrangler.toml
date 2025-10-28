@@ -23,9 +23,13 @@ CORS_ALLOW_ORIGIN = "farelens://app"  # iOS app deep link scheme
 # Secrets (NEVER COMMIT THESE - set via `wrangler secret put <KEY>`)
 # After deployment, run these commands:
 # npx wrangler secret put SUPABASE_URL
-# npx wrangler secret put SUPABASE_SECRET_KEY
+# npx wrangler secret put SUPABASE_ANON_KEY          # Publishable key (respects RLS)
+# npx wrangler secret put SUPABASE_SECRET_KEY        # Service role key (admin access)
 # npx wrangler secret put AMADEUS_API_KEY
 # npx wrangler secret put AMADEUS_API_SECRET
+#
+# Optional: Override Amadeus API base URL for production
+# npx wrangler secret put AMADEUS_BASE_URL          # Default: https://test.api.amadeus.com
 
 # Routes (production domain mapping)
 # Uncomment when you have a custom domain
