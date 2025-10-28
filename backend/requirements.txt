@@ -12,7 +12,7 @@ alembic==1.17.0
 
 # Redis cache
 redis==7.0.0
-hiredis==3.0.0
+hiredis==3.3.0
 
 # Authentication
 # Replaced python-jose with PyJWT (more secure, actively maintained)
