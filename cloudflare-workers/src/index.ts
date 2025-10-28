@@ -45,7 +45,7 @@ export default {
     try {
       // Health check
       if (path === '/health') {
-        return jsonResponse({ status: 'healthy', version: env.API_VERSION });
+        return jsonResponse({ status: 'healthy', version: env.API_VERSION }, 200, {}, env);
       }
 
       // Amadeus proxy endpoints
@@ -59,13 +59,15 @@ export default {
       }
 
       // 404 for unknown routes
-      return jsonResponse({ error: 'Not found' }, 404);
+      return jsonResponse({ error: 'Not found' }, 404, {}, env);
 
     } catch (error) {
       console.error('Worker error:', error);
       return jsonResponse(
         { error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' },
-        500
+        500,
+        {},
+        env
       );
     }
   },
@@ -83,7 +85,7 @@ async function handleFlightSearch(request: Request, env: Env): Promise<Response>
   const departureDate = url.searchParams.get('departureDate');
 
   if (!origin || !destination || !departureDate) {
-    return jsonResponse({ error: 'Missing required parameters' }, 400);
+    return jsonResponse({ error: 'Missing required parameters' }, 400, {}, env);
   }
 
   // Check cache first (5-min TTL)
@@ -92,7 +94,7 @@ async function handleFlightSearch(request: Request, env: Env): Promise<Response>
     const cached = await env.CACHE.get(cacheKey);
     if (cached) {
       console.log('Cache HIT:', cacheKey);
-      return jsonResponse(JSON.parse(cached), 200, { 'X-Cache': 'HIT' });
+      return jsonResponse(JSON.parse(cached), 200, { 'X-Cache': 'HIT' }, env);
     }
   }
 
@@ -114,7 +116,7 @@ async function handleFlightSearch(request: Request, env: Env): Promise<Response>
   if (!amadeusResponse.ok) {
     const error = await amadeusResponse.text();
     console.error('Amadeus API error:', error);
-    return jsonResponse({ error: 'Failed to fetch flight data', details: error }, amadeusResponse.status);
+    return jsonResponse({ error: 'Failed to fetch flight data', details: error }, amadeusResponse.status, {}, env);
   }
 
   const data = await amadeusResponse.json();
@@ -124,7 +126,7 @@ async function handleFlightSearch(request: Request, env: Env): Promise<Response>
     await env.CACHE.put(cacheKey, JSON.stringify(data), { expirationTtl: 300 });
   }
 
-  return jsonResponse(data, 200, { 'X-Cache': 'MISS' });
+  return jsonResponse(data, 200, { 'X-Cache': 'MISS' }, env);
 }
 
 /**
@@ -134,7 +136,7 @@ async function handleDeals(request: Request, env: Env): Promise<Response> {
   // Verify JWT token from request
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return jsonResponse({ error: 'Unauthorized' }, 401);
+    return jsonResponse({ error: 'Unauthorized' }, 401, {}, env);
   }
 
   const token = authHeader.replace('Bearer ', '');
@@ -148,7 +150,7 @@ async function handleDeals(request: Request, env: Env): Promise<Response> {
   });
 
   if (!userResponse.ok) {
-    return jsonResponse({ error: 'Invalid token' }, 401);
+    return jsonResponse({ error: 'Invalid token' }, 401, {}, env);
   }
 
   const user = await userResponse.json() as { id: string };
@@ -167,12 +169,12 @@ async function handleDeals(request: Request, env: Env): Promise<Response> {
 
   if (!dealsResponse.ok) {
     const error = await dealsResponse.text();
-    return jsonResponse({ error: 'Failed to fetch deals', details: error }, dealsResponse.status);
+    return jsonResponse({ error: 'Failed to fetch deals', details: error }, dealsResponse.status, {}, env);
   }
 
   const deals = await dealsResponse.json();
 
-  return jsonResponse({ deals, user_id: user.id });
+  return jsonResponse({ deals, user_id: user.id }, 200, {}, env);
 }
 
 /**
@@ -230,12 +232,19 @@ function handleCORS(env: Env): Response {
 /**
  * Helper to create JSON responses with CORS headers
  */
-function jsonResponse(data: any, status = 200, extraHeaders: Record<string, string> = {}): Response {
+function jsonResponse(
+  data: any,
+  status = 200,
+  extraHeaders: Record<string, string> = {},
+  env?: Env
+): Response {
+  const corsOrigin = env?.CORS_ALLOW_ORIGIN || '*';
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*', // Will be restricted in production
+      'Access-Control-Allow-Origin': corsOrigin,
+      'Access-Control-Allow-Credentials': 'true',
       ...extraHeaders,
     },
   });

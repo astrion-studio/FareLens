@@ -18,12 +18,14 @@ actor AuthService: AuthServiceProtocol {
     static let shared = AuthService()
 
     private let supabaseClient: SupabaseClient
+    private let apiClient: APIClient
     private let persistenceService: PersistenceService
     private let tokenStore: AuthTokenStore
     private var currentUser: User?
     private let logger = Logger(subsystem: "com.astrionstudio.farelens", category: "AuthService")
 
     init(
+        apiClient: APIClient = .shared,
         persistenceService: PersistenceService = .shared,
         tokenStore: AuthTokenStore = .shared
     ) {
@@ -32,6 +34,7 @@ actor AuthService: AuthServiceProtocol {
             supabaseURL: URL(string: Config.supabaseURL)!,
             supabaseKey: Config.supabasePublishableKey
         )
+        self.apiClient = apiClient
         self.persistenceService = persistenceService
         self.tokenStore = tokenStore
     }
@@ -48,8 +51,10 @@ actor AuthService: AuthServiceProtocol {
             // Convert Supabase user to app User model
             let user = try await convertSupabaseUser(response.user)
 
-            // Store auth token (JWT)
-            await tokenStore.saveToken(response.accessToken)
+            // Store auth token (JWT) and forward to API client
+            let token = response.session.accessToken
+            await tokenStore.saveToken(token)
+            await apiClient.setAuthToken(token)
 
             // Store user
             currentUser = user
@@ -84,9 +89,10 @@ actor AuthService: AuthServiceProtocol {
             // Convert Supabase user to app User model
             let user = try await convertSupabaseUser(response.user)
 
-            // Store auth token (JWT) - handle optional session
+            // Store auth token (JWT) - handle optional session and forward to API client
             if let session = response.session {
                 await tokenStore.saveToken(session.accessToken)
+                await apiClient.setAuthToken(session.accessToken)
             }
 
             // Store user
@@ -116,6 +122,7 @@ actor AuthService: AuthServiceProtocol {
 
         currentUser = nil
         await tokenStore.clearToken()
+        await apiClient.setAuthToken(nil)
         await persistenceService.clearUser()
     }
 
@@ -127,7 +134,7 @@ actor AuthService: AuthServiceProtocol {
         }
 
         // Try to restore session from stored token
-        if await tokenStore.loadToken() != nil {
+        if let token = await tokenStore.loadToken() {
             do {
                 // Verify token is still valid with Supabase
                 let session = try await supabaseClient.auth.session
@@ -136,10 +143,15 @@ actor AuthService: AuthServiceProtocol {
                 let user = try await convertSupabaseUser(session.user)
                 currentUser = user
                 await persistenceService.saveUser(user)
+
+                // Restore token to API client
+                await apiClient.setAuthToken(token)
+
                 return user
             } catch {
                 // Token expired or invalid - clear everything
                 await tokenStore.clearToken()
+                await apiClient.setAuthToken(nil)
                 await persistenceService.clearUser()
                 currentUser = nil
                 return nil
