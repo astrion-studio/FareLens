@@ -33,16 +33,19 @@ actor AuthTokenStore {
         clearToken(account: refreshTokenAccount)
     }
 
-    // MARK: - Deprecated methods (kept for backward compatibility)
+    // MARK: - Single Token Methods (should be phased out)
 
+    @available(*, deprecated, message: "Use saveTokens(accessToken:refreshToken:) instead")
     func saveToken(_ token: String) {
         saveToken(token, account: accessTokenAccount)
     }
 
+    @available(*, deprecated, message: "Use loadTokens() instead")
     func loadToken() -> String? {
         loadToken(account: accessTokenAccount)
     }
 
+    @available(*, deprecated, message: "Use clearTokens() instead")
     func clearToken() {
         clearToken(account: accessTokenAccount)
     }
