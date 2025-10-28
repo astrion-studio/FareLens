@@ -179,7 +179,6 @@ async function handleDeals(request: Request, env: Env): Promise<Response> {
     console.error('Failed to fetch deals from Supabase:', errorText);
     return jsonResponse({ error: 'Failed to fetch deals' }, dealsResponse.status, {}, env);
   }
-  }
 
   const deals = await dealsResponse.json();
 
