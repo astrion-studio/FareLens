@@ -118,6 +118,7 @@ async function handleFlightSearch(request: Request, env: Env, userId: string): P
   }
 
   // Date validation: YYYY-MM-DD format
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
   const dateParts = departureDate.split('-').map(Number);
   const testDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
   if (!dateRegex.test(departureDate) || testDate.getMonth() !== dateParts[1] - 1) {
