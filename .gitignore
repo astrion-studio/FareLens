@@ -8,7 +8,9 @@
 **/secrets/
 
 # iOS Configuration secrets
-ios-app/FareLens/Config/Secrets.xcconfig
+# Note: Secrets.xcconfig contains safe placeholders and is committed for CI
+# Your actual secrets should go in Secrets.xcconfig.local (gitignored)
+ios-app/FareLens/Config/Secrets.xcconfig.local
 ios-app/FareLens/Config/Production.xcconfig
 
 # Xcode user data

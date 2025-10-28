@@ -198,19 +198,35 @@ CREATE TRIGGER update_device_registrations_updated_at BEFORE UPDATE ON public.de
 CREATE OR REPLACE FUNCTION public.enforce_watchlist_limit()
 RETURNS TRIGGER AS $$
 DECLARE
-    watchlist_count INTEGER;
+    active_watchlist_count INTEGER;
     user_tier TEXT;
 BEGIN
     SELECT subscription_tier INTO user_tier FROM public.users WHERE id = NEW.user_id;
-    SELECT COUNT(*) INTO watchlist_count FROM public.watchlists WHERE user_id = NEW.user_id AND is_active = true;
-    IF user_tier = 'free' AND watchlist_count >= 5 THEN
+
+    -- Count existing active watchlists, excluding the current row if it's an UPDATE
+    IF TG_OP = 'UPDATE' THEN
+        SELECT COUNT(*) INTO active_watchlist_count
+        FROM public.watchlists
+        WHERE user_id = NEW.user_id
+        AND is_active = true
+        AND id != NEW.id;
+    ELSE
+        SELECT COUNT(*) INTO active_watchlist_count
+        FROM public.watchlists
+        WHERE user_id = NEW.user_id
+        AND is_active = true;
+    END IF;
+
+    -- Only enforce limit if the new/updated watchlist is active
+    IF NEW.is_active = true AND user_tier = 'free' AND active_watchlist_count >= 5 THEN
         RAISE EXCEPTION 'Free tier allows maximum 5 active watchlists. Upgrade to Pro for unlimited.';
     END IF;
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE TRIGGER check_watchlist_limit BEFORE INSERT ON public.watchlists FOR EACH ROW EXECUTE FUNCTION public.enforce_watchlist_limit();
+CREATE TRIGGER check_watchlist_limit BEFORE INSERT OR UPDATE ON public.watchlists FOR EACH ROW EXECUTE FUNCTION public.enforce_watchlist_limit();
 
 CREATE OR REPLACE FUNCTION public.cleanup_expired_deals()
 RETURNS INTEGER AS $$

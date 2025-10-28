@@ -15,6 +15,17 @@
  * - Quota tracking to prevent exceeding Amadeus 2k/month limit
  */
 
+// Minimal Cloudflare Worker types (inline to avoid @cloudflare/workers-types dependency)
+interface KVNamespace {
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
+}
+
+interface ExecutionContext {
+  waitUntil(promise: Promise<any>): void;
+  passThroughOnException(): void;
+}
+
 interface Env {
   // Secrets (set via `wrangler secret put`)
   SUPABASE_URL: string;
@@ -209,7 +220,7 @@ async function verifyAuth(request: Request, env: Env): Promise<{
     };
   }
 
-  const user = await userResponse.json<SupabaseUser>();
+  const user = await userResponse.json() as SupabaseUser;
   return {
     authenticated: true,
     userId: user.id,
@@ -300,7 +311,7 @@ async function getAmadeusToken(env: Env): Promise<string> {
     throw new Error('Failed to get Amadeus token');
   }
 
-  const data = await response.json<AmadeusTokenResponse>();
+  const data = await response.json() as AmadeusTokenResponse;
   const token = data.access_token;
   const expiresIn = data.expires_in || 1800; // Default 30 min
 

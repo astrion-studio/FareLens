@@ -46,16 +46,11 @@ actor AuthService: AuthServiceProtocol {
     /// Sign in with email and password
     func signIn(email: String, password: String) async throws -> User {
         do {
-            // Authenticate with Supabase
-            let response = try await supabaseClient.auth.signIn(
+            // Authenticate with Supabase - returns Session directly
+            let session = try await supabaseClient.auth.signIn(
                 email: email,
                 password: password
             )
-
-            // Ensure we have a valid session
-            guard let session = response.session else {
-                throw AuthError.invalidCredentials
-            }
 
             // Convert Supabase user to app User model
             let user = try await convertSupabaseUser(session.user)
@@ -74,13 +69,12 @@ actor AuthService: AuthServiceProtocol {
             return user
         } catch let error as AuthError {
             throw error
-        } catch let error as GoTrueError {
-            // Map Supabase GoTrueError to app errors for better UX
-            if case let .api(apiError) = error {
-                if apiError.statusCode == 400 {
-                    // Supabase returns 400 for invalid email/password
-                    throw AuthError.invalidCredentials
-                }
+        } catch let error as Supabase.AuthError {
+            // Map Supabase AuthError to app errors for better UX
+            // Check for invalid credentials by inspecting error message
+            let errorMessage = error.localizedDescription.lowercased()
+            if errorMessage.contains("invalid") || errorMessage.contains("credentials") {
+                throw AuthError.invalidCredentials
             }
             logger.error("Sign in failed: \(error.localizedDescription)")
             throw AuthError.networkError
@@ -131,15 +125,11 @@ actor AuthService: AuthServiceProtocol {
             return user
         } catch let error as AuthError {
             throw error
-        } catch let error as GoTrueError {
-            // Map Supabase GoTrueError to app errors for better UX
-            if case let .api(apiError) = error {
-                // Check for specific API error messages
-                if apiError.message.lowercased().contains("user already registered")
-                    || apiError.message.lowercased().contains("already exists")
-                {
-                    throw AuthError.emailAlreadyExists
-                }
+        } catch let error as Supabase.AuthError {
+            // Map Supabase AuthError to app errors for better UX
+            let errorMessage = error.localizedDescription.lowercased()
+            if errorMessage.contains("user already registered") || errorMessage.contains("already exists") {
+                throw AuthError.emailAlreadyExists
             }
             logger.error("Supabase sign up failed: \(error.localizedDescription)")
             throw AuthError.networkError
@@ -198,13 +188,25 @@ actor AuthService: AuthServiceProtocol {
                 await apiClient.setAuthToken(session.accessToken)
 
                 return user
-            } catch {
-                // Session restore failed - tokens expired or invalid, clear everything
+            } catch let error as Supabase.AuthError {
+                // Only clear tokens if it's an authentication error (invalid/expired tokens)
+                // Network errors should leave tokens intact for retry
                 logger.error("Failed to restore session: \(error.localizedDescription)")
-                await tokenStore.clearTokens()
-                await apiClient.setAuthToken(nil)
-                await persistenceService.clearUser()
-                currentUser = nil
+
+                // Clear tokens only for auth failures, not network errors
+                let errorMessage = error.localizedDescription.lowercased()
+                if errorMessage.contains("invalid") || errorMessage.contains("expired") || errorMessage
+                    .contains("jwt")
+                {
+                    await tokenStore.clearTokens()
+                    await apiClient.setAuthToken(nil)
+                    await persistenceService.clearUser()
+                    currentUser = nil
+                }
+                return nil
+            } catch {
+                // For non-auth errors (network, etc), log but keep tokens for retry
+                logger.warning("Failed to restore session (non-auth error): \(error.localizedDescription)")
                 return nil
             }
         }
@@ -239,6 +241,10 @@ actor AuthService: AuthServiceProtocol {
                 let subscriptionTier: String
                 let timezone: String
                 let createdAt: Date
+                let alertEnabled: Bool?
+                let quietHoursStart: String?
+                let quietHoursEnd: String?
+                let preferredAirports: [String]?
 
                 enum CodingKeys: String, CodingKey {
                     case id
@@ -246,6 +252,10 @@ actor AuthService: AuthServiceProtocol {
                     case subscriptionTier = "subscription_tier"
                     case timezone
                     case createdAt = "created_at"
+                    case alertEnabled = "alert_enabled"
+                    case quietHoursStart = "quiet_hours_start"
+                    case quietHoursEnd = "quiet_hours_end"
+                    case preferredAirports = "preferred_airports"
                 }
             }
 
@@ -257,7 +267,7 @@ actor AuthService: AuthServiceProtocol {
                 .execute()
                 .value
 
-            // Convert to app User model
+            // Convert to app User model with full preferences
             let tier = SubscriptionTier(rawValue: profile.subscriptionTier) ?? .free
             return User(
                 id: profile.id,
@@ -265,23 +275,33 @@ actor AuthService: AuthServiceProtocol {
                 createdAt: profile.createdAt,
                 timezone: profile.timezone,
                 subscriptionTier: tier,
-                alertPreferences: .default,
-                preferredAirports: [],
-                watchlists: []
+                alertPreferences: .default, // TODO: Load from profile once AlertPreferences structure is finalized
+                preferredAirports: profile.preferredAirports ?? [],
+                watchlists: [] // Watchlists loaded separately
             )
+        } catch let error as Supabase.PostgrestError {
+            // Check if it's a "profile not found" error (common during signup)
+            if error.localizedDescription.contains("0 rows") || error.localizedDescription.contains("not found") {
+                logger.info("User profile not found (likely new signup), creating default profile")
+                // Profile doesn't exist yet - return basic User from auth data
+                return User(
+                    id: supabaseUser.id,
+                    email: supabaseUser.email ?? "",
+                    createdAt: supabaseUser.createdAt,
+                    timezone: TimeZone.current.identifier,
+                    subscriptionTier: .free,
+                    alertPreferences: .default,
+                    preferredAirports: [],
+                    watchlists: []
+                )
+            }
+            // For other database errors (network, etc), throw to handle upstream
+            logger.error("Database error fetching user profile: \(error.localizedDescription)")
+            throw error
         } catch {
-            // If profile doesn't exist yet (e.g., during signup before trigger runs),
-            // create a basic User with data from Supabase Auth
-            return User(
-                id: supabaseUser.id,
-                email: supabaseUser.email ?? "",
-                createdAt: supabaseUser.createdAt,
-                timezone: TimeZone.current.identifier,
-                subscriptionTier: .free,
-                alertPreferences: .default,
-                preferredAirports: [],
-                watchlists: []
-            )
+            // For unexpected errors, log and throw
+            logger.error("Unexpected error fetching user profile: \(error.localizedDescription)")
+            throw error
         }
     }
 }
