@@ -51,17 +51,19 @@ export default {
       }
 
       // Amadeus proxy endpoints (requires authentication to prevent quota abuse)
-      if (path.startsWith('/api/flights')) {
+      // Support both /api/flights and /flights for backwards compatibility
+      if (path.startsWith('/api/flights') || path.startsWith('/flights')) {
         // Verify authentication before proxying to Amadeus
         const authResult = await verifyAuth(request, env);
         if (!authResult.authenticated) {
-          return authResult.response!;
+          return authResult.response;
         }
-        return await handleFlightSearch(request, env, authResult.userId!);
+        return await handleFlightSearch(request, env, authResult.userId);
       }
 
       // Supabase proxy endpoints (for authenticated requests)
-      if (path.startsWith('/api/deals')) {
+      // Support both /api/deals and /deals for backwards compatibility
+      if (path.startsWith('/api/deals') || path.startsWith('/deals')) {
         return await handleDeals(request, env);
       }
 
@@ -176,15 +178,17 @@ async function handleFlightSearch(request: Request, env: Env, userId: string): P
 }
 
 /**
- * Verify JWT authentication with Supabase
- * Returns authentication result with user ID and token if successful
+ * Authentication result types using discriminated union for type safety
  */
-async function verifyAuth(request: Request, env: Env): Promise<{
-  authenticated: boolean;
-  userId?: string;
-  token?: string;
-  response?: Response;
-}> {
+type AuthResult =
+  | { authenticated: true; userId: string; token: string }
+  | { authenticated: false; response: Response };
+
+/**
+ * Verify JWT authentication with Supabase
+ * Returns discriminated union: either success with user ID + token, or failure with error response
+ */
+async function verifyAuth(request: Request, env: Env): Promise<AuthResult> {
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return {
@@ -210,6 +214,7 @@ async function verifyAuth(request: Request, env: Env): Promise<{
     };
   }
 
+  // TODO: Replace type assertion with zod validation for runtime type safety
   const user = await userResponse.json() as SupabaseUser;
   return {
     authenticated: true,
@@ -226,10 +231,10 @@ async function handleDeals(request: Request, env: Env): Promise<Response> {
   // Verify authentication
   const authResult = await verifyAuth(request, env);
   if (!authResult.authenticated) {
-    return authResult.response!;
+    return authResult.response;
   }
 
-  const token = authResult.token!;
+  const token = authResult.token;
 
   // Query flight deals from Supabase using anon key
   // RLS policies will automatically filter results based on the user's JWT

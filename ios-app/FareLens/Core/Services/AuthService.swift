@@ -107,7 +107,8 @@ actor AuthService: AuthServiceProtocol {
             throw error
         } catch let error as Supabase.AuthError {
             // Map Supabase AuthError to app errors for better UX
-            // Check for invalid credentials by inspecting error message
+            // TODO: Replace with error code checking when available in Supabase Swift SDK
+            // Current SDK doesn't expose structured error codes, so we use string matching
             let errorMessage = error.localizedDescription.lowercased()
             if errorMessage.contains("invalid") || errorMessage.contains("credentials") {
                 throw AuthError.invalidCredentials
@@ -122,10 +123,8 @@ actor AuthService: AuthServiceProtocol {
 
     /// Sign up with email and password
     func signUp(email: String, password: String) async throws -> User {
-        // Validate password strength
-        guard password.count >= 8 else {
-            throw AuthError.weakPassword
-        }
+        // Note: Password validation is handled by Supabase server-side
+        // No client-side validation to avoid code duplication and inconsistency
 
         do {
             // Create account with Supabase
@@ -308,9 +307,11 @@ actor AuthService: AuthServiceProtocol {
                 preferredAirports: airports,
                 watchlists: [] // Watchlists loaded separately
             )
-        } catch let error as Supabase.PostgrestError {
+        } catch let error as PostgrestError {
             // Check if it's a "profile not found" error (common during signup)
-            if error.localizedDescription.contains("0 rows") || error.localizedDescription.contains("not found") {
+            // PostgrestError uses code "PGRST116" for "not found" errors
+            // TODO: Check error.code property when available in SDK, currently using string matching
+            if error.localizedDescription.contains("0 rows") || error.localizedDescription.contains("PGRST116") {
                 logger.info("User profile not found (likely new signup), creating default profile")
                 // Profile doesn't exist yet - return basic User from auth data
                 return User(

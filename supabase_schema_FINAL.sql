@@ -219,7 +219,8 @@ BEGIN
 
     -- Only enforce limit if the new/updated watchlist is active
     IF NEW.is_active = true AND user_tier = 'free' AND active_watchlist_count >= 5 THEN
-        RAISE EXCEPTION 'Free tier allows maximum 5 active watchlists. Upgrade to Pro for unlimited.';
+        RAISE EXCEPTION 'Free tier allows maximum 5 active watchlists. Upgrade to Pro for unlimited.'
+            USING ERRCODE = 'P0001';
     END IF;
 
     RETURN NEW;
