@@ -273,7 +273,7 @@ actor AuthService: AuthServiceProtocol {
         do {
             let profile: UserProfile = try await supabaseClient
                 .from("users")
-                .select()
+                .select("id, email, subscription_tier, timezone, created_at, alert_enabled, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, watchlist_only_mode, preferred_airports")
                 .eq("id", value: supabaseUser.id.uuidString)
                 .single()
                 .execute()
