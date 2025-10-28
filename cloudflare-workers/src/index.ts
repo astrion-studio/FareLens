@@ -15,17 +15,6 @@
  * - Quota tracking to prevent exceeding Amadeus 2k/month limit
  */
 
-// Minimal Cloudflare Worker types (inline to avoid @cloudflare/workers-types dependency)
-interface KVNamespace {
-  get(key: string): Promise<string | null>;
-  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
-}
-
-interface ExecutionContext {
-  waitUntil(promise: Promise<any>): void;
-  passThroughOnException(): void;
-}
-
 interface Env {
   // Secrets (set via `wrangler secret put`)
   SUPABASE_URL: string;

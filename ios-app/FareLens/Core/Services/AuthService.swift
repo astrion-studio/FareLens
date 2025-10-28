@@ -6,6 +6,42 @@ import Foundation
 import OSLog
 import Supabase
 
+/// Supabase user profile data structure matching public.users table schema
+private struct UserProfile: Codable {
+    let id: UUID
+    let email: String
+    let subscriptionTier: String
+    let timezone: String
+    let createdAt: Date
+    let alertEnabled: Bool
+    let quietHoursEnabled: Bool
+    let quietHoursStart: Int // INTEGER in DB (0-23)
+    let quietHoursEnd: Int // INTEGER in DB (0-23)
+    let watchlistOnlyMode: Bool
+    let preferredAirports: [PreferredAirportData] // JSONB array in DB
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case email
+        case subscriptionTier = "subscription_tier"
+        case timezone
+        case createdAt = "created_at"
+        case alertEnabled = "alert_enabled"
+        case quietHoursEnabled = "quiet_hours_enabled"
+        case quietHoursStart = "quiet_hours_start"
+        case quietHoursEnd = "quiet_hours_end"
+        case watchlistOnlyMode = "watchlist_only_mode"
+        case preferredAirports = "preferred_airports"
+    }
+}
+
+/// Preferred airport data from Supabase JSONB
+private struct PreferredAirportData: Codable {
+    let id: UUID
+    let iata: String
+    let weight: Double
+}
+
 protocol AuthServiceProtocol {
     func signIn(email: String, password: String) async throws -> User
     func signUp(email: String, password: String) async throws -> User
@@ -235,30 +271,6 @@ actor AuthService: AuthServiceProtocol {
     private func convertSupabaseUser(_ supabaseUser: Supabase.User) async throws -> User {
         // Query user profile from public.users table
         do {
-            struct UserProfile: Codable {
-                let id: UUID
-                let email: String
-                let subscriptionTier: String
-                let timezone: String
-                let createdAt: Date
-                let alertEnabled: Bool?
-                let quietHoursStart: String?
-                let quietHoursEnd: String?
-                let preferredAirports: [String]?
-
-                enum CodingKeys: String, CodingKey {
-                    case id
-                    case email
-                    case subscriptionTier = "subscription_tier"
-                    case timezone
-                    case createdAt = "created_at"
-                    case alertEnabled = "alert_enabled"
-                    case quietHoursStart = "quiet_hours_start"
-                    case quietHoursEnd = "quiet_hours_end"
-                    case preferredAirports = "preferred_airports"
-                }
-            }
-
             let profile: UserProfile = try await supabaseClient
                 .from("users")
                 .select()
@@ -267,16 +279,31 @@ actor AuthService: AuthServiceProtocol {
                 .execute()
                 .value
 
-            // Convert to app User model with full preferences
+            // Convert to app User model with full preferences from DB
             let tier = SubscriptionTier(rawValue: profile.subscriptionTier) ?? .free
+
+            // Build AlertPreferences from actual DB values
+            let alertPrefs = AlertPreferences(
+                enabled: profile.alertEnabled,
+                quietHoursEnabled: profile.quietHoursEnabled,
+                quietHoursStart: profile.quietHoursStart,
+                quietHoursEnd: profile.quietHoursEnd,
+                watchlistOnlyMode: profile.watchlistOnlyMode
+            )
+
+            // Convert JSONB array to PreferredAirport models
+            let airports = profile.preferredAirports.map { data in
+                PreferredAirport(id: data.id, iata: data.iata, weight: data.weight)
+            }
+
             return User(
                 id: profile.id,
                 email: profile.email,
                 createdAt: profile.createdAt,
                 timezone: profile.timezone,
                 subscriptionTier: tier,
-                alertPreferences: .default, // TODO: Load from profile once AlertPreferences structure is finalized
-                preferredAirports: profile.preferredAirports ?? [],
+                alertPreferences: alertPrefs,
+                preferredAirports: airports,
                 watchlists: [] // Watchlists loaded separately
             )
         } catch let error as Supabase.PostgrestError {

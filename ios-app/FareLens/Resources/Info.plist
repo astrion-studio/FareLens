@@ -24,8 +24,12 @@
 	<string>$(CLOUDFLARE_WORKER_URL)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We use your location to find deals from nearby airports.</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>FareLens sends you alerts when great flight deals match your preferences.</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>We use this to provide personalized flight deal alerts based on your preferences.</string>
 	<key>SUPABASE_PUBLISHABLE_KEY</key>
 	<string>$(SUPABASE_PUBLISHABLE_KEY)</string>
 	<key>SUPABASE_URL</key>
