@@ -71,10 +71,11 @@ export default {
     } catch (error) {
       console.error('Worker error:', error);
       return jsonResponse(
-        { error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' },
+        { error: 'Internal Server Error' },
         500,
         {},
         env
+      );
       );
     }
   },
