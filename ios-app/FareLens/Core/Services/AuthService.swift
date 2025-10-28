@@ -30,8 +30,12 @@ actor AuthService: AuthServiceProtocol {
         tokenStore: AuthTokenStore = .shared
     ) {
         // Initialize Supabase client with configuration
+        guard let url = URL(string: Config.supabaseURL) else {
+            fatalError("Invalid SUPABASE_URL configuration: \(Config.supabaseURL)")
+        }
+
         self.supabaseClient = SupabaseClient(
-            supabaseURL: URL(string: Config.supabaseURL)!,
+            supabaseURL: url,
             supabaseKey: Config.supabasePublishableKey
         )
         self.apiClient = apiClient
@@ -52,7 +56,7 @@ actor AuthService: AuthServiceProtocol {
             let user = try await convertSupabaseUser(response.user)
 
             // Store auth token (JWT) and forward to API client
-            let token = response.session.accessToken
+            let token = response.accessToken
             await tokenStore.saveToken(token)
             await apiClient.setAuthToken(token)
 
@@ -86,16 +90,20 @@ actor AuthService: AuthServiceProtocol {
             // needs to confirm email before they can fully access the app
             // The trigger in Supabase will auto-create the user profile
 
+            // Check if session is available (may be nil if email confirmation required)
+            guard let session = response.session else {
+                // Email confirmation required - don't persist user yet
+                throw AuthError.emailNotConfirmed
+            }
+
             // Convert Supabase user to app User model
             let user = try await convertSupabaseUser(response.user)
 
-            // Store auth token (JWT) - handle optional session and forward to API client
-            if let session = response.session {
-                await tokenStore.saveToken(session.accessToken)
-                await apiClient.setAuthToken(session.accessToken)
-            }
+            // Store auth token (JWT) and forward to API client
+            await tokenStore.saveToken(session.accessToken)
+            await apiClient.setAuthToken(session.accessToken)
 
-            // Store user
+            // Store user only after we have a valid session
             currentUser = user
             await persistenceService.saveUser(user)
 
