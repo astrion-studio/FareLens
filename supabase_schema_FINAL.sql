@@ -143,31 +143,33 @@ ALTER TABLE public.alert_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.device_registrations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.saved_deals ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own data" ON public.users FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Users can update their own data" ON public.users FOR UPDATE USING (auth.uid() = id);
+-- PERFORMANCE: Wrap auth.uid() in subselect to prevent re-evaluation for each row
+-- See: https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select
+CREATE POLICY "Users can view their own data" ON public.users FOR SELECT USING ((select auth.uid()) = id);
+CREATE POLICY "Users can update their own data" ON public.users FOR UPDATE USING ((select auth.uid()) = id);
 
-CREATE POLICY "Users can view their own watchlists" ON public.watchlists FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can create their own watchlists" ON public.watchlists FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their own watchlists" ON public.watchlists FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their own watchlists" ON public.watchlists FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Users can view their own watchlists" ON public.watchlists FOR SELECT USING ((select auth.uid()) = user_id);
+CREATE POLICY "Users can create their own watchlists" ON public.watchlists FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
+CREATE POLICY "Users can update their own watchlists" ON public.watchlists FOR UPDATE USING ((select auth.uid()) = user_id);
+CREATE POLICY "Users can delete their own watchlists" ON public.watchlists FOR DELETE USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "Anyone can view flight deals" ON public.flight_deals FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Service role can insert deals" ON public.flight_deals FOR INSERT TO service_role WITH CHECK (true);
 CREATE POLICY "Service role can update deals" ON public.flight_deals FOR UPDATE TO service_role USING (true);
 
-CREATE POLICY "Users can view their own alert history" ON public.alert_history FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can view their own alert history" ON public.alert_history FOR SELECT USING ((select auth.uid()) = user_id);
 CREATE POLICY "Service role can insert alert history" ON public.alert_history FOR INSERT TO service_role WITH CHECK (true);
-CREATE POLICY "Users can update their own alert interactions" ON public.alert_history FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own alert interactions" ON public.alert_history FOR UPDATE USING ((select auth.uid()) = user_id) WITH CHECK ((select auth.uid()) = user_id);
 
-CREATE POLICY "Users can view their own devices" ON public.device_registrations FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can register their own devices" ON public.device_registrations FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their own devices" ON public.device_registrations FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their own devices" ON public.device_registrations FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Users can view their own devices" ON public.device_registrations FOR SELECT USING ((select auth.uid()) = user_id);
+CREATE POLICY "Users can register their own devices" ON public.device_registrations FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
+CREATE POLICY "Users can update their own devices" ON public.device_registrations FOR UPDATE USING ((select auth.uid()) = user_id);
+CREATE POLICY "Users can delete their own devices" ON public.device_registrations FOR DELETE USING ((select auth.uid()) = user_id);
 
-CREATE POLICY "Users can view their own saved deals" ON public.saved_deals FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can save deals" ON public.saved_deals FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their own saved deals" ON public.saved_deals FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their own saved deals" ON public.saved_deals FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Users can view their own saved deals" ON public.saved_deals FOR SELECT USING ((select auth.uid()) = user_id);
+CREATE POLICY "Users can save deals" ON public.saved_deals FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
+CREATE POLICY "Users can update their own saved deals" ON public.saved_deals FOR UPDATE USING ((select auth.uid()) = user_id);
+CREATE POLICY "Users can delete their own saved deals" ON public.saved_deals FOR DELETE USING ((select auth.uid()) = user_id);
 
 -- ============================================================================
 -- FUNCTIONS & TRIGGERS
