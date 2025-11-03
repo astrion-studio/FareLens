@@ -76,19 +76,30 @@ jobs:
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
           CLOUDFLARE_WORKER_URL: ${{ secrets.CLOUDFLARE_WORKER_URL }}
         run: |
-          # Create Secrets.xcconfig from GitHub Secrets (production values)
-          # Use direct environment variable expansion (no heredoc single quotes)
-          cat > ios-app/FareLens/Config/Secrets.xcconfig << EOF
-          // FareLens Secrets Configuration - CI/CD
-          // Auto-generated from GitHub Secrets
+          # Validate secrets are set (fail early if missing)
+          if [ -z "${SUPABASE_URL}" ] || [ -z "${SUPABASE_PUBLISHABLE_KEY}" ] || [ -z "${CLOUDFLARE_WORKER_URL}" ]; then
+            echo "❌ ERROR: Required secrets not configured in GitHub repository settings"
+            echo "Missing secrets:"
+            [ -z "${SUPABASE_URL}" ] && echo "  - SUPABASE_URL"
+            [ -z "${SUPABASE_PUBLISHABLE_KEY}" ] && echo "  - SUPABASE_PUBLISHABLE_KEY"
+            [ -z "${CLOUDFLARE_WORKER_URL}" ] && echo "  - CLOUDFLARE_WORKER_URL"
+            echo ""
+            echo "To fix: Go to Settings → Secrets and variables → Actions → New repository secret"
+            echo "Add the three secrets listed above with your Supabase/Cloudflare credentials"
+            exit 1
+          fi
 
-          // Supabase Configuration
-          SUPABASE_URL = ${SUPABASE_URL}
-          SUPABASE_PUBLISHABLE_KEY = ${SUPABASE_PUBLISHABLE_KEY}
-
-          // Cloudflare Workers API
-          CLOUDFLARE_WORKER_URL = ${CLOUDFLARE_WORKER_URL}
-          EOF
+          # Create Secrets.xcconfig from validated GitHub Secrets
+          # Using echo instead of heredoc to avoid shell expansion issues
+          echo "// FareLens Secrets Configuration - CI/CD" > ios-app/FareLens/Config/Secrets.xcconfig
+          echo "// Auto-generated from GitHub Secrets" >> ios-app/FareLens/Config/Secrets.xcconfig
+          echo "" >> ios-app/FareLens/Config/Secrets.xcconfig
+          echo "// Supabase Configuration" >> ios-app/FareLens/Config/Secrets.xcconfig
+          echo "SUPABASE_URL = ${SUPABASE_URL}" >> ios-app/FareLens/Config/Secrets.xcconfig
+          echo "SUPABASE_PUBLISHABLE_KEY = ${SUPABASE_PUBLISHABLE_KEY}" >> ios-app/FareLens/Config/Secrets.xcconfig
+          echo "" >> ios-app/FareLens/Config/Secrets.xcconfig
+          echo "// Cloudflare Workers API" >> ios-app/FareLens/Config/Secrets.xcconfig
+          echo "CLOUDFLARE_WORKER_URL = ${CLOUDFLARE_WORKER_URL}" >> ios-app/FareLens/Config/Secrets.xcconfig
           echo "✅ Created Secrets.xcconfig from GitHub Secrets"
 
       - name: Check for Xcode project

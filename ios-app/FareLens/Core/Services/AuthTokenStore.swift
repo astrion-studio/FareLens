@@ -20,12 +20,26 @@ actor AuthTokenStore {
     }
 
     func loadTokens() -> (accessToken: String, refreshToken: String)? {
-        guard let accessToken = loadToken(account: accessTokenAccount),
-              let refreshToken = loadToken(account: refreshTokenAccount)
-        else {
-            return nil
+        // Try to load both tokens
+        let accessToken = loadToken(account: accessTokenAccount)
+        let refreshToken = loadToken(account: refreshTokenAccount)
+
+        // If both exist, return them
+        if let access = accessToken, let refresh = refreshToken {
+            return (access, refresh)
         }
-        return (accessToken, refreshToken)
+
+        // Migration path: If only access token exists (legacy user_jwt), use it for both
+        // This handles upgrades from previous builds that only stored user_jwt
+        if let legacyToken = accessToken, refreshToken == nil {
+            logger.info("Migrating legacy auth token: using access token as refresh token")
+            // Save the legacy token as refresh token too (one-time migration)
+            saveToken(legacyToken, account: refreshTokenAccount)
+            return (legacyToken, legacyToken)
+        }
+
+        // No tokens found or partial tokens without legacy access token
+        return nil
     }
 
     func clearTokens() {
