@@ -15,6 +15,8 @@
  * - Quota tracking to prevent exceeding Amadeus 2k/month limit
  */
 
+import { z } from 'zod';
+
 interface Env {
   // Secrets (set via `wrangler secret put`)
   SUPABASE_URL: string;
@@ -214,11 +216,21 @@ async function verifyAuth(request: Request, env: Env): Promise<AuthResult> {
     };
   }
 
-  // TODO: Replace type assertion with zod validation for runtime type safety
-  const user = await userResponse.json() as SupabaseUser;
+  // Validate Supabase user response with zod for runtime type safety
+  const userJson = await userResponse.json();
+  const parseResult = SupabaseUserSchema.safeParse(userJson);
+
+  if (!parseResult.success) {
+    console.error('Invalid Supabase user response:', parseResult.error);
+    return {
+      authenticated: false,
+      response: jsonResponse({ error: 'Invalid user data from auth provider' }, 500, {}, env),
+    };
+  }
+
   return {
     authenticated: true,
-    userId: user.id,
+    userId: parseResult.data.id,
     token: token,
   };
 }
@@ -272,11 +284,14 @@ interface AmadeusTokenResponse {
 /**
  * Supabase user response
  */
-interface SupabaseUser {
-  id: string;
-  email?: string;
-  [key: string]: unknown;
-}
+// Zod schema for runtime validation of Supabase user response
+const SupabaseUserSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email().optional(),
+  // Allow additional properties from Supabase
+}).passthrough();
+
+type SupabaseUser = z.infer<typeof SupabaseUserSchema>;
 
 /**
  * Get Amadeus OAuth token (cached for 30 minutes)

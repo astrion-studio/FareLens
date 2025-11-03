@@ -9,13 +9,19 @@
     "build": "tsc",
     "test": "echo \"TODO: Add test suite with vitest for routing, auth, and error handling\" && exit 0"
   },
-  "keywords": ["cloudflare", "workers", "farelens", "api-proxy"],
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "farelens",
+    "api-proxy"
+  ],
   "author": "Astrion Studio",
   "license": "PROPRIETARY",
   "type": "module",
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20251014.0",
     "typescript": "^5.9.3",
-    "wrangler": "^4.45.0"
+    "wrangler": "^4.45.0",
+    "zod": "^4.1.12"
   }
 }

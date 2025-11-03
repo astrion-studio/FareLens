@@ -1,5 +1,8 @@
-import XCTest
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 @testable import FareLens
+import XCTest
 
 final class AlertServiceTests: XCTestCase {
     var sut: AlertService!
@@ -262,7 +265,7 @@ final class AlertServiceTests: XCTestCase {
             subscriptionTier: tier,
             alertPreferences: .default,
             preferredAirports: [
-                PreferredAirport(iata: "LAX", weight: 1.0)
+                PreferredAirport(iata: "LAX", weight: 1.0),
             ],
             watchlists: [
                 Watchlist(
@@ -270,7 +273,7 @@ final class AlertServiceTests: XCTestCase {
                     name: "LAX to NYC",
                     origin: "LAX",
                     destination: "JFK"
-                )
+                ),
             ]
         )
     }
@@ -317,15 +320,15 @@ private extension AlertServiceTests {
 // MARK: - Mock Services
 
 class MockSmartQueueService: SmartQueueServiceProtocol {
-    func rankDeals(_ deals: [FlightDeal], for user: User) async -> [RankedDeal] {
+    func rankDeals(_ deals: [FlightDeal], for _: User) async -> [RankedDeal] {
         // Simple mock: return deals wrapped in RankedDeal
-        return deals.map { deal in
+        deals.map { deal in
             RankedDeal(deal: deal, queueScore: Double(deal.dealScore))
         }
     }
 
-    func calculateQueueScore(deal: FlightDeal, user: User) async -> Double {
-        return Double(deal.dealScore)
+    func calculateQueueScore(deal: FlightDeal, user _: User) async -> Double {
+        Double(deal.dealScore)
     }
 }
 
@@ -333,7 +336,7 @@ class MockNotificationService: NotificationServiceProtocol {
     var sentAlerts: [(FlightDeal, UUID)] = []
 
     func requestAuthorization() async -> Bool {
-        return true
+        true
     }
 
     func registerForRemoteNotifications() async {
@@ -346,15 +349,15 @@ class MockNotificationService: NotificationServiceProtocol {
 }
 
 class MockPersistenceService: PersistenceServiceProtocol {
-    func saveUser(_ user: User) async {}
-    func loadUser() async -> User? { return nil }
+    func saveUser(_: User) async {}
+    func loadUser() async -> User? { nil }
     func clearUser() async {}
-    func saveDeals(_ deals: [FlightDeal], origin: String?) async {}
-    func loadDeals(origin: String?) async -> [FlightDeal] { return [] }
+    func saveDeals(_: [FlightDeal], origin _: String?) async {}
+    func loadDeals(origin _: String?) async -> [FlightDeal] { [] }
     func clearDeals() async {}
-    func isCacheValid(for origin: String?) async -> Bool { return false }
-    func saveAlerts(_ alerts: [AlertHistory]) async {}
-    func loadAlerts() async -> [AlertHistory] { return [] }
-    func isAlertCacheValid() async -> Bool { return false }
+    func isCacheValid(for _: String?) async -> Bool { false }
+    func saveAlerts(_: [AlertHistory]) async {}
+    func loadAlerts() async -> [AlertHistory] { [] }
+    func isAlertCacheValid() async -> Bool { false }
     func clearAllData() async {}
 }

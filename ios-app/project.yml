@@ -71,6 +71,7 @@ targets:
         excludes:
           - "Resources/Info.plist"
           - "**/*.md"
+          - "Config/Secrets.xcconfig.local"  # Local-only secrets file (gitignored)
     settings:
       configs:
         Debug:

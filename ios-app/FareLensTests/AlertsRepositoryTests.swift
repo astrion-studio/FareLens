@@ -1,5 +1,8 @@
-import XCTest
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 @testable import FareLens
+import XCTest
 
 final class AlertsRepositoryTests: XCTestCase {
     var mockAPI: MockAlertsAPIClient!
@@ -77,7 +80,7 @@ final class AlertsRepositoryTests: XCTestCase {
             origin: "LAX",
             destination: "JFK",
             departureDate: Date(),
-            returnDate: Date().addingTimeInterval(4 * 86_400),
+            returnDate: Date().addingTimeInterval(4 * 86400),
             totalPrice: 420,
             currency: "USD",
             dealScore: 92,
@@ -103,7 +106,7 @@ actor MockAlertsAPIClient: APIClientProtocol {
         nextData = data
     }
 
-    func request<T: Decodable>(_ endpoint: APIEndpoint) async throws -> T {
+    func request<T: Decodable>(_: APIEndpoint) async throws -> T {
         requestCount += 1
         guard let data = nextData else {
             throw APIError.invalidResponse
@@ -113,7 +116,7 @@ actor MockAlertsAPIClient: APIClientProtocol {
         return try decoder.decode(T.self, from: data)
     }
 
-    func requestNoResponse(_ endpoint: APIEndpoint) async throws {
+    func requestNoResponse(_: APIEndpoint) async throws {
         requestCount += 1
     }
 }
@@ -128,13 +131,13 @@ actor MockAlertsPersistenceService: PersistenceServiceProtocol {
         cacheValid = valid
     }
 
-    func saveUser(_ user: User) async {}
+    func saveUser(_: User) async {}
     func loadUser() async -> User? { nil }
     func clearUser() async {}
-    func saveDeals(_ deals: [FlightDeal], origin: String?) async {}
-    func loadDeals(origin: String?) async -> [FlightDeal] { [] }
+    func saveDeals(_: [FlightDeal], origin _: String?) async {}
+    func loadDeals(origin _: String?) async -> [FlightDeal] { [] }
     func clearDeals() async {}
-    func isCacheValid(for origin: String?) async -> Bool { false }
+    func isCacheValid(for _: String?) async -> Bool { false }
 
     func saveAlerts(_ alerts: [AlertHistory]) async {
         savedAlerts = alerts

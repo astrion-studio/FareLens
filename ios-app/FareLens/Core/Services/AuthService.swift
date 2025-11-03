@@ -309,9 +309,8 @@ actor AuthService: AuthServiceProtocol {
             )
         } catch let error as PostgrestError {
             // Check if it's a "profile not found" error (common during signup)
-            // PostgrestError uses code "PGRST116" for "not found" errors
-            // TODO: Check error.code property when available in SDK, currently using string matching
-            if error.localizedDescription.contains("0 rows") || error.localizedDescription.contains("PGRST116") {
+            // PostgrestError uses code "PGRST116" for "not found" errors ("The result contains 0 rows")
+            if error.code == "PGRST116" {
                 logger.info("User profile not found (likely new signup), creating default profile")
                 // Profile doesn't exist yet - return basic User from auth data
                 return User(

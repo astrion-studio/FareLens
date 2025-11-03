@@ -1,5 +1,8 @@
-import XCTest
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 @testable import FareLens
+import XCTest
 
 final class SavedDealsRepositoryTests: XCTestCase {
     var userDefaults: UserDefaults!
@@ -49,7 +52,7 @@ final class SavedDealsRepositoryTests: XCTestCase {
             origin: "SFO",
             destination: "CDG",
             departureDate: Date(),
-            returnDate: Date().addingTimeInterval(7 * 86_400),
+            returnDate: Date().addingTimeInterval(7 * 86400),
             totalPrice: 780,
             currency: "USD",
             dealScore: 88,
