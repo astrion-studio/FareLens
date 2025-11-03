@@ -60,8 +60,46 @@ jobs:
           languages: ${{ matrix.language }}
           queries: security-and-quality
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
+      - name: Set up Secrets.xcconfig for CI
+        run: |
+          # Validate secrets are set (fail early if missing)
+          if [ -z "${SUPABASE_URL}" ] || [ -z "${SUPABASE_PUBLISHABLE_KEY}" ] || [ -z "${CLOUDFLARE_WORKER_URL}" ]; then
+            echo "❌ ERROR: Required secrets not configured in GitHub repository settings"
+            echo "Missing secrets:"
+            [ -z "${SUPABASE_URL}" ] && echo "  - SUPABASE_URL"
+            [ -z "${SUPABASE_PUBLISHABLE_KEY}" ] && echo "  - SUPABASE_PUBLISHABLE_KEY"
+            [ -z "${CLOUDFLARE_WORKER_URL}" ] && echo "  - CLOUDFLARE_WORKER_URL"
+            exit 1
+          fi
+
+          # Create Secrets.xcconfig from validated GitHub Secrets
+          echo "// FareLens Secrets Configuration - CI/CD" > ios-app/FareLens/Config/Secrets.xcconfig
+          echo "SUPABASE_URL = ${SUPABASE_URL}" >> ios-app/FareLens/Config/Secrets.xcconfig
+          echo "SUPABASE_PUBLISHABLE_KEY = ${SUPABASE_PUBLISHABLE_KEY}" >> ios-app/FareLens/Config/Secrets.xcconfig
+          echo "CLOUDFLARE_WORKER_URL = ${CLOUDFLARE_WORKER_URL}" >> ios-app/FareLens/Config/Secrets.xcconfig
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          CLOUDFLARE_WORKER_URL: ${{ secrets.CLOUDFLARE_WORKER_URL }}
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: |
+          cd ios-app
+          xcodegen generate
+
+      - name: Build Xcode project with dependency resolution
+        run: |
+          cd ios-app
+          xcodebuild build \
+            -project FareLens.xcodeproj \
+            -scheme FareLens \
+            -destination 'generic/platform=iOS' \
+            -configuration Release \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
