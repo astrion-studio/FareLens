@@ -401,7 +401,7 @@
 			path = Persistence;
 			sourceTree = "<group>";
 		};
-		"TEMP_D506259E-1BE2-414A-80D7-5C7DE74C6DE5" /* Localizations */ = {
+		"TEMP_A1F3E7EC-C898-4603-946C-5699C4022DD1" /* Localizations */ = {
 			isa = PBXGroup;
 			children = (
 			);
@@ -459,11 +459,11 @@
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					4DE3C445A6C5F04A6C06BFE5 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = A6G25B58D4;
 						ProvisioningStyle = Automatic;
 					};
 					890FC576BD593E30EAAD3CA0 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = A6G25B58D4;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -659,7 +659,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = A6G25B58D4;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -712,7 +712,7 @@
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				xcconfig = FareLens/Config/Secrets.xcconfig;
+				xcconfig = FareLens/Config/Secrets.xcconfig.local;
 			};
 			name = Debug;
 		};
@@ -778,7 +778,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = A6G25B58D4;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
