@@ -18,10 +18,12 @@
   "author": "Astrion Studio",
   "license": "PROPRIETARY",
   "type": "module",
+  "dependencies": {
+    "zod": "^4.1.12"
+  },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20251014.0",
     "typescript": "^5.9.3",
-    "wrangler": "^4.45.0",
-    "zod": "^4.1.12"
+    "wrangler": "^4.45.0"
   }
 }

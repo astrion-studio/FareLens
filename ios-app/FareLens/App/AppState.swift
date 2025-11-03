@@ -54,11 +54,10 @@ final class AppState {
             // Load subscription status
             subscriptionTier = await SubscriptionService.shared.getCurrentTier()
 
-            // Request notification permissions
-            await NotificationService.shared.requestAuthorization()
-
-            // Register for remote notifications
-            await NotificationService.shared.registerForRemoteNotifications()
+            // Note: Push notification registration temporarily disabled until paid Apple Developer
+            // account is set up (see issue #121). When re-enabled, uncomment:
+            // await NotificationService.shared.requestAuthorization()
+            // await NotificationService.shared.registerForRemoteNotifications()
         }
     }
 
