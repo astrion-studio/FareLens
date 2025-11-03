@@ -75,7 +75,7 @@ targets:
     settings:
       configs:
         Debug:
-          xcconfig: FareLens/Config/Secrets.xcconfig
+          xcconfig: FareLens/Config/Secrets.xcconfig.local
         Release:
           xcconfig: FareLens/Config/Secrets.xcconfig
       base:

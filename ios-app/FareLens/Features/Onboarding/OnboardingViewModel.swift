@@ -94,10 +94,12 @@ final class OnboardingViewModel {
     }
 
     private func registerForNotifications() async {
-        let granted = await NotificationService.shared.requestAuthorization()
-        if granted {
-            await NotificationService.shared.registerForRemoteNotifications()
-        }
+        // Note: Push notification registration temporarily disabled until paid Apple Developer
+        // account is set up (see issue #121). When re-enabled, uncomment:
+        // let granted = await NotificationService.shared.requestAuthorization()
+        // if granted {
+        //     await NotificationService.shared.registerForRemoteNotifications()
+        // }
     }
 }
 
