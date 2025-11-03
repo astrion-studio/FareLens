@@ -21,7 +21,7 @@ CORS_ALLOW_ORIGIN = "farelens://app"
 
 # Build configuration - points to cloudflare-workers subdirectory
 [build]
-command = "cd cloudflare-workers && npm run build"
+command = "cd cloudflare-workers && npm install && npm run build"
 cwd = "."
 watch_dirs = ["cloudflare-workers/src"]
 
