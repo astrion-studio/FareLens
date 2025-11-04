@@ -69,6 +69,12 @@ export default {
         return await handleDeals(request, env);
       }
 
+      // Alerts history endpoint
+      // Support both /api/alerts/history and /alerts/history
+      if (path.startsWith('/api/alerts/history') || path.startsWith('/alerts/history')) {
+        return await handleAlertHistory(request, env);
+      }
+
       // 404 for unknown routes
       return jsonResponse({ error: 'Not found' }, 404, {}, env);
 
@@ -238,6 +244,9 @@ async function verifyAuth(request: Request, env: Env): Promise<AuthResult> {
 /**
  * Handle deals endpoint (queries Supabase)
  * Uses ANON_KEY to respect Row-Level Security policies
+ * Supports:
+ * - GET /deals - List all deals
+ * - GET /deals/{id} - Get single deal by ID
  */
 async function handleDeals(request: Request, env: Env): Promise<Response> {
   // Verify authentication
@@ -247,29 +256,109 @@ async function handleDeals(request: Request, env: Env): Promise<Response> {
   }
 
   const token = authResult.token;
+  const url = new URL(request.url);
+  const path = url.pathname;
 
-  // Query flight deals from Supabase using anon key
+  // Extract deal ID if present
+  // Match patterns: /deals/{id}, /api/deals/{id}
+  const dealIdMatch = path.match(/\/(?:api\/)?deals\/([a-f0-9-]+)$/i);
+
+  if (dealIdMatch) {
+    // GET /deals/{id} - Fetch single deal
+    const dealId = dealIdMatch[1];
+
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(dealId)) {
+      return jsonResponse({ error: 'Invalid deal ID format' }, 400, {}, env);
+    }
+
+    const dealResponse = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/flight_deals?id=eq.${dealId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'apikey': env.SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!dealResponse.ok) {
+      const errorText = await dealResponse.text();
+      console.error('Failed to fetch deal from Supabase:', errorText);
+      return jsonResponse({ error: 'Failed to fetch deal' }, dealResponse.status, {}, env);
+    }
+
+    const deals = await dealResponse.json();
+
+    // Check if deal exists
+    if (!Array.isArray(deals) || deals.length === 0) {
+      return jsonResponse({ error: 'Deal not found' }, 404, {}, env);
+    }
+
+    return jsonResponse(deals[0], 200, {}, env);
+  } else {
+    // GET /deals - List all deals
+    const dealsResponse = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/flight_deals?order=deal_score.desc&limit=20`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'apikey': env.SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!dealsResponse.ok) {
+      const errorText = await dealsResponse.text();
+      console.error('Failed to fetch deals from Supabase:', errorText);
+      return jsonResponse({ error: 'Failed to fetch deals' }, dealsResponse.status, {}, env);
+    }
+
+    const deals = await dealsResponse.json();
+
+    return jsonResponse({ deals, user_id: authResult.userId }, 200, {}, env);
+  }
+}
+
+/**
+ * Handle alerts history endpoint (queries Supabase)
+ * Uses ANON_KEY to respect Row-Level Security policies
+ * GET /alerts/history - Get alert history for authenticated user
+ */
+async function handleAlertHistory(request: Request, env: Env): Promise<Response> {
+  // Verify authentication
+  const authResult = await verifyAuth(request, env);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
+  const token = authResult.token;
+
+  // Query alert history from Supabase using anon key
   // RLS policies will automatically filter results based on the user's JWT
-  const dealsResponse = await fetch(
-    `${env.SUPABASE_URL}/rest/v1/flight_deals?order=deal_score.desc&limit=20`,
+  const alertsResponse = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/alert_history?order=created_at.desc&limit=50`,
     {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'apikey': env.SUPABASE_ANON_KEY,  // Use anon key to respect RLS
+        'apikey': env.SUPABASE_ANON_KEY,
         'Content-Type': 'application/json',
       },
     }
   );
 
-  if (!dealsResponse.ok) {
-    const errorText = await dealsResponse.text();
-    console.error('Failed to fetch deals from Supabase:', errorText);
-    return jsonResponse({ error: 'Failed to fetch deals' }, dealsResponse.status, {}, env);
+  if (!alertsResponse.ok) {
+    const errorText = await alertsResponse.text();
+    console.error('Failed to fetch alert history from Supabase:', errorText);
+    return jsonResponse({ error: 'Failed to fetch alert history' }, alertsResponse.status, {}, env);
   }
 
-  const deals = await dealsResponse.json();
+  const alerts = await alertsResponse.json();
 
-  return jsonResponse({ deals, user_id: authResult.userId }, 200, {}, env);
+  return jsonResponse({ alerts, user_id: authResult.userId }, 200, {}, env);
 }
 
 /**
@@ -352,6 +441,10 @@ function handleCORS(env: Env): Response {
 /**
  * Helper to create JSON responses with CORS headers
  * env parameter is required to ensure CORS origin is always properly configured
+ *
+ * Note: We use wildcard CORS (Access-Control-Allow-Origin: *) without credentials
+ * to comply with CORS spec. The spec forbids using wildcard with credentials=true.
+ * Security is enforced via JWT authentication, not CORS credentials.
  */
 function jsonResponse(
   data: any,
@@ -364,7 +457,6 @@ function jsonResponse(
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': env.CORS_ALLOW_ORIGIN,
-      'Access-Control-Allow-Credentials': 'true',
       ...extraHeaders,
     },
   });
