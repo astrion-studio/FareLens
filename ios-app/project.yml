@@ -71,6 +71,8 @@ targets:
         excludes:
           - "Resources/Info.plist"
           - "**/*.md"
+    resources:
+      - FareLens/Resources/Assets.xcassets
     configFiles:
       Debug: FareLens/Config/Secrets.xcconfig.local
       Release: FareLens/Config/Secrets.xcconfig
