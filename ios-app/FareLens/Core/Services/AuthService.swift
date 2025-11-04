@@ -82,16 +82,11 @@ actor AuthService: AuthServiceProtocol {
     /// Sign in with email and password
     func signIn(email: String, password: String) async throws -> User {
         do {
-            // Authenticate with Supabase - returns AuthResponse in Supabase 2.x
-            let response = try await supabaseClient.auth.signIn(
+            // Authenticate with Supabase - returns Session directly in Supabase Swift SDK
+            let session = try await supabaseClient.auth.signIn(
                 email: email,
                 password: password
             )
-
-            // Unwrap session from AuthResponse
-            guard let session = response.session else {
-                throw AuthError.invalidCredentials
-            }
 
             // Convert Supabase user to app User model
             let user = try await convertSupabaseUser(session.user)

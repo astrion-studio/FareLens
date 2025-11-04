@@ -17,11 +17,11 @@ id = "826a67096e374c299e588290236d99b5"
 [vars]
 ENVIRONMENT = "development"
 API_VERSION = "v1"
-CORS_ALLOW_ORIGIN = "farelens://app"
+CORS_ALLOW_ORIGIN = "*"  # Allow all origins for development; restrict in production
 
 # Build configuration - points to cloudflare-workers subdirectory
 [build]
-command = "cd cloudflare-workers && npm install && npm run build"
+command = "cd cloudflare-workers && npm ci && npm run build"
 cwd = "."
 watch_dirs = ["cloudflare-workers/src"]
 
