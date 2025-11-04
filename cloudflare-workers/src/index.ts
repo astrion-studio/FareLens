@@ -242,6 +242,45 @@ async function verifyAuth(request: Request, env: Env): Promise<AuthResult> {
 }
 
 /**
+ * Helper function to fetch data from Supabase table with authentication
+ * Reduces code duplication for list queries
+ * @param token - JWT token for authentication
+ * @param env - Environment variables
+ * @param table - Supabase table name
+ * @param query - Query parameters (e.g., "order=created_at.desc&limit=50")
+ * @param dataKey - Key name for the response data array
+ * @param userId - User ID to include in response
+ */
+async function fetchSupabaseListQuery(
+  token: string,
+  env: Env,
+  table: string,
+  query: string,
+  dataKey: string,
+  userId: string
+): Promise<Response> {
+  const response = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/${table}?${query}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`Failed to fetch ${table} from Supabase:`, errorText);
+    return jsonResponse({ error: `Failed to fetch ${dataKey}` }, response.status, {}, env);
+  }
+
+  const data = await response.json();
+  return jsonResponse({ [dataKey]: data, user_id: userId }, 200, {}, env);
+}
+
+/**
  * Handle deals endpoint (queries Supabase)
  * Uses ANON_KEY to respect Row-Level Security policies
  * Supports:
@@ -297,29 +336,18 @@ async function handleDeals(request: Request, env: Env): Promise<Response> {
       return jsonResponse({ error: 'Deal not found' }, 404, {}, env);
     }
 
-    return jsonResponse(deals[0], 200, {}, env);
+    // Return single deal wrapped in object for API consistency
+    return jsonResponse({ deal: deals[0], user_id: authResult.userId }, 200, {}, env);
   } else {
     // GET /deals - List all deals
-    const dealsResponse = await fetch(
-      `${env.SUPABASE_URL}/rest/v1/flight_deals?order=deal_score.desc&limit=20`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'apikey': env.SUPABASE_ANON_KEY,
-          'Content-Type': 'application/json',
-        },
-      }
+    return fetchSupabaseListQuery(
+      token,
+      env,
+      'flight_deals',
+      'order=deal_score.desc&limit=20',
+      'deals',
+      authResult.userId
     );
-
-    if (!dealsResponse.ok) {
-      const errorText = await dealsResponse.text();
-      console.error('Failed to fetch deals from Supabase:', errorText);
-      return jsonResponse({ error: 'Failed to fetch deals' }, dealsResponse.status, {}, env);
-    }
-
-    const deals = await dealsResponse.json();
-
-    return jsonResponse({ deals, user_id: authResult.userId }, 200, {}, env);
   }
 }
 
@@ -335,30 +363,15 @@ async function handleAlertHistory(request: Request, env: Env): Promise<Response>
     return authResult.response;
   }
 
-  const token = authResult.token;
-
-  // Query alert history from Supabase using anon key
-  // RLS policies will automatically filter results based on the user's JWT
-  const alertsResponse = await fetch(
-    `${env.SUPABASE_URL}/rest/v1/alert_history?order=created_at.desc&limit=50`,
-    {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'apikey': env.SUPABASE_ANON_KEY,
-        'Content-Type': 'application/json',
-      },
-    }
+  // Use helper function to reduce code duplication
+  return fetchSupabaseListQuery(
+    authResult.token,
+    env,
+    'alert_history',
+    'order=created_at.desc&limit=50',
+    'alerts',
+    authResult.userId
   );
-
-  if (!alertsResponse.ok) {
-    const errorText = await alertsResponse.text();
-    console.error('Failed to fetch alert history from Supabase:', errorText);
-    return jsonResponse({ error: 'Failed to fetch alert history' }, alertsResponse.status, {}, env);
-  }
-
-  const alerts = await alertsResponse.json();
-
-  return jsonResponse({ alerts, user_id: authResult.userId }, 200, {}, env);
 }
 
 /**

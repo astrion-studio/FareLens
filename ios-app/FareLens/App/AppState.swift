@@ -5,6 +5,9 @@ import Foundation
 import Observation
 import UIKit
 
+/// Error thrown when an async operation exceeds its timeout
+private struct TimeoutError: Error {}
+
 @Observable
 @MainActor
 final class AppState {
@@ -75,23 +78,24 @@ final class AppState {
     }
 
     /// Helper function to add timeout to async operations
+    /// Throws TimeoutError if operation exceeds the specified timeout
     private func withTimeout<T>(seconds: TimeInterval, operation: @escaping () async -> T?) async throws -> T? {
-        try await withThrowingTaskGroup(of: T?.self) { group in
+        try await withThrowingTaskGroup(of: T?.self) { group -> T? in
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                throw TimeoutError()
+            }
             group.addTask {
                 await operation()
             }
 
-            group.addTask {
-                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-                return nil
-            }
-
-            // Return first result (either operation or timeout)
+            // Return first result that completes
+            // Note: group.next() returns T?? because the task group can return nil
             if let result = try await group.next() {
                 group.cancelAll()
                 return result
             }
-
+            group.cancelAll()
             return nil
         }
     }
