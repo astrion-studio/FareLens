@@ -118,6 +118,23 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: List available simulators
+        if: steps.check_project.outputs.has_project == 'true'
+        run: xcrun simctl list devices available
+
+      - name: Create iPhone 17 Pro Max simulator if needed
+        if: steps.check_project.outputs.has_project == 'true'
+        run: |
+          # Check if iPhone 17 Pro Max exists
+          if ! xcrun simctl list devices | grep -q "iPhone 17 Pro Max"; then
+            echo "Creating iPhone 17 Pro Max simulator..."
+            # Get the latest iOS runtime
+            RUNTIME=$(xcrun simctl list runtimes | grep "iOS" | tail -1 | awk '{print $NF}')
+            xcrun simctl create "iPhone 17 Pro Max" "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max" "$RUNTIME" || echo "Failed to create, will use any available iPhone"
+          else
+            echo "iPhone 17 Pro Max already exists"
+          fi
+
       - name: Run tests
         if: steps.check_project.outputs.has_project == 'true'
         run: |
@@ -125,7 +142,7 @@ jobs:
           xcodebuild test \
             -scheme FareLens \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' \
             -enableCodeCoverage YES \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO
