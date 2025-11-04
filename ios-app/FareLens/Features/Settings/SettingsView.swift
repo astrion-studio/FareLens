@@ -8,6 +8,8 @@ struct SettingsView: View {
     @Environment(AppState.self) var appState: AppState
 
     var body: some View {
+        @Bindable var viewModel = viewModel
+
         NavigationView {
             ZStack {
                 Color.backgroundPrimary.ignoresSafeArea()

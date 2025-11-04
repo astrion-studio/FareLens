@@ -14,7 +14,7 @@ packages:
 
 settings:
   base:
-    DEVELOPMENT_TEAM: "A6G25B58D4"  # Personal Team for kaujla25@gmail.com
+    # DEVELOPMENT_TEAM: Set automatically by Xcode based on your Apple ID
     IPHONEOS_DEPLOYMENT_TARGET: "26.0"
     SWIFT_VERSION: "5.0"
     TARGETED_DEVICE_FAMILY: 1
@@ -71,13 +71,12 @@ targets:
         excludes:
           - "Resources/Info.plist"
           - "**/*.md"
-          - "Config/Secrets.xcconfig.local"  # Local-only secrets file (gitignored)
+    resources:
+      - FareLens/Resources/Assets.xcassets
+    configFiles:
+      Debug: FareLens/Config/Secrets.xcconfig.local
+      Release: FareLens/Config/Secrets.xcconfig
     settings:
-      configs:
-        Debug:
-          xcconfig: FareLens/Config/Secrets.xcconfig.local
-        Release:
-          xcconfig: FareLens/Config/Secrets.xcconfig
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.astrionstudio.farelens
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
