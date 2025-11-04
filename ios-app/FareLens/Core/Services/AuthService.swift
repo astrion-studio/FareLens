@@ -191,28 +191,11 @@ actor AuthService: AuthServiceProtocol {
 
     /// Get current authenticated user
     func getCurrentUser() async -> User? {
-        // Return cached user if available in memory
-        if let user = currentUser {
-            return user
-        }
+        // IMPORTANT: Always validate tokens before returning user to prevent
+        // expired/revoked sessions from appearing authenticated
+        // Even if we have a cached user, we must verify the session is still valid
 
-        // Fast path: Load user from local storage first (no network call)
-        if let cachedUser = await persistenceService.loadUser(),
-           let tokens = await tokenStore.loadTokens()
-        {
-            // Restore user from cache immediately for fast UI display
-            currentUser = cachedUser
-            await apiClient.setAuthToken(tokens.accessToken)
-
-            // Validate session in background (don't block UI)
-            Task {
-                await validateAndRefreshSession()
-            }
-
-            return cachedUser
-        }
-
-        // No cached user - try to restore session from stored tokens
+        // Try to restore session from stored tokens
         if let tokens = await tokenStore.loadTokens() {
             do {
                 // Restore the Supabase session using both access and refresh tokens
@@ -238,6 +221,7 @@ actor AuthService: AuthServiceProtocol {
                 // Restore access token to API client
                 await apiClient.setAuthToken(session.accessToken)
 
+                logger.info("Session restored successfully")
                 return user
             } catch let error as Supabase.AuthError {
                 // Only clear tokens if it's an authentication error (invalid/expired tokens)
@@ -253,6 +237,7 @@ actor AuthService: AuthServiceProtocol {
                     await apiClient.setAuthToken(nil)
                     await persistenceService.clearUser()
                     currentUser = nil
+                    logger.warning("Cleared invalid/expired session")
                 }
                 return nil
             } catch {
@@ -264,37 +249,6 @@ actor AuthService: AuthServiceProtocol {
 
         // No valid tokens - user is not authenticated
         return nil
-    }
-
-    /// Validates and refreshes the current session in background
-    private func validateAndRefreshSession() async {
-        guard let tokens = await tokenStore.loadTokens() else { return }
-
-        do {
-            let session = try await supabaseClient.auth.setSession(
-                accessToken: tokens.accessToken,
-                refreshToken: tokens.refreshToken
-            )
-
-            // If tokens were refreshed, save the new tokens
-            if session.accessToken != tokens.accessToken {
-                await tokenStore.saveTokens(
-                    accessToken: session.accessToken,
-                    refreshToken: session.refreshToken
-                )
-                await apiClient.setAuthToken(session.accessToken)
-            }
-
-            // Update user profile if needed
-            let user = try await convertSupabaseUser(session.user)
-            currentUser = user
-            await persistenceService.saveUser(user)
-
-            logger.info("Session validated and refreshed successfully")
-        } catch {
-            logger.warning("Background session validation failed: \(error.localizedDescription)")
-            // Don't clear tokens here - let the user continue with cached data
-        }
     }
 
     /// Reset password via email

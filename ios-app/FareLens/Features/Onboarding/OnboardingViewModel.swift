@@ -53,24 +53,29 @@ final class OnboardingViewModel {
         passwordError = nil
         serverError = nil
 
+        // Validate all fields and collect errors (don't return early)
+        var hasErrors = false
+
         // Validate email
         if email.isEmpty {
             emailError = .empty
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            return
+            hasErrors = true
         } else if !isValidEmail(email) {
             emailError = .invalidFormat
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            return
+            hasErrors = true
         }
 
         // Validate password
         if password.isEmpty {
             passwordError = .empty
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            return
+            hasErrors = true
         } else if password.count < 8 {
             passwordError = .tooShort
+            hasErrors = true
+        }
+
+        // If any validation errors, show haptic feedback and stop
+        if hasErrors {
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             return
         }

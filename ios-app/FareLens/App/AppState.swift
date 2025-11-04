@@ -50,8 +50,9 @@ final class AppState {
         defer { isLoading = false }
 
         // Check authentication status with timeout to prevent long delays
+        // 10 seconds allows for token refresh + network latency while still being responsive
         do {
-            let user = try await withTimeout(seconds: 2) {
+            let user = try await withTimeout(seconds: 10) {
                 await AuthService.shared.getCurrentUser()
             }
 
