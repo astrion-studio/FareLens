@@ -71,7 +71,7 @@ export default {
 
       // Alerts history endpoint
       // Support both /api/alerts/history and /alerts/history
-      if (path.startsWith('/api/alerts/history') || path.startsWith('/alerts/history')) {
+      if (path === '/api/alerts/history' || path === '/alerts/history') {
         return await handleAlertHistory(request, env);
       }
 
