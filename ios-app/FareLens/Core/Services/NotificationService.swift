@@ -24,6 +24,13 @@ actor NotificationService: NotificationServiceProtocol {
         let proxy = NotificationCenterDelegateProxy()
         delegateProxy = proxy
         proxy.service = self
+        // Defer delegate assignment to avoid Swift 6 actor isolation warning
+        Task { @MainActor in
+            await self.setupDelegate(proxy: proxy)
+        }
+    }
+
+    private func setupDelegate(proxy: NotificationCenterDelegateProxy) async {
         notificationCenter.delegate = proxy
     }
 
@@ -121,9 +128,8 @@ actor NotificationService: NotificationServiceProtocol {
 
     /// Update badge count
     func updateBadgeCount(_ count: Int) async {
-        await MainActor.run {
-            UIApplication.shared.applicationIconBadgeNumber = count
-        }
+        // Use iOS 17+ API for badge count
+        try? await notificationCenter.setBadgeCount(count)
     }
 
     // MARK: - Notification Handling

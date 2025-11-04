@@ -28,7 +28,7 @@ struct AlertsView: View {
                         FilterPicker(selectedFilter: $selectedFilter)
                             .padding(.horizontal, Spacing.screenHorizontal)
                             .padding(.vertical, Spacing.sm)
-                            .onChange(of: selectedFilter) { newFilter in
+                            .onChange(of: selectedFilter) { _, newFilter in
                                 viewModel.applyFilter(newFilter)
                             }
 
