@@ -14,6 +14,8 @@ struct OnboardingView: View {
     }
 
     var body: some View {
+        @Bindable var viewModel = viewModel
+
         NavigationView {
             ZStack {
                 switch viewModel.currentStep {
