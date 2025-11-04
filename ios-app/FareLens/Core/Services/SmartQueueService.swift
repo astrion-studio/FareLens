@@ -38,7 +38,7 @@ actor SmartQueueService: SmartQueueServiceProtocol {
     /// Calculate smart queue score for a deal
     /// Formula: finalScore = dealScore × (1 + watchlistBoost) × (1 + airportWeight)
     func calculateQueueScore(deal: FlightDeal, user: User) async -> Double {
-        var score = Double(deal.dealScore) // Base: 0-100
+        let score = Double(deal.dealScore) // Base: 0-100
 
         // 1. Watchlist boost: +20% if deal matches user's watchlist
         let watchlistBoost: Double = user.watchlists.contains(where: { $0.matches(deal) }) ? 0.2 : 0.0

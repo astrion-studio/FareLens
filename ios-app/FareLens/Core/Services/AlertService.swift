@@ -46,7 +46,7 @@ actor AlertService: AlertServiceProtocol {
         await resetDailyCounterIfNeeded(for: user)
 
         // Filter deals based on user preferences
-        var filteredDeals = deals.filter { deal in
+        let filteredDeals = deals.filter { deal in
             // Apply watchlist-only mode if enabled (Pro feature)
             if user.alertPreferences.watchlistOnlyMode {
                 return user.watchlists.contains { $0.matches(deal) }
