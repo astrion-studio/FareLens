@@ -14,7 +14,7 @@ packages:
 
 settings:
   base:
-    DEVELOPMENT_TEAM: "A6G25B58D4"  # Personal Team for kaujla25@gmail.com
+    # DEVELOPMENT_TEAM: Set automatically by Xcode based on your Apple ID
     IPHONEOS_DEPLOYMENT_TARGET: "26.0"
     SWIFT_VERSION: "5.0"
     TARGETED_DEVICE_FAMILY: 1
