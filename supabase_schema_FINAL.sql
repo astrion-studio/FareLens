@@ -146,11 +146,11 @@ ALTER TABLE public.saved_deals ENABLE ROW LEVEL SECURITY;
 -- PERFORMANCE: Wrap auth.uid() in subselect to prevent re-evaluation for each row
 -- See: https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select
 CREATE POLICY "Users can view their own data" ON public.users FOR SELECT USING ((select auth.uid()) = id);
-CREATE POLICY "Users can update their own data" ON public.users FOR UPDATE USING ((select auth.uid()) = id);
+CREATE POLICY "Users can update their own data" ON public.users FOR UPDATE USING ((select auth.uid()) = id) WITH CHECK ((select auth.uid()) = id);
 
 CREATE POLICY "Users can view their own watchlists" ON public.watchlists FOR SELECT USING ((select auth.uid()) = user_id);
 CREATE POLICY "Users can create their own watchlists" ON public.watchlists FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
-CREATE POLICY "Users can update their own watchlists" ON public.watchlists FOR UPDATE USING ((select auth.uid()) = user_id);
+CREATE POLICY "Users can update their own watchlists" ON public.watchlists FOR UPDATE USING ((select auth.uid()) = user_id) WITH CHECK ((select auth.uid()) = user_id);
 CREATE POLICY "Users can delete their own watchlists" ON public.watchlists FOR DELETE USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "Anyone can view flight deals" ON public.flight_deals FOR SELECT TO authenticated USING (true);
@@ -163,12 +163,12 @@ CREATE POLICY "Users can update their own alert interactions" ON public.alert_hi
 
 CREATE POLICY "Users can view their own devices" ON public.device_registrations FOR SELECT USING ((select auth.uid()) = user_id);
 CREATE POLICY "Users can register their own devices" ON public.device_registrations FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
-CREATE POLICY "Users can update their own devices" ON public.device_registrations FOR UPDATE USING ((select auth.uid()) = user_id);
+CREATE POLICY "Users can update their own devices" ON public.device_registrations FOR UPDATE USING ((select auth.uid()) = user_id) WITH CHECK ((select auth.uid()) = user_id);
 CREATE POLICY "Users can delete their own devices" ON public.device_registrations FOR DELETE USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can view their own saved deals" ON public.saved_deals FOR SELECT USING ((select auth.uid()) = user_id);
 CREATE POLICY "Users can save deals" ON public.saved_deals FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
-CREATE POLICY "Users can update their own saved deals" ON public.saved_deals FOR UPDATE USING ((select auth.uid()) = user_id);
+CREATE POLICY "Users can update their own saved deals" ON public.saved_deals FOR UPDATE USING ((select auth.uid()) = user_id) WITH CHECK ((select auth.uid()) = user_id);
 CREATE POLICY "Users can delete their own saved deals" ON public.saved_deals FOR DELETE USING ((select auth.uid()) = user_id);
 
 -- ============================================================================

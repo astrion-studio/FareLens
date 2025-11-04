@@ -27,7 +27,7 @@ id = "826a67096e374c299e588290236d99b5"
 [vars]
 ENVIRONMENT = "development"
 API_VERSION = "v1"
-CORS_ALLOW_ORIGIN = "farelens://app"  # iOS app deep link scheme
+CORS_ALLOW_ORIGIN = "*"  # Allow all origins for development; restrict in production
 
 # Secrets (NEVER COMMIT THESE - set via `wrangler secret put <KEY>`)
 # After deployment, run these commands:
@@ -48,4 +48,4 @@ CORS_ALLOW_ORIGIN = "farelens://app"  # iOS app deep link scheme
 
 # Build configuration
 [build]
-command = "npm run build"
+command = "npm ci && npm run build"

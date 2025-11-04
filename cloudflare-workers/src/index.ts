@@ -325,9 +325,10 @@ async function getAmadeusToken(env: Env): Promise<string> {
   const token = data.access_token;
   const expiresIn = data.expires_in || 1800; // Default 30 min
 
-  // Cache token
+  // Cache token with clamped TTL (expire 1 min early, minimum 60s)
   if (env.CACHE) {
-    await env.CACHE.put('amadeus:token', token, { expirationTtl: expiresIn - 60 }); // Expire 1 min early
+    const cacheTtl = Math.max(expiresIn - 60, 60); // Clamp to minimum 60 seconds
+    await env.CACHE.put('amadeus:token', token, { expirationTtl: cacheTtl });
   }
 
   return token;
