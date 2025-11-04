@@ -1,0 +1,51 @@
+# Cloudflare Workers Configuration for FareLens
+# This worker acts as a secure API proxy between iOS app and backend services
+
+name = "farelens-api"
+main = "src/index.ts"
+compatibility_date = "2025-10-27"
+workers_dev = true
+
+# Account ID for woodcut-rabbles5e@icloud.com
+# NOTE: This account ID is committed for deployment automation. While Gemini flagged this
+# as a security concern, Cloudflare account IDs are NOT secrets - they're required for
+# wrangler to know which account to deploy to. The actual security boundary is:
+# 1. Cloudflare dashboard requires authentication (username/password + 2FA)
+# 2. Wrangler requires API tokens (stored in ~/.wrangler/config/default.toml, gitignored)
+# 3. GitHub Actions uses CLOUDFLARE_API_TOKEN secret (not committed)
+# This account_id is safe to commit and follows Cloudflare's recommended practices.
+account_id = "c52361313e434072dd440217a6751467"
+
+# KV Namespace for caching Amadeus API responses (reduces API calls)
+# NOTE: KV namespace IDs are also safe to commit - they're just resource identifiers.
+# Access control is enforced via Cloudflare API tokens, not the namespace ID itself.
+[[kv_namespaces]]
+binding = "CACHE"
+id = "826a67096e374c299e588290236d99b5"
+
+# Environment Variables (NON-SECRET, safe to commit)
+[vars]
+ENVIRONMENT = "development"
+API_VERSION = "v1"
+CORS_ALLOW_ORIGIN = "*"  # Allow all origins for development; restrict in production
+
+# Secrets (NEVER COMMIT THESE - set via `wrangler secret put <KEY>`)
+# After deployment, run these commands:
+# npx wrangler secret put SUPABASE_URL
+# npx wrangler secret put SUPABASE_ANON_KEY          # Publishable key (respects RLS)
+# npx wrangler secret put SUPABASE_SECRET_KEY        # Service role key (admin access)
+# npx wrangler secret put AMADEUS_API_KEY
+# npx wrangler secret put AMADEUS_API_SECRET
+#
+# Optional: Override Amadeus API base URL for production
+# npx wrangler secret put AMADEUS_BASE_URL          # Default: https://test.api.amadeus.com
+
+# Routes (production domain mapping)
+# Uncomment when you have a custom domain
+# routes = [
+#   { pattern = "api.farelens.app/*", zone_name = "farelens.app" }
+# ]
+
+# Build configuration
+[build]
+command = "npm ci && npm run build"

@@ -17,7 +17,7 @@ struct AlertPreferencesView: View {
                 Section {
                     Toggle("Enable Alerts", isOn: $viewModel.alertPreferences.enabled)
                         .tint(.brandBlue)
-                        .onChange(of: viewModel.alertPreferences.enabled) { _ in
+                        .onChange(of: viewModel.alertPreferences.enabled) { _, _ in
                             Task {
                                 await viewModel.updateAlertPreferences()
                             }
@@ -34,7 +34,7 @@ struct AlertPreferencesView: View {
                 Section {
                     Toggle("Quiet Hours", isOn: $viewModel.alertPreferences.quietHoursEnabled)
                         .tint(.brandBlue)
-                        .onChange(of: viewModel.alertPreferences.quietHoursEnabled) { _ in
+                        .onChange(of: viewModel.alertPreferences.quietHoursEnabled) { _, _ in
                             Task {
                                 await viewModel.updateAlertPreferences()
                             }
@@ -52,7 +52,7 @@ struct AlertPreferencesView: View {
                                 }
                             }
                             .pickerStyle(.menu)
-                            .onChange(of: viewModel.alertPreferences.quietHoursStart) { _ in
+                            .onChange(of: viewModel.alertPreferences.quietHoursStart) { _, _ in
                                 Task {
                                     await viewModel.updateAlertPreferences()
                                 }
@@ -70,7 +70,7 @@ struct AlertPreferencesView: View {
                                 }
                             }
                             .pickerStyle(.menu)
-                            .onChange(of: viewModel.alertPreferences.quietHoursEnd) { _ in
+                            .onChange(of: viewModel.alertPreferences.quietHoursEnd) { _, _ in
                                 Task {
                                     await viewModel.updateAlertPreferences()
                                 }
@@ -112,7 +112,7 @@ struct AlertPreferencesView: View {
                         Toggle("", isOn: $viewModel.alertPreferences.watchlistOnlyMode)
                             .tint(.brandBlue)
                             .disabled(!viewModel.user.isProUser)
-                            .onChange(of: viewModel.alertPreferences.watchlistOnlyMode) { _ in
+                            .onChange(of: viewModel.alertPreferences.watchlistOnlyMode) { _, _ in
                                 if viewModel.user.isProUser {
                                     Task {
                                         await viewModel.updateAlertPreferences()

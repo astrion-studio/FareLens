@@ -1,0 +1,29 @@
+{
+  "name": "farelens-cloudflare-workers",
+  "version": "1.0.0",
+  "description": "Cloudflare Workers API proxy for FareLens iOS app",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "tsc",
+    "test": "echo \"TODO: Add test suite with vitest for routing, auth, and error handling\" && exit 0"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "farelens",
+    "api-proxy"
+  ],
+  "author": "Astrion Studio",
+  "license": "PROPRIETARY",
+  "type": "module",
+  "dependencies": {
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251014.0",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.45.0"
+  }
+}

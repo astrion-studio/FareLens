@@ -45,16 +45,8 @@ actor AlertService: AlertServiceProtocol {
         // Reset daily counter if needed
         await resetDailyCounterIfNeeded(for: user)
 
-        // Check if user has reached daily alert cap
-        let alertsSent = await getAlertsSentToday(for: user.id)
-        let remainingAlerts = user.maxAlertsPerDay - alertsSent
-
-        guard remainingAlerts > 0 else {
-            return [] // User has reached daily cap
-        }
-
         // Filter deals based on user preferences
-        var filteredDeals = deals.filter { deal in
+        let filteredDeals = deals.filter { deal in
             // Apply watchlist-only mode if enabled (Pro feature)
             if user.alertPreferences.watchlistOnlyMode {
                 return user.watchlists.contains { $0.matches(deal) }
@@ -62,19 +54,33 @@ actor AlertService: AlertServiceProtocol {
             return true
         }
 
-        // Rank deals using smart queue algorithm
+        // Rank all deals first
         let rankedDeals = await smartQueueService.rankDeals(filteredDeals, for: user)
 
-        // Take only up to remaining alerts
-        let dealsToAlert = Array(rankedDeals.prefix(remainingAlerts))
+        // Filter out deals that shouldn't be sent (quiet hours, duplicates)
+        var sendableDeals: [RankedDeal] = []
+        for rankedDeal in rankedDeals {
+            if await shouldSendAlert(for: rankedDeal.deal, user: user) {
+                sendableDeals.append(rankedDeal)
+            }
+        }
 
-        // Send alerts (respecting quiet hours and deduplication)
+        // Now calculate remaining alerts and apply the cap
+        let alertsSent = await getAlertsSentToday(for: user.id)
+        let remainingAlerts = user.maxAlertsPerDay - alertsSent
+
+        guard remainingAlerts > 0 else {
+            return [] // User has reached daily cap
+        }
+
+        // Take only up to remaining alerts from sendable deals
+        let dealsToAlert = Array(sendableDeals.prefix(remainingAlerts))
+
+        // Send alerts and track sent deals
         var sentDeals: [FlightDeal] = []
         for rankedDeal in dealsToAlert {
-            if await shouldSendAlert(for: rankedDeal.deal, user: user) {
-                if await sendAlert(for: rankedDeal.deal, user: user) != nil {
-                    sentDeals.append(rankedDeal.deal)
-                }
+            if await sendAlert(for: rankedDeal.deal, user: user) != nil {
+                sentDeals.append(rankedDeal.deal)
             }
         }
 
@@ -150,6 +156,8 @@ actor AlertService: AlertServiceProtocol {
         if !calendar.isDate(now, inSameDayAs: lastReset) {
             alertsSentToday[user.id] = 0
             lastResetDate[user.id] = now
+            // Persist the reset state immediately so it survives app restarts
+            await persistCounters()
         }
     }
 
@@ -256,19 +264,16 @@ actor AlertService: AlertServiceProtocol {
 // MARK: - Deduplication Cache
 
 private class DeduplicationCache {
-    private let cache = NSCache<NSString, NSDate>()
-
-    init() {
-        cache.countLimit = 10000 // Max 10k entries
-        cache.totalCostLimit = 10 * 1024 * 1024 // 10MB
-    }
+    // Use a simple dictionary for reliable storage
+    // Since AlertService is an actor, access to this dictionary is thread-safe
+    private var cache: [String: Date] = [:]
 
     func markAlertSent(key: String, date: Date) {
-        cache.setObject(date as NSDate, forKey: key as NSString)
+        cache[key] = date
     }
 
     func wasRecentlySent(key: String, within hours: TimeInterval, now: Date) -> Bool {
-        guard let lastSent = cache.object(forKey: key as NSString) as Date? else {
+        guard let lastSent = cache[key] else {
             return false
         }
         return now.timeIntervalSince(lastSent) < hours * 3600

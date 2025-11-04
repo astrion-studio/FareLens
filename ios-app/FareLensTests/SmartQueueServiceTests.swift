@@ -1,5 +1,8 @@
-import XCTest
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 @testable import FareLens
+import XCTest
 
 final class SmartQueueServiceTests: XCTestCase {
     var sut: SmartQueueService!
@@ -158,7 +161,7 @@ final class SmartQueueServiceTests: XCTestCase {
             preferredAirports: [
                 PreferredAirport(iata: "LAX", weight: 0.6),
                 PreferredAirport(iata: "JFK", weight: 0.3),
-                PreferredAirport(iata: "ORD", weight: 0.1)
+                PreferredAirport(iata: "ORD", weight: 0.1),
             ],
             watchlists: [
                 Watchlist(
@@ -166,7 +169,7 @@ final class SmartQueueServiceTests: XCTestCase {
                     name: "LAX to NYC",
                     origin: "LAX",
                     destination: "JFK"
-                )
+                ),
             ]
         )
     }

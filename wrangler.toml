@@ -1,0 +1,28 @@
+# Root-level Cloudflare Workers configuration
+# This file is required for Cloudflare's GitHub auto-deploy integration
+# The actual worker code lives in cloudflare-workers/ subdirectory
+
+name = "farelens-api"
+main = "cloudflare-workers/src/index.ts"
+compatibility_date = "2025-10-27"
+workers_dev = true
+account_id = "c52361313e434072dd440217a6751467"
+
+# KV Namespace for caching
+[[kv_namespaces]]
+binding = "CACHE"
+id = "826a67096e374c299e588290236d99b5"
+
+# Environment Variables
+[vars]
+ENVIRONMENT = "development"
+API_VERSION = "v1"
+CORS_ALLOW_ORIGIN = "*"  # Allow all origins for development; restrict in production
+
+# Build configuration - points to cloudflare-workers subdirectory
+[build]
+command = "cd cloudflare-workers && npm ci && npm run build"
+cwd = "."
+watch_dirs = ["cloudflare-workers/src"]
+
+# Secrets are set via wrangler secret put commands (see cloudflare-workers/wrangler.toml for details)

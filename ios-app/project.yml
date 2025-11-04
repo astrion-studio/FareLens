@@ -7,9 +7,14 @@ options:
   xcodeVersion: "16.0"
   groupSortPosition: top
 
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    from: 2.5.1
+
 settings:
   base:
-    DEVELOPMENT_TEAM: ""
+    DEVELOPMENT_TEAM: "A6G25B58D4"  # Personal Team for kaujla25@gmail.com
     IPHONEOS_DEPLOYMENT_TARGET: "26.0"
     SWIFT_VERSION: "5.0"
     TARGETED_DEVICE_FAMILY: 1
@@ -48,19 +53,31 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         UIBackgroundModes:
           - fetch
-          - remote-notification
-        NSUserNotificationsUsageDescription: "FareLens sends you alerts when great flight deals match your preferences."
-    entitlements:
-      path: FareLens/FareLens.entitlements
-      properties:
-        aps-environment: development
-        com.apple.developer.usernotifications.filtering: true
+        # NOTE: Push notifications temporarily disabled until paid Apple Developer account is set up
+        # See issue #121 to re-enable
+        # NSUserNotificationsUsageDescription: "FareLens sends you alerts when great flight deals match your preferences."
+        SUPABASE_URL: $(SUPABASE_URL)
+        SUPABASE_PUBLISHABLE_KEY: $(SUPABASE_PUBLISHABLE_KEY)
+        CLOUDFLARE_WORKER_URL: $(CLOUDFLARE_WORKER_URL)
+    # NOTE: Entitlements temporarily disabled until paid Apple Developer account is set up
+    # See issue #121 to re-enable
+    # entitlements:
+    #   path: FareLens/FareLens.entitlements
+    #   properties:
+    #     aps-environment: development
+    #     com.apple.developer.usernotifications.filtering: true
     sources:
       - path: FareLens
         excludes:
           - "Resources/Info.plist"
           - "**/*.md"
+          - "Config/Secrets.xcconfig.local"  # Local-only secrets file (gitignored)
     settings:
+      configs:
+        Debug:
+          xcconfig: FareLens/Config/Secrets.xcconfig.local
+        Release:
+          xcconfig: FareLens/Config/Secrets.xcconfig
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.astrionstudio.farelens
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -73,6 +90,10 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: true
         SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
         SUPPORTS_MACCATALYST: false
+    dependencies:
+      - package: Supabase
+        products:
+          - Supabase
 
   FareLensTests:
     type: bundle.unit-test

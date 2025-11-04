@@ -1,5 +1,8 @@
-import XCTest
+// FareLens - Flight Deal Alert App
+// Copyright © 2025 FareLens. All rights reserved.
+
 @testable import FareLens
+import XCTest
 
 final class DealsRepositoryTests: XCTestCase {
     var sut: DealsRepository!
@@ -139,7 +142,7 @@ final class DealsRepositoryTests: XCTestCase {
             subscriptionTier: tier,
             alertPreferences: .default,
             preferredAirports: [
-                PreferredAirport(iata: "LAX", weight: 1.0)
+                PreferredAirport(iata: "LAX", weight: 1.0),
             ],
             watchlists: []
         )
@@ -176,7 +179,7 @@ class MockAPIClient: APIClientProtocol {
     var mockDeals: [FlightDeal] = []
     var shouldThrowError: APIError?
 
-    func request<T: Decodable>(_ endpoint: APIEndpoint) async throws -> T {
+    func request<T: Decodable>(_: APIEndpoint) async throws -> T {
         requestCount += 1
 
         // Allow test to configure error responses
@@ -196,7 +199,7 @@ class MockAPIClient: APIClientProtocol {
         throw APIError.invalidResponse
     }
 
-    func requestNoResponse(_ endpoint: APIEndpoint) async throws {
+    func requestNoResponse(_: APIEndpoint) async throws {
         requestCount += 1
 
         if let error = shouldThrowError {
@@ -223,7 +226,7 @@ class MockPersistenceServiceForDeals: PersistenceServiceProtocol {
         set { cachedDealsByOrigin[key(for: nil)] = newValue }
     }
 
-    func saveUser(_ user: User) async {}
+    func saveUser(_: User) async {}
     func loadUser() async -> User? { nil }
     func clearUser() async {}
 
@@ -236,8 +239,8 @@ class MockPersistenceServiceForDeals: PersistenceServiceProtocol {
     }
 
     func clearDeals() async {}
-    func isCacheValid(for origin: String?) async -> Bool { isCacheValidFlag }
-    func saveAlerts(_ alerts: [AlertHistory]) async {}
+    func isCacheValid(for _: String?) async -> Bool { isCacheValidFlag }
+    func saveAlerts(_: [AlertHistory]) async {}
     func loadAlerts() async -> [AlertHistory] { [] }
     func isAlertCacheValid() async -> Bool { false }
     func clearAllData() async {}

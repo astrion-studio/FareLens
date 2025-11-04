@@ -21,6 +21,14 @@ actor SubscriptionService: SubscriptionServiceProtocol {
     private var updateListenerTask: Task<Void, Error>?
 
     init() {
+        // Defer task creation to avoid Swift 6 actor isolation warning
+        // The task will be created after initialization in an async context
+        Task { @MainActor in
+            await self.startListening()
+        }
+    }
+
+    private func startListening() async {
         updateListenerTask = listenForTransactions()
     }
 
