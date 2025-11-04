@@ -125,7 +125,7 @@ jobs:
           xcodebuild test \
             -scheme FareLens \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=26.0' \
             -enableCodeCoverage YES \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO
