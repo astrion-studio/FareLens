@@ -191,12 +191,28 @@ actor AuthService: AuthServiceProtocol {
 
     /// Get current authenticated user
     func getCurrentUser() async -> User? {
-        // Return cached user if available
+        // Return cached user if available in memory
         if let user = currentUser {
             return user
         }
 
-        // Try to restore session from stored tokens
+        // Fast path: Load user from local storage first (no network call)
+        if let cachedUser = await persistenceService.loadUser(),
+           let tokens = await tokenStore.loadTokens()
+        {
+            // Restore user from cache immediately for fast UI display
+            currentUser = cachedUser
+            await apiClient.setAuthToken(tokens.accessToken)
+
+            // Validate session in background (don't block UI)
+            Task {
+                await validateAndRefreshSession()
+            }
+
+            return cachedUser
+        }
+
+        // No cached user - try to restore session from stored tokens
         if let tokens = await tokenStore.loadTokens() {
             do {
                 // Restore the Supabase session using both access and refresh tokens
@@ -250,6 +266,37 @@ actor AuthService: AuthServiceProtocol {
         return nil
     }
 
+    /// Validates and refreshes the current session in background
+    private func validateAndRefreshSession() async {
+        guard let tokens = await tokenStore.loadTokens() else { return }
+
+        do {
+            let session = try await supabaseClient.auth.setSession(
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken
+            )
+
+            // If tokens were refreshed, save the new tokens
+            if session.accessToken != tokens.accessToken {
+                await tokenStore.saveTokens(
+                    accessToken: session.accessToken,
+                    refreshToken: session.refreshToken
+                )
+                await apiClient.setAuthToken(session.accessToken)
+            }
+
+            // Update user profile if needed
+            let user = try await convertSupabaseUser(session.user)
+            currentUser = user
+            await persistenceService.saveUser(user)
+
+            logger.info("Session validated and refreshed successfully")
+        } catch {
+            logger.warning("Background session validation failed: \(error.localizedDescription)")
+            // Don't clear tokens here - let the user continue with cached data
+        }
+    }
+
     /// Reset password via email
     func resetPassword(email: String) async throws {
         do {
@@ -262,6 +309,34 @@ actor AuthService: AuthServiceProtocol {
     /// Get current auth token (JWT)
     func getAuthToken() async -> String? {
         await tokenStore.loadTokens()?.accessToken
+    }
+
+    /// Handle authentication callback from deep links (email confirmation, password reset, etc.)
+    func handleAuthCallback(url: URL) async {
+        do {
+            // Supabase handles the URL parsing and session creation
+            // The URL format is: farelens://auth/confirm#access_token=...&refresh_token=...
+            try await supabaseClient.auth.session(from: url)
+
+            // After successful session restoration, update current user
+            if let session = try? await supabaseClient.auth.session {
+                let user = try await convertSupabaseUser(session.user)
+
+                // Store tokens and user
+                await tokenStore.saveTokens(
+                    accessToken: session.accessToken,
+                    refreshToken: session.refreshToken
+                )
+                await apiClient.setAuthToken(session.accessToken)
+
+                currentUser = user
+                await persistenceService.saveUser(user)
+
+                logger.info("Successfully handled auth callback for user: \(user.email)")
+            }
+        } catch {
+            logger.error("Failed to handle auth callback: \(error.localizedDescription)")
+        }
     }
 
     // MARK: - Private Helpers
@@ -346,17 +421,30 @@ enum AuthError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidCredentials:
-            "Invalid email or password"
+            "The email or password you entered is incorrect. Please try again."
         case .userNotFound:
             "User not found"
         case .emailAlreadyExists:
-            "An account with this email already exists"
+            "An account with this email already exists. Try signing in instead."
         case .weakPassword:
             "Password must be at least 8 characters"
         case .networkError:
-            "Network error. Please try again."
+            "Unable to connect. Please check your internet connection and try again."
         case .emailNotConfirmed:
-            "Please confirm your email address before signing in"
+            "Please verify your email address. Check your inbox for a confirmation link."
+        }
+    }
+
+    var actionTitle: String? {
+        switch self {
+        case .emailNotConfirmed:
+            "Resend Confirmation"
+        case .emailAlreadyExists:
+            "Go to Sign In"
+        case .networkError:
+            "Try Again"
+        default:
+            nil
         }
     }
 }

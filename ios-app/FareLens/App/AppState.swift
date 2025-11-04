@@ -11,7 +11,7 @@ final class AppState {
     var isAuthenticated = false
     var currentUser: User?
     var subscriptionTier: SubscriptionTier = .free
-    var isLoading = false
+    var isLoading = true // Start as true to show loading view immediately
     var deepLinkDeal: FlightDeal?
     var isPresentingDeepLink = false
 
@@ -46,18 +46,53 @@ final class AppState {
         isLoading = true
         defer { isLoading = false }
 
-        // Check authentication status
-        if let user = await AuthService.shared.getCurrentUser() {
-            currentUser = user
-            isAuthenticated = true
+        // Check authentication status with timeout to prevent long delays
+        do {
+            let user = try await withTimeout(seconds: 2) {
+                await AuthService.shared.getCurrentUser()
+            }
 
-            // Load subscription status
-            subscriptionTier = await SubscriptionService.shared.getCurrentTier()
+            if let user {
+                currentUser = user
+                isAuthenticated = true
 
-            // Note: Push notification registration temporarily disabled until paid Apple Developer
-            // account is set up (see issue #121). When re-enabled, uncomment:
-            // await NotificationService.shared.requestAuthorization()
-            // await NotificationService.shared.registerForRemoteNotifications()
+                // Load subscription status in background (don't block UI)
+                Task {
+                    subscriptionTier = await SubscriptionService.shared.getCurrentTier()
+                }
+
+                // Note: Push notification registration temporarily disabled until paid Apple Developer
+                // account is set up (see issue #121). When re-enabled, uncomment:
+                // await NotificationService.shared.requestAuthorization()
+                // await NotificationService.shared.registerForRemoteNotifications()
+            }
+        } catch {
+            // Timeout or error - show unauthenticated state
+            // User can still try to sign in manually
+            isAuthenticated = false
+            currentUser = nil
+        }
+    }
+
+    /// Helper function to add timeout to async operations
+    private func withTimeout<T>(seconds: TimeInterval, operation: @escaping () async -> T?) async throws -> T? {
+        try await withThrowingTaskGroup(of: T?.self) { group in
+            group.addTask {
+                await operation()
+            }
+
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                return nil
+            }
+
+            // Return first result (either operation or timeout)
+            if let result = try await group.next() {
+                group.cancelAll()
+                return result
+            }
+
+            return nil
         }
     }
 

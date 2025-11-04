@@ -24,6 +24,23 @@ struct FareLensApp: App {
                         await appState.initialize()
                     }
                 }
+                .onOpenURL { url in
+                    Task {
+                        await handleDeepLink(url)
+                    }
+                }
+        }
+    }
+
+    /// Handles incoming deep links from Supabase authentication
+    private func handleDeepLink(_ url: URL) async {
+        // Handle Supabase authentication callback/confirmation
+        if url.scheme == "farelens" {
+            // Extract session from URL and pass to Supabase client
+            await AuthService.shared.handleAuthCallback(url: url)
+
+            // Reinitialize app state to reflect the new auth status
+            await appState.initialize()
         }
     }
 
