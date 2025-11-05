@@ -17,26 +17,38 @@ struct SettingsView: View {
                 List {
                     // Account Section
                     Section {
-                        HStack {
-                            VStack(alignment: .leading, spacing: Spacing.xs) {
-                                Text(viewModel.user.email)
-                                    .bodyStyle()
-                                    .foregroundColor(.textPrimary)
-
-                                Text(viewModel.user.subscriptionTier.displayName)
-                                    .footnoteStyle()
-                            }
-
-                            Spacer()
-
+                        Button(action: {
                             if !viewModel.user.isProUser {
-                                FLBadge(text: "Upgrade", style: .custom(
-                                    backgroundColor: Color.brandBlue.opacity(0.15),
-                                    foregroundColor: .brandBlue
-                                ))
+                                viewModel.showingUpgradeSheet = true
                             }
+                            // TODO: For Pro users, navigate to account management
+                        }) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: Spacing.xs) {
+                                    Text(viewModel.user.email)
+                                        .bodyStyle()
+                                        .foregroundColor(.textPrimary)
+
+                                    Text(viewModel.user.subscriptionTier.displayName)
+                                        .footnoteStyle()
+                                }
+
+                                Spacer()
+
+                                if !viewModel.user.isProUser {
+                                    FLBadge(text: "Upgrade", style: .custom(
+                                        backgroundColor: Color.brandBlue.opacity(0.15),
+                                        foregroundColor: .brandBlue
+                                    ))
+                                }
+
+                                Image(systemName: "chevron.right")
+                                    .font(.footnote)
+                                    .foregroundColor(.textTertiary)
+                            }
+                            .padding(.vertical, Spacing.xs)
                         }
-                        .padding(.vertical, Spacing.xs)
+                        .buttonStyle(.plain)
                     } header: {
                         Text("Account")
                             .headlineStyle()

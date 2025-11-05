@@ -8,6 +8,7 @@ struct DealsView: View {
     @Environment(AppState.self) var appState: AppState
     @State private var showingFilters = false
     @State private var selectedDeal: FlightDeal?
+    @State private var showingCreateWatchlist = false
 
     var body: some View {
         NavigationStack {
@@ -24,7 +25,9 @@ struct DealsView: View {
                         }
                     }
                 } else if viewModel.deals.isEmpty {
-                    EmptyDealsView()
+                    EmptyDealsView(onCreateWatchlist: {
+                        showingCreateWatchlist = true
+                    })
                 } else {
                     VStack(spacing: 0) {
                         // Filter bar
@@ -59,6 +62,13 @@ struct DealsView: View {
         .sheet(item: $selectedDeal) { deal in
             DealDetailView(deal: deal)
         }
+        .sheet(isPresented: $showingCreateWatchlist) {
+            if let user = appState.currentUser {
+                CreateWatchlistView(
+                    viewModel: WatchlistsViewModel(user: user)
+                )
+            }
+        }
         .task {
             await viewModel.loadDeals()
         }
@@ -90,6 +100,8 @@ struct FilterBar: View {
 }
 
 struct EmptyDealsView: View {
+    let onCreateWatchlist: () -> Void
+
     var body: some View {
         VStack(spacing: Spacing.xl) {
             Image(systemName: "airplane.departure")
@@ -107,9 +119,7 @@ struct EmptyDealsView: View {
                     .multilineTextAlignment(.center)
             }
 
-            FLButton(title: "Create Watchlist", style: .secondary) {
-                // Navigate to watchlists
-            }
+            FLButton(title: "Create Watchlist", style: .secondary, action: onCreateWatchlist)
         }
         .padding(Spacing.screenHorizontal)
     }

@@ -124,14 +124,16 @@ struct CreateWatchlistView: View {
                                             Spacer()
                                         }
 
-                                        Slider(value: $maxPrice, in: 100...2000, step: 50)
+                                        Slider(value: $maxPrice, in: 100...6000, step: 50)
                                             .tint(.brandBlue)
+                                            .accessibilityLabel("Maximum Price")
+                                            .accessibilityValue(maxPrice.formatted(.currency(code: "USD")))
 
                                         HStack {
                                             Text("$100")
                                                 .captionStyle()
                                             Spacer()
-                                            Text("$2,000")
+                                            Text("$6,000")
                                                 .captionStyle()
                                         }
                                     }
@@ -167,6 +169,18 @@ struct CreateWatchlistView: View {
                     .disabled(!isFormValid)
                 }
             }
+            .alert("Couldn't Save Watchlist", isPresented: Binding(
+                get: { viewModel.errorMessage != nil },
+                set: { if !$0 { viewModel.errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {
+                    viewModel.errorMessage = nil
+                }
+            } message: {
+                if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage)
+                }
+            }
         }
     }
 
@@ -181,8 +195,14 @@ struct CreateWatchlistView: View {
         )
 
         Task {
+            let errorBefore = viewModel.errorMessage
             await viewModel.createWatchlist(watchlist)
-            dismiss()
+
+            // Only dismiss if save succeeded (no new error set)
+            if viewModel.errorMessage == errorBefore || viewModel.errorMessage == nil {
+                dismiss()
+            }
+            // If error occurred, alert will show automatically
         }
     }
 }
