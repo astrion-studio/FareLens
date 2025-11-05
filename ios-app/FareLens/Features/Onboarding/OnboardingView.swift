@@ -235,6 +235,7 @@ struct AuthScreen: View {
                                 .textContentType(.emailAddress)
                                 .autocapitalization(.none)
                                 .keyboardType(.emailAddress)
+                                .submitLabel(.next)
                                 .focused($focusedField, equals: .email)
                                 .onSubmit {
                                     focusedField = .password
@@ -263,6 +264,7 @@ struct AuthScreen: View {
                             SecureField("••••••••", text: $viewModel.password)
                                 .textFieldStyle(.roundedBorder)
                                 .textContentType(isSignUp ? .newPassword : .password)
+                                .submitLabel(.go)
                                 .focused($focusedField, equals: .password)
                                 .onSubmit {
                                     Task {
