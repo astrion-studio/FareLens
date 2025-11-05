@@ -27,10 +27,10 @@ struct CreateWatchlistView: View {
 
     private func isValidAirportCode(_ code: String) -> Bool {
         let trimmed = code.trimmingCharacters(in: .whitespaces)
+        // Only allow 3-letter IATA codes (matches Amadeus API and backend validation)
         let isIATA = trimmed.count == 3
-        let isICAO = trimmed.count == 4
         let isLettersOnly = trimmed.allSatisfy(\.isLetter)
-        return (isIATA || isICAO) && isLettersOnly
+        return isIATA && isLettersOnly
     }
 
     private var isDateRangeValid: Bool {

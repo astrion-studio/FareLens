@@ -556,12 +556,16 @@ async function handleWatchlists(request: Request, env: Env): Promise<Response> {
 
 /**
  * Zod schema for watchlist creation/update
+ * Matches Supabase watchlists table schema
  */
 const WatchlistSchema = z.object({
-  origin_code: z.string().regex(/^[A-Z]{3}$/, 'Origin must be 3-letter IATA code'),
-  destination_code: z.string().regex(/^[A-Z]{3}$/, 'Destination must be 3-letter IATA code'),
+  name: z.string().min(1, 'Name is required'),
+  origin: z.string().regex(/^[A-Z]{3}$/, 'Origin must be 3-letter IATA code'),
+  destination: z.string().regex(/^[A-Z]{3}$|^ANY$/, 'Destination must be 3-letter IATA code or ANY'),
+  date_range_start: z.string().datetime().optional(),
+  date_range_end: z.string().datetime().optional(),
   max_price: z.number().positive('Max price must be positive').optional(),
-  alert_enabled: z.boolean().optional(),
+  is_active: z.boolean().optional(),
 });
 
 type WatchlistInput = z.infer<typeof WatchlistSchema>;

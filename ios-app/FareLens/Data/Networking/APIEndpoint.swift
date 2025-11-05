@@ -58,18 +58,18 @@ extension APIEndpoint {
     }
 
     static func createWatchlist(_ watchlist: Watchlist) -> APIEndpoint {
+        let iso8601 = ISO8601DateFormatter()
+
         var body: [String: Any] = [
             "name": watchlist.name,
             "origin": watchlist.origin,
             "destination": watchlist.destination,
         ]
 
+        // Flatten date range to match Supabase schema
         if let dateRange = watchlist.dateRange {
-            let iso8601 = ISO8601DateFormatter()
-            body["date_range"] = [
-                "start": iso8601.string(from: dateRange.start),
-                "end": iso8601.string(from: dateRange.end),
-            ]
+            body["date_range_start"] = iso8601.string(from: dateRange.start)
+            body["date_range_end"] = iso8601.string(from: dateRange.end)
         }
 
         if let maxPrice = watchlist.maxPrice {
@@ -84,6 +84,8 @@ extension APIEndpoint {
     }
 
     static func updateWatchlist(id: UUID, watchlist: Watchlist) -> APIEndpoint {
+        let iso8601 = ISO8601DateFormatter()
+
         var body: [String: Any] = [
             "name": watchlist.name,
             "origin": watchlist.origin,
@@ -91,12 +93,10 @@ extension APIEndpoint {
             "is_active": watchlist.isActive,
         ]
 
+        // Flatten date range to match Supabase schema
         if let dateRange = watchlist.dateRange {
-            let iso8601 = ISO8601DateFormatter()
-            body["date_range"] = [
-                "start": iso8601.string(from: dateRange.start),
-                "end": iso8601.string(from: dateRange.end),
-            ]
+            body["date_range_start"] = iso8601.string(from: dateRange.start)
+            body["date_range_end"] = iso8601.string(from: dateRange.end)
         }
 
         if let maxPrice = watchlist.maxPrice {
