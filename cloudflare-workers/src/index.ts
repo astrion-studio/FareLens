@@ -75,6 +75,26 @@ export default {
         return await handleAlertHistory(request, env);
       }
 
+      // Watchlist endpoints
+      // Support both /api/watchlists and /watchlists for backwards compatibility
+      if (path.startsWith('/api/watchlists') || path.startsWith('/watchlists')) {
+        return await handleWatchlists(request, env);
+      }
+
+      // Alert preferences endpoints
+      if (path === '/api/alert-preferences' || path === '/alert-preferences') {
+        return await handleAlertPreferences(request, env);
+      }
+
+      if (path === '/api/alert-preferences/airports' || path === '/alert-preferences/airports') {
+        return await handlePreferredAirports(request, env);
+      }
+
+      // User endpoint
+      if (path === '/api/user' || path === '/user') {
+        return await handleUser(request, env);
+      }
+
       // 404 for unknown routes
       return jsonResponse({ error: 'Not found' }, 404, {}, env);
 
@@ -473,4 +493,579 @@ function jsonResponse(
       ...extraHeaders,
     },
   });
+}
+
+/**
+ * Handle watchlist endpoints (CRUD operations)
+ * Supports:
+ * - POST /watchlists - Create new watchlist
+ * - GET /watchlists - List all watchlists for authenticated user
+ * - GET /watchlists/{id} - Get single watchlist by ID
+ * - PUT /watchlists/{id} - Update watchlist
+ * - DELETE /watchlists/{id} - Delete watchlist
+ */
+async function handleWatchlists(request: Request, env: Env): Promise<Response> {
+  // Verify authentication
+  const authResult = await verifyAuth(request, env);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
+  const token = authResult.token;
+  const userId = authResult.userId;
+  const url = new URL(request.url);
+  const path = url.pathname;
+  const method = request.method;
+
+  // Extract watchlist ID if present
+  // Match patterns: /watchlists/{id}, /api/watchlists/{id}
+  const watchlistIdMatch = path.match(/\/(?:api\/)?watchlists\/([a-f0-9-]+)$/i);
+
+  if (watchlistIdMatch) {
+    const watchlistId = watchlistIdMatch[1];
+
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(watchlistId)) {
+      return jsonResponse({ error: 'Invalid watchlist ID format' }, 400, {}, env);
+    }
+
+    // Route to appropriate handler based on method
+    switch (method) {
+      case 'GET':
+        return await getWatchlist(token, env, watchlistId, userId);
+      case 'PUT':
+        return await updateWatchlist(request, token, env, watchlistId, userId);
+      case 'DELETE':
+        return await deleteWatchlist(token, env, watchlistId, userId);
+      default:
+        return jsonResponse({ error: 'Method not allowed' }, 405, {}, env);
+    }
+  } else {
+    // No ID in path - collection operations
+    switch (method) {
+      case 'GET':
+        return await listWatchlists(token, env, userId);
+      case 'POST':
+        return await createWatchlist(request, token, env, userId);
+      default:
+        return jsonResponse({ error: 'Method not allowed' }, 405, {}, env);
+    }
+  }
+}
+
+/**
+ * Zod schema for watchlist creation/update
+ */
+const WatchlistSchema = z.object({
+  origin_code: z.string().regex(/^[A-Z]{3}$/, 'Origin must be 3-letter IATA code'),
+  destination_code: z.string().regex(/^[A-Z]{3}$/, 'Destination must be 3-letter IATA code'),
+  max_price: z.number().positive('Max price must be positive').optional(),
+  alert_enabled: z.boolean().optional(),
+});
+
+type WatchlistInput = z.infer<typeof WatchlistSchema>;
+
+/**
+ * POST /watchlists - Create new watchlist
+ */
+async function createWatchlist(
+  request: Request,
+  token: string,
+  env: Env,
+  userId: string
+): Promise<Response> {
+  // Parse and validate request body
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: 'Invalid JSON body' }, 400, {}, env);
+  }
+
+  const parseResult = WatchlistSchema.safeParse(body);
+  if (!parseResult.success) {
+    return jsonResponse(
+      { error: 'Invalid watchlist data', details: parseResult.error.issues },
+      400,
+      {},
+      env
+    );
+  }
+
+  const watchlistData: WatchlistInput = parseResult.data;
+
+  // Create watchlist in Supabase
+  // RLS policy will automatically set user_id to authenticated user
+  const response = await fetch(`${env.SUPABASE_URL}/rest/v1/watchlists`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'apikey': env.SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation', // Return created record
+    },
+    body: JSON.stringify(watchlistData),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to create watchlist:', errorText);
+    return jsonResponse({ error: 'Failed to create watchlist' }, response.status, {}, env);
+  }
+
+  const data = await response.json();
+
+  // Return first item if array, otherwise return as-is
+  const watchlist = Array.isArray(data) ? data[0] : data;
+
+  return jsonResponse({ watchlist, user_id: userId }, 201, {}, env);
+}
+
+/**
+ * GET /watchlists - List all watchlists for authenticated user
+ */
+async function listWatchlists(token: string, env: Env, userId: string): Promise<Response> {
+  return fetchSupabaseListQuery(
+    token,
+    env,
+    'watchlists',
+    'order=created_at.desc',
+    'watchlists',
+    userId
+  );
+}
+
+/**
+ * GET /watchlists/{id} - Get single watchlist by ID
+ */
+async function getWatchlist(
+  token: string,
+  env: Env,
+  watchlistId: string,
+  userId: string
+): Promise<Response> {
+  const response = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/watchlists?id=eq.${watchlistId}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to fetch watchlist:', errorText);
+    return jsonResponse({ error: 'Failed to fetch watchlist' }, response.status, {}, env);
+  }
+
+  const watchlists = await response.json();
+
+  // Check if watchlist exists
+  if (!Array.isArray(watchlists) || watchlists.length === 0) {
+    return jsonResponse({ error: 'Watchlist not found' }, 404, {}, env);
+  }
+
+  return jsonResponse({ watchlist: watchlists[0], user_id: userId }, 200, {}, env);
+}
+
+/**
+ * PUT /watchlists/{id} - Update watchlist
+ */
+async function updateWatchlist(
+  request: Request,
+  token: string,
+  env: Env,
+  watchlistId: string,
+  userId: string
+): Promise<Response> {
+  // Parse and validate request body
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: 'Invalid JSON body' }, 400, {}, env);
+  }
+
+  const parseResult = WatchlistSchema.safeParse(body);
+  if (!parseResult.success) {
+    return jsonResponse(
+      { error: 'Invalid watchlist data', details: parseResult.error.issues },
+      400,
+      {},
+      env
+    );
+  }
+
+  const watchlistData: WatchlistInput = parseResult.data;
+
+  // Update watchlist in Supabase
+  // RLS policy will ensure user can only update their own watchlists
+  const response = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/watchlists?id=eq.${watchlistId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+      },
+      body: JSON.stringify(watchlistData),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to update watchlist:', errorText);
+    return jsonResponse({ error: 'Failed to update watchlist' }, response.status, {}, env);
+  }
+
+  const data = await response.json();
+
+  // Check if any rows were updated
+  if (!Array.isArray(data) || data.length === 0) {
+    return jsonResponse({ error: 'Watchlist not found or access denied' }, 404, {}, env);
+  }
+
+  return jsonResponse({ watchlist: data[0], user_id: userId }, 200, {}, env);
+}
+
+/**
+ * DELETE /watchlists/{id} - Delete watchlist
+ */
+async function deleteWatchlist(
+  token: string,
+  env: Env,
+  watchlistId: string,
+  userId: string
+): Promise<Response> {
+  // Delete watchlist from Supabase
+  // RLS policy will ensure user can only delete their own watchlists
+  const response = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/watchlists?id=eq.${watchlistId}`,
+    {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to delete watchlist:', errorText);
+    return jsonResponse({ error: 'Failed to delete watchlist' }, response.status, {}, env);
+  }
+
+  const data = await response.json();
+
+  // Check if any rows were deleted
+  if (!Array.isArray(data) || data.length === 0) {
+    return jsonResponse({ error: 'Watchlist not found or access denied' }, 404, {}, env);
+  }
+
+  return jsonResponse({ success: true, user_id: userId }, 200, {}, env);
+}
+
+/**
+ * Handle alert preferences endpoint
+ * PUT /alert-preferences - Update user's alert preferences
+ */
+async function handleAlertPreferences(request: Request, env: Env): Promise<Response> {
+  // Verify authentication
+  const authResult = await verifyAuth(request, env);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
+  const method = request.method;
+
+  // Only PUT is supported
+  if (method !== 'PUT') {
+    return jsonResponse({ error: 'Method not allowed' }, 405, {}, env);
+  }
+
+  // Parse and validate request body
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: 'Invalid JSON body' }, 400, {}, env);
+  }
+
+  // Validate alert preferences schema
+  const AlertPreferencesSchema = z.object({
+    email_enabled: z.boolean().optional(),
+    push_enabled: z.boolean().optional(),
+    price_drop_threshold: z.number().min(0).max(100).optional(),
+  });
+
+  const parseResult = AlertPreferencesSchema.safeParse(body);
+  if (!parseResult.success) {
+    return jsonResponse(
+      { error: 'Invalid alert preferences data', details: parseResult.error.issues },
+      400,
+      {},
+      env
+    );
+  }
+
+  const preferencesData = parseResult.data;
+
+  // Update alert preferences in Supabase
+  // RLS policy will ensure user can only update their own preferences
+  const response = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/alert_preferences?user_id=eq.${authResult.userId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${authResult.token}`,
+        'apikey': env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+      },
+      body: JSON.stringify(preferencesData),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to update alert preferences:', errorText);
+    return jsonResponse({ error: 'Failed to update alert preferences' }, response.status, {}, env);
+  }
+
+  const data = await response.json();
+
+  // Check if any rows were updated (if not, need to insert)
+  if (!Array.isArray(data) || data.length === 0) {
+    // Try to insert new record
+    const insertResponse = await fetch(`${env.SUPABASE_URL}/rest/v1/alert_preferences`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${authResult.token}`,
+        'apikey': env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+      },
+      body: JSON.stringify(preferencesData),
+    });
+
+    if (!insertResponse.ok) {
+      const errorText = await insertResponse.text();
+      console.error('Failed to create alert preferences:', errorText);
+      return jsonResponse({ error: 'Failed to create alert preferences' }, insertResponse.status, {}, env);
+    }
+
+    const insertData = await insertResponse.json();
+    const preferences = Array.isArray(insertData) ? insertData[0] : insertData;
+    return jsonResponse({ preferences, user_id: authResult.userId }, 201, {}, env);
+  }
+
+  return jsonResponse({ preferences: data[0], user_id: authResult.userId }, 200, {}, env);
+}
+
+/**
+ * Handle preferred airports endpoint
+ * PUT /alert-preferences/airports - Update user's preferred airports
+ */
+async function handlePreferredAirports(request: Request, env: Env): Promise<Response> {
+  // Verify authentication
+  const authResult = await verifyAuth(request, env);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
+  const method = request.method;
+
+  // Only PUT is supported
+  if (method !== 'PUT') {
+    return jsonResponse({ error: 'Method not allowed' }, 405, {}, env);
+  }
+
+  // Parse and validate request body
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: 'Invalid JSON body' }, 400, {}, env);
+  }
+
+  // Validate preferred airports schema
+  const PreferredAirportsSchema = z.object({
+    preferred_airports: z.array(
+      z.string().regex(/^[A-Z]{3}$/, 'Airport codes must be 3-letter IATA codes')
+    ).max(10, 'Maximum 10 preferred airports allowed'),
+  });
+
+  const parseResult = PreferredAirportsSchema.safeParse(body);
+  if (!parseResult.success) {
+    return jsonResponse(
+      { error: 'Invalid preferred airports data', details: parseResult.error.issues },
+      400,
+      {},
+      env
+    );
+  }
+
+  const airportsData = parseResult.data;
+
+  // Update alert preferences with new preferred airports
+  const response = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/alert_preferences?user_id=eq.${authResult.userId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${authResult.token}`,
+        'apikey': env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+      },
+      body: JSON.stringify(airportsData),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to update preferred airports:', errorText);
+    return jsonResponse({ error: 'Failed to update preferred airports' }, response.status, {}, env);
+  }
+
+  const data = await response.json();
+
+  // Check if any rows were updated (if not, need to insert)
+  if (!Array.isArray(data) || data.length === 0) {
+    // Try to insert new record
+    const insertResponse = await fetch(`${env.SUPABASE_URL}/rest/v1/alert_preferences`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${authResult.token}`,
+        'apikey': env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+      },
+      body: JSON.stringify(airportsData),
+    });
+
+    if (!insertResponse.ok) {
+      const errorText = await insertResponse.text();
+      console.error('Failed to create preferred airports:', errorText);
+      return jsonResponse({ error: 'Failed to create preferred airports' }, insertResponse.status, {}, env);
+    }
+
+    const insertData = await insertResponse.json();
+    const preferences = Array.isArray(insertData) ? insertData[0] : insertData;
+    return jsonResponse({ preferences, user_id: authResult.userId }, 201, {}, env);
+  }
+
+  return jsonResponse({ preferences: data[0], user_id: authResult.userId }, 200, {}, env);
+}
+
+/**
+ * Handle user endpoint
+ * PATCH /user - Update user profile
+ */
+async function handleUser(request: Request, env: Env): Promise<Response> {
+  // Verify authentication
+  const authResult = await verifyAuth(request, env);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
+  const method = request.method;
+
+  // Only PATCH is supported for updates
+  if (method !== 'PATCH') {
+    return jsonResponse({ error: 'Method not allowed' }, 405, {}, env);
+  }
+
+  // Parse and validate request body
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: 'Invalid JSON body' }, 400, {}, env);
+  }
+
+  // Validate user update schema
+  const UserUpdateSchema = z.object({
+    display_name: z.string().min(1).max(100).optional(),
+    email: z.string().email().optional(),
+  });
+
+  const parseResult = UserUpdateSchema.safeParse(body);
+  if (!parseResult.success) {
+    return jsonResponse(
+      { error: 'Invalid user data', details: parseResult.error.issues },
+      400,
+      {},
+      env
+    );
+  }
+
+  const userData = parseResult.data;
+
+  // Update user profile in Supabase auth
+  // Note: Email updates require verification in Supabase Auth
+  if (userData.email) {
+    const authUpdateResponse = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${authResult.token}`,
+        'apikey': env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email: userData.email }),
+    });
+
+    if (!authUpdateResponse.ok) {
+      const errorText = await authUpdateResponse.text();
+      console.error('Failed to update user email:', errorText);
+      return jsonResponse({ error: 'Failed to update email' }, authUpdateResponse.status, {}, env);
+    }
+  }
+
+  // Update display name in profiles table if provided
+  if (userData.display_name) {
+    const profileResponse = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/profiles?id=eq.${authResult.userId}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${authResult.token}`,
+          'apikey': env.SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation',
+        },
+        body: JSON.stringify({ display_name: userData.display_name }),
+      }
+    );
+
+    if (!profileResponse.ok) {
+      const errorText = await profileResponse.text();
+      console.error('Failed to update user profile:', errorText);
+      return jsonResponse({ error: 'Failed to update profile' }, profileResponse.status, {}, env);
+    }
+  }
+
+  // Fetch updated user data
+  const userResponse = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+    headers: {
+      'Authorization': `Bearer ${authResult.token}`,
+      'apikey': env.SUPABASE_ANON_KEY,
+    },
+  });
+
+  if (!userResponse.ok) {
+    return jsonResponse({ error: 'Failed to fetch updated user data' }, 500, {}, env);
+  }
+
+  const updatedUser = await userResponse.json();
+  return jsonResponse({ user: updatedUser, user_id: authResult.userId }, 200, {}, env);
 }
