@@ -18,10 +18,7 @@ struct SettingsView: View {
                     // Account Section
                     Section {
                         Button(action: {
-                            if !viewModel.user.isProUser {
-                                viewModel.showingUpgradeSheet = true
-                            }
-                            // TODO: For Pro users, navigate to account management
+                            viewModel.showingUpgradeSheet = true
                         }) {
                             HStack {
                                 VStack(alignment: .leading, spacing: Spacing.xs) {
@@ -40,15 +37,17 @@ struct SettingsView: View {
                                         backgroundColor: Color.brandBlue.opacity(0.15),
                                         foregroundColor: .brandBlue
                                     ))
-                                }
 
-                                Image(systemName: "chevron.right")
-                                    .font(.footnote)
-                                    .foregroundColor(.textTertiary)
+                                    Image(systemName: "chevron.right")
+                                        .font(.footnote)
+                                        .foregroundColor(.textTertiary)
+                                }
                             }
                             .padding(.vertical, Spacing.xs)
                         }
                         .buttonStyle(.plain)
+                        .disabled(viewModel.user.isProUser)
+                        .opacity(viewModel.user.isProUser ? 0.6 : 1.0)
                     } header: {
                         Text("Account")
                             .headlineStyle()

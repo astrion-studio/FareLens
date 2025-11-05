@@ -9,6 +9,7 @@ struct DealsView: View {
     @State private var showingFilters = false
     @State private var selectedDeal: FlightDeal?
     @State private var showingCreateWatchlist = false
+    @State private var watchlistsViewModel: WatchlistsViewModel?
 
     var body: some View {
         NavigationStack {
@@ -63,14 +64,25 @@ struct DealsView: View {
             DealDetailView(deal: deal)
         }
         .sheet(isPresented: $showingCreateWatchlist) {
-            if let user = appState.currentUser {
-                CreateWatchlistView(
-                    viewModel: WatchlistsViewModel(user: user)
-                )
+            if let viewModel = watchlistsViewModel {
+                CreateWatchlistView(viewModel: viewModel)
             }
         }
         .task {
             await viewModel.loadDeals()
+
+            // Initialize WatchlistsViewModel once at view lifecycle
+            if let user = appState.currentUser {
+                watchlistsViewModel = WatchlistsViewModel(user: user)
+            }
+        }
+        .onChange(of: appState.currentUser) { _, newUser in
+            // Update ViewModel if user changes
+            if let user = newUser {
+                watchlistsViewModel = WatchlistsViewModel(user: user)
+            } else {
+                watchlistsViewModel = nil
+            }
         }
     }
 }
