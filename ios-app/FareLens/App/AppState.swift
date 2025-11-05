@@ -3,6 +3,7 @@
 
 import Foundation
 import Observation
+import OSLog
 import UIKit
 
 /// Error thrown when an async operation exceeds its timeout
@@ -19,6 +20,7 @@ final class AppState {
     var isPresentingDeepLink = false
 
     private var notificationObserver: NSObjectProtocol?
+    private let logger = Logger(subsystem: "com.astrionstudio.farelens", category: "AppState")
 
     init() {
         notificationObserver = NotificationCenter.default.addObserver(
@@ -46,35 +48,58 @@ final class AppState {
     // This is safe because all access is from @MainActor context
 
     func initialize() async {
-        isLoading = true
-        defer { isLoading = false }
+        // OPTIMIZATION: Load cached user immediately (no network) for instant app launch
+        // Then validate auth in background without blocking UI
 
-        // Check authentication status with timeout to prevent long delays
-        // 10 seconds allows for token refresh + network latency while still being responsive
+        // Phase 1: INSTANT - Load cached auth state (< 100ms)
+        if let cachedUser = await PersistenceService.shared.loadUser() {
+            // Optimistically show as authenticated
+            currentUser = cachedUser
+            isAuthenticated = true
+            isLoading = false
+
+            // Phase 2: BACKGROUND - Validate token (non-blocking)
+            Task {
+                await validateAuthInBackground()
+            }
+        } else {
+            // No cached user - show onboarding immediately
+            isAuthenticated = false
+            isLoading = false
+        }
+
+        // Load subscription status in background (don't block)
+        Task {
+            subscriptionTier = await SubscriptionService.shared.getCurrentTier()
+        }
+    }
+
+    /// Validates auth session in background without blocking UI
+    /// If token expired, signs out gracefully
+    /// If network error, keeps cached user and retries
+    private func validateAuthInBackground() async {
         do {
+            // Attempt to validate/refresh token (may take 1-2s with network)
             let user = try await withTimeout(seconds: 10) {
                 await AuthService.shared.getCurrentUser()
             }
 
             if let user {
+                // Token valid - update user data (may have changed on server)
                 currentUser = user
                 isAuthenticated = true
-
-                // Load subscription status in background (don't block UI)
-                Task {
-                    subscriptionTier = await SubscriptionService.shared.getCurrentTier()
-                }
-
-                // Note: Push notification registration temporarily disabled until paid Apple Developer
-                // account is set up (see issue #121). When re-enabled, uncomment:
-                // await NotificationService.shared.requestAuthorization()
-                // await NotificationService.shared.registerForRemoteNotifications()
+            } else {
+                // Token invalid/expired - sign out gracefully
+                await signOut()
             }
         } catch {
-            // Timeout or error - show unauthenticated state
-            // User can still try to sign in manually
-            isAuthenticated = false
-            currentUser = nil
+            // Network error or timeout - keep cached user, retry later
+            // Don't sign out on transient network errors!
+            logger.warning("Background auth validation failed (network error), keeping cached session")
+
+            // Retry after 30 seconds
+            try? await Task.sleep(nanoseconds: 30_000_000_000)
+            await validateAuthInBackground()
         }
     }
 
