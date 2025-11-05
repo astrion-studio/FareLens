@@ -1,0 +1,62 @@
+127,OPEN,Add error response validation and structured error types in Worker,enhancement, backend, medium,2025-11-03T20:36:23Z
+126,OPEN,Implement proper API endpoint routing validation in Cloudflare Worker,backend, medium, refactor,2025-11-03T20:36:20Z
+125,OPEN,Replace string-based error matching with error codes in AuthService,ios, low, auth, refactor,2025-11-03T20:36:17Z
+124,OPEN,Migrate legacy auth tokens on app launch (if any exist),ios, low, auth,2025-11-03T08:22:33Z
+123,OPEN,Add JWT secret configuration to backend CI,backend, ci, medium,2025-11-03T08:22:30Z
+122,OPEN,Add RLS WITH CHECK clauses for UPDATE policies,medium, data, security,2025-11-03T08:22:27Z
+121,OPEN,Re-enable Push Notification capabilities after Apple Developer account setup,enhancement, ios,2025-10-28T17:34:06Z
+109,OPEN,[P2][Backend] Preferred airports weight validation missing,backend, medium, data,2025-10-27T01:32:26Z
+108,OPEN,[P2][Backend] No Docker Compose for local development,enhancement, backend, medium,2025-10-27T01:32:21Z
+107,OPEN,[P2][Backend] Background refresh endpoint returns mock data,enhancement, backend, medium,2025-10-27T01:32:19Z
+106,OPEN,[P2][Backend] No tests for critical paths,backend, medium, testing,2025-10-27T01:32:13Z
+105,OPEN,[P2][Backend] Mock user timezone hardcoded,enhancement, backend, medium,2025-10-27T01:32:04Z
+104,OPEN,[P2][Backend] Incomplete exception handling,backend, medium, refactor,2025-10-27T01:26:13Z
+103,OPEN,[P2][Backend] No API versioning in routes,enhancement, backend, medium,2025-10-27T01:26:11Z
+102,CLOSED,[P0][CI/CD] GitHub Actions uses beta macos-26 runner - Update to macos-15 with iOS 26 SDK,ios, ci, critical,2025-10-27T18:23:11Z
+101,OPEN,[P1][Testing] Zero UI tests for iOS app,ios, high, testing,2025-10-27T01:23:42Z
+100,OPEN,[P1][Testing] Zero integration tests,backend, high, testing,2025-10-27T01:23:34Z
+99,OPEN,[P1][Testing] Zero SubscriptionService tests,backend, critical, testing,2025-10-27T01:23:33Z
+98,OPEN,[P1][Testing] Zero NotificationService tests,high, testing,2025-10-27T01:23:31Z
+97,OPEN,[P1][Testing] Zero AuthService tests,high, auth, security, testing,2025-10-27T01:23:30Z
+96,OPEN,[P1][Backend] Connection pool leaks on shutdown,bug, backend, high,2025-10-27T01:21:37Z
+95,OPEN,[P1][Backend] Wrong HTTP method for background-refresh endpoint,backend, high, refactor,2025-10-27T01:21:36Z
+94,OPEN,[P1][Backend] No IATA code validation,backend, high, data,2025-10-27T01:21:34Z
+93,OPEN,[P1][Backend] No logging or monitoring infrastructure,backend, high, security,2025-10-27T01:21:22Z
+92,OPEN,[P1][Backend] No rate limiting implemented,backend, critical, security,2025-10-27T01:21:20Z
+91,OPEN,[P1][Backend] Missing timezones in date fields,backend, high, data,2025-10-27T01:21:19Z
+90,OPEN,[P1][Backend] No subscription tier enforcement,backend, critical, security,2025-10-27T01:21:17Z
+89,OPEN,[P1][Backend] Health check always returns healthy,backend, high, security,2025-10-27T01:21:16Z
+88,OPEN,[P1][Backend] Missing JWT secret configuration,backend, critical, auth, security,2025-10-27T01:21:15Z
+87,OPEN,[P1][Backend] No .env file or .gitignore for secrets,backend, critical, security,2025-10-27T01:19:46Z
+86,OPEN,[P2][iOS] No navigation coordinator pattern,enhancement, ios, medium,2025-10-27T01:17:57Z
+85,OPEN,[P1][iOS] No custom error types defined,enhancement, ios, high,2025-10-27T01:17:56Z
+84,OPEN,[P1][iOS] WatchlistsViewModel uses mutable struct pattern,ios, high, refactor,2025-10-27T01:17:54Z
+83,OPEN,[P1][iOS] Price history TODOs in DealDetailViewModel,enhancement, ios, high,2025-10-27T01:17:53Z
+82,CLOSED,P0 BACKEND: CORS allows ANY origin - CSRF vulnerability,backend, critical, security,2025-10-28T01:10:47Z
+81,OPEN,P1 TESTING: Add critical ViewModel unit tests (6 ViewModels, 0% coverage),ios, high, testing,2025-10-26T21:42:05Z
+80,OPEN,P0 iOS: DealDetailView has 4 critical TODOs (booking, cities, baggage),ios, critical,2025-10-26T21:42:03Z
+79,OPEN,P1 DOCS: Consolidate 22 documentation files into 6 essential files,documentation, high,2025-10-26T21:41:13Z
+78,CLOSED,P0 BACKEND: No authentication - critical security vulnerability,backend, critical, security,2025-10-28T01:10:39Z
+77,CLOSED,P0 CRITICAL: Xcode project broken - CI cannot run tests,ios, critical, testing,2025-10-27T18:23:11Z
+61,CLOSED,CRITICAL: DealsRepository ignores origin filter on API fetch,critical,2025-10-21T03:09:19Z
+60,CLOSED,CRITICAL: OnboardingView compilation error - missing AppState parameter,critical,2025-10-27T19:43:55Z
+59,OPEN,Re-enable Docker workflow when backend is ready,low,2025-10-21T02:40:01Z
+57,OPEN,MEDIUM: Improve test coverage for ViewModels and integration tests,ios, medium, testing,2025-10-21T02:10:25Z
+56,OPEN,MEDIUM: Update navigation stack pattern in views,ios, medium, ios-26, refactor,2025-10-21T02:10:23Z
+55,OPEN,MEDIUM: WatchlistRepository should use dependency injection,ios, medium, refactor,2025-10-21T02:10:21Z
+54,OPEN,MEDIUM: Auth token should be persisted in Keychain,enhancement, ios, medium, auth, security,2025-10-21T02:10:20Z
+53,OPEN,HIGH: PaywallView subscription integration incomplete,enhancement, ios, high,2025-10-21T02:10:18Z
+52,CLOSED,HIGH: AppState initialization incomplete,bug, ios, high, auth,2025-10-27T19:44:16Z
+51,OPEN,HIGH: DealDetailViewModel TODOs not implemented,enhancement, ios, high,2025-10-21T02:10:14Z
+50,OPEN,HIGH: AlertsViewModel returns empty stub data,bug, ios, backend, high,2025-10-21T02:10:12Z
+49,OPEN,HIGH: Navigation wiring missing in DealsView,bug, ios, high,2025-10-21T02:10:09Z
+48,CLOSED,CRITICAL: Onboarding auth flow doesn't notify AppState,bug, ios, critical, auth,2025-10-21T02:37:04Z
+47,CLOSED,CRITICAL: @ObservedObject used with @Observable classes,bug, ios, critical, ios-26,2025-10-21T02:53:50Z
+36,OPEN,MEDIUM: PersistenceService should use file-backed storage,enhancement, ios,2025-10-20T21:41:50Z
+35,CLOSED,MEDIUM: API configuration should be externalized,enhancement, ios,2025-10-21T02:42:52Z
+34,CLOSED,CRITICAL: Duplicate normalPrice definition,bug, ios, critical,2025-10-21T02:15:42Z
+33,CLOSED,CRITICAL: NotificationService actor cannot inherit from NSObject,bug, ios, critical,2025-10-21T02:31:57Z
+28,OPEN,Update deferred dependencies (mypy, pydantic-settings, flake8, GitHub Actions),dependencies,2025-10-20T17:51:48Z
+12,OPEN,Add unit tests for watchlist and queue logic,enhancement, good first issue, ios,2025-10-20T03:03:57Z
+11,OPEN,Feature: Implement watchlist and price history TODOs in DealDetailView,enhancement, ios, backend,2025-10-20T03:03:44Z
+10,CLOSED,Bug: Date serialization crashes in APIEndpoint.swift,bug, ios, critical,2025-10-20T21:02:12Z

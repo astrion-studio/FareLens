@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -15,6 +15,7 @@
 		0BD8EA6F23D1EE94CC56F0F0 /* AlertServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE481D92ADF17E64D08990E /* AlertServiceTests.swift */; };
 		0C14405E85BFB6F72726C046 /* AlertsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3D8DE91236DD2DEA6D129BC /* AlertsRepository.swift */; };
 		148F81E1375A561D040C8D29 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67F9E4C11CADA404400FCED1 /* SettingsView.swift */; };
+		1620C7D7CC2D331DAE7FB6A4 /* OnboardingViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C598CCAA0FFDDBACB7F8A14 /* OnboardingViewModelTests.swift */; };
 		19778419C61BE0BB319F2D67 /* Secrets.xcconfig.local in Resources */ = {isa = PBXBuildFile; fileRef = 97C966EA1FD07E16BD36DD8F /* Secrets.xcconfig.local */; };
 		1D2B073B8B5FD20F672A2506 /* FLBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = D73D474FBB6B92B641F6368B /* FLBadge.swift */; };
 		1F1F65F17C0E8CE98471C8B9 /* DealDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 753E73E6FF94861A986E57BB /* DealDetailViewModel.swift */; };
@@ -50,6 +51,7 @@
 		9A7189732F540B915D84BD38 /* Secrets.xcconfig.example in Resources */ = {isa = PBXBuildFile; fileRef = B9E028400BC2ECB305B12948 /* Secrets.xcconfig.example */; };
 		9C8ACC98E852201027661A7A /* DealsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2F11A469B03BFC410D038E /* DealsRepository.swift */; };
 		A1F9D841C37BFB9FE59C78C5 /* AlertPreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A33200F9C341BB8FBEEF9DC /* AlertPreferencesView.swift */; };
+		A21873D62358BB98637F4A12 /* Airport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C440E8EA067F98F7B6DC2DCC /* Airport.swift */; };
 		A5E2220FE913DB88B7F1BA12 /* FLButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2069BB3D7431040F6C0F3EAC /* FLButton.swift */; };
 		ACD612E9A56A44F999E7F70F /* FareLensApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F84CC24FF1DCD979EA2B7F8 /* FareLensApp.swift */; };
 		AEDDFF150BEA334AEECAEB94 /* ErrorBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B2A7E4828E93F3F51F9E424 /* ErrorBanner.swift */; };
@@ -65,6 +67,7 @@
 		E47B70E2D4C22C4C51BB670F /* PreferredAirportsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0718AAC7D0BA66103025FD2 /* PreferredAirportsView.swift */; };
 		E6D54A093FA9C092DF6C5502 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 912442EDFA73A60E5BACADBC /* MainTabView.swift */; };
 		EE20F503D77D08B64F130525 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AF22B75715CF87372B3677EA /* Assets.xcassets */; };
+		F165BC9ADBA76E31732CEA2D /* airports.json in Resources */ = {isa = PBXBuildFile; fileRef = EC3A2827FBC99B0560064559 /* airports.json */; };
 		F20E81BD44C76920C5FCB9F4 /* AlertHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = D91C7942C4D065426AD88F5E /* AlertHistory.swift */; };
 		F54580AEBB16D589563DCDE2 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3D28A0911B8B475ECE33D1E /* OnboardingView.swift */; };
 		FC5838FEA7CE5D9BCD89CA31 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 1B75C10E76277C86A0CAFF3F /* PrivacyInfo.xcprivacy */; };
@@ -92,14 +95,15 @@
 		17524802C287C8DBEFC0EB09 /* AuthTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthTokenStore.swift; sourceTree = "<group>"; };
 		180321B81400CEFAEB1ED91F /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
 		19C6D922A353319A95C17487 /* DealsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DealsView.swift; sourceTree = "<group>"; };
-		1B75C10E76277C86A0CAFF3F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		1B75C10E76277C86A0CAFF3F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		1B8D614CA266A4DA4BCC720D /* AlertsRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsRepositoryTests.swift; sourceTree = "<group>"; };
 		2069BB3D7431040F6C0F3EAC /* FLButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FLButton.swift; sourceTree = "<group>"; };
 		20DF27A3F0C912E505B21DB5 /* DealDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DealDetailView.swift; sourceTree = "<group>"; };
-		216D7BAF239B9E2F1217E99D /* FareLensTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FareLensTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		216D7BAF239B9E2F1217E99D /* FareLensTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FareLensTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		26997E9D431F73DF28362BC2 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		416F5EE210D06576421BD575 /* SmartQueueServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartQueueServiceTests.swift; sourceTree = "<group>"; };
 		4504340B7860133AD132C412 /* DealsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DealsViewModel.swift; sourceTree = "<group>"; };
+		4C598CCAA0FFDDBACB7F8A14 /* OnboardingViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModelTests.swift; sourceTree = "<group>"; };
 		4CD29ECCDF9660BCD469C9A2 /* FLCompactButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FLCompactButton.swift; sourceTree = "<group>"; };
 		4E1E7D6506726109ED254A28 /* PasswordRequirements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordRequirements.swift; sourceTree = "<group>"; };
 		559D6EB0FBD43B82D16CCAAF /* SubscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionService.swift; sourceTree = "<group>"; };
@@ -111,11 +115,11 @@
 		69263D029AFA8F51AF063627 /* InfoBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfoBox.swift; sourceTree = "<group>"; };
 		753E73E6FF94861A986E57BB /* DealDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DealDetailViewModel.swift; sourceTree = "<group>"; };
 		7A33200F9C341BB8FBEEF9DC /* AlertPreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPreferencesView.swift; sourceTree = "<group>"; };
-		7CDE0955462003CE74DB7237 /* FareLens.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FareLens.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7CDE0955462003CE74DB7237 /* FareLens.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FareLens.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		88087F75DA8A84E6C01147D2 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		8DA3969D738954B97706F183 /* WatchlistRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchlistRepository.swift; sourceTree = "<group>"; };
 		912442EDFA73A60E5BACADBC /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
-		97C966EA1FD07E16BD36DD8F /* Secrets.xcconfig.local */ = {isa = PBXFileReference; lastKnownFileType = text; path = Secrets.xcconfig.local; sourceTree = "<group>"; };
+		97C966EA1FD07E16BD36DD8F /* Secrets.xcconfig.local */ = {isa = PBXFileReference; path = Secrets.xcconfig.local; sourceTree = "<group>"; };
 		A5FC6C79B3216189BA4E7733 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		ABE70352116288814E2C56FD /* Spacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Spacing.swift; sourceTree = "<group>"; };
 		ACCA7D3EE71693299485D505 /* AlertService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertService.swift; sourceTree = "<group>"; };
@@ -126,8 +130,9 @@
 		AF22B75715CF87372B3677EA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B0718AAC7D0BA66103025FD2 /* PreferredAirportsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferredAirportsView.swift; sourceTree = "<group>"; };
 		B98EE21EE4676692AA8EE93B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
-		B9E028400BC2ECB305B12948 /* Secrets.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text; path = Secrets.xcconfig.example; sourceTree = "<group>"; };
+		B9E028400BC2ECB305B12948 /* Secrets.xcconfig.example */ = {isa = PBXFileReference; path = Secrets.xcconfig.example; sourceTree = "<group>"; };
 		BEE6BFEEE1781D83F54D0278 /* AlertsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsView.swift; sourceTree = "<group>"; };
+		C440E8EA067F98F7B6DC2DCC /* Airport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Airport.swift; sourceTree = "<group>"; };
 		C8BEE19675754DE7A6590C08 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		D08C59F322A14AF1541CD65D /* SavedDealsRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedDealsRepositoryTests.swift; sourceTree = "<group>"; };
 		D3D8DE91236DD2DEA6D129BC /* AlertsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsRepository.swift; sourceTree = "<group>"; };
@@ -140,6 +145,7 @@
 		E582A67E1588BB0BD3A07D29 /* FlightDeal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightDeal.swift; sourceTree = "<group>"; };
 		E5EBD8B474A88F6C2C6814A4 /* Watchlist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Watchlist.swift; sourceTree = "<group>"; };
 		E7C2495699223DD8CDE9907C /* FareLens.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FareLens.entitlements; sourceTree = "<group>"; };
+		EC3A2827FBC99B0560064559 /* airports.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = airports.json; sourceTree = "<group>"; };
 		F08AF646F06CC584486AC7EC /* SavedDealsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedDealsRepository.swift; sourceTree = "<group>"; };
 		F1E060B596BE921D588851A7 /* WatchlistsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchlistsView.swift; sourceTree = "<group>"; };
 		F39F83F76EF0F7C7E3F81B35 /* AlertsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsViewModel.swift; sourceTree = "<group>"; };
@@ -298,6 +304,7 @@
 		6EC7B75BD6EC673E8E2C7A37 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				C440E8EA067F98F7B6DC2DCC /* Airport.swift */,
 				D91C7942C4D065426AD88F5E /* AlertHistory.swift */,
 				E582A67E1588BB0BD3A07D29 /* FlightDeal.swift */,
 				59BAF9AB0F5EE2A2225F3240 /* RankedDeal.swift */,
@@ -371,6 +378,7 @@
 		C68E1A746616FA2359750627 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				EC3A2827FBC99B0560064559 /* airports.json */,
 				AF22B75715CF87372B3677EA /* Assets.xcassets */,
 				1B75C10E76277C86A0CAFF3F /* PrivacyInfo.xcprivacy */,
 			);
@@ -392,6 +400,7 @@
 				DDE481D92ADF17E64D08990E /* AlertServiceTests.swift */,
 				1B8D614CA266A4DA4BCC720D /* AlertsRepositoryTests.swift */,
 				AE33560253DD4CE30E8A45FF /* DealsRepositoryTests.swift */,
+				4C598CCAA0FFDDBACB7F8A14 /* OnboardingViewModelTests.swift */,
 				D08C59F322A14AF1541CD65D /* SavedDealsRepositoryTests.swift */,
 				416F5EE210D06576421BD575 /* SmartQueueServiceTests.swift */,
 			);
@@ -414,6 +423,13 @@
 				05719B8B15627F4F40AB290B /* PersistenceService.swift */,
 			);
 			path = Persistence;
+			sourceTree = "<group>";
+		};
+		"TEMP_A82D4FC3-3867-4A9A-8BC4-4E9D52A820F6" /* Localizations */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Localizations;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -487,6 +503,7 @@
 			packageReferences = (
 				2A68864A817C91F5FDE48EC8 /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -505,6 +522,7 @@
 				FC5838FEA7CE5D9BCD89CA31 /* PrivacyInfo.xcprivacy in Resources */,
 				9A7189732F540B915D84BD38 /* Secrets.xcconfig.example in Resources */,
 				19778419C61BE0BB319F2D67 /* Secrets.xcconfig.local in Resources */,
+				F165BC9ADBA76E31732CEA2D /* airports.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -517,6 +535,7 @@
 			files = (
 				BCA673712777DB61F6BB457B /* APIClient.swift in Sources */,
 				0490EE2F90CB3632323932F8 /* APIEndpoint.swift in Sources */,
+				A21873D62358BB98637F4A12 /* Airport.swift in Sources */,
 				F20E81BD44C76920C5FCB9F4 /* AlertHistory.swift in Sources */,
 				A1F9D841C37BFB9FE59C78C5 /* AlertPreferencesView.swift in Sources */,
 				038D72C17C71D4906BB17A04 /* AlertService.swift in Sources */,
@@ -577,6 +596,7 @@
 				0BD8EA6F23D1EE94CC56F0F0 /* AlertServiceTests.swift in Sources */,
 				74E1DBB97D1D222FCD2EF72E /* AlertsRepositoryTests.swift in Sources */,
 				CD13973552463963E176066E /* DealsRepositoryTests.swift in Sources */,
+				1620C7D7CC2D331DAE7FB6A4 /* OnboardingViewModelTests.swift in Sources */,
 				20D23A0D6F76C72D0B0F1B89 /* SavedDealsRepositoryTests.swift in Sources */,
 				09BC77B6FED4C72BB51D9366 /* SmartQueueServiceTests.swift in Sources */,
 			);
@@ -598,7 +618,6 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = CW5S2VLLV4;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -619,7 +638,6 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = CW5S2VLLV4;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -710,7 +728,6 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "";
-				DEVELOPMENT_TEAM = CW5S2VLLV4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = FareLens/Resources/Info.plist;
@@ -737,7 +754,6 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "";
-				DEVELOPMENT_TEAM = CW5S2VLLV4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = FareLens/Resources/Info.plist;

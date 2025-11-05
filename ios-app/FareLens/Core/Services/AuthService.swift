@@ -189,6 +189,11 @@ actor AuthService: AuthServiceProtocol {
         await persistenceService.clearUser()
     }
 
+    /// Check if we have valid tokens stored (doesn't validate them)
+    func hasValidTokens() async -> Bool {
+        await tokenStore.loadTokens() != nil
+    }
+
     /// Get current authenticated user
     func getCurrentUser() async -> User? {
         // IMPORTANT: Always validate tokens before returning user to prevent

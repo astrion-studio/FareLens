@@ -101,9 +101,7 @@ jobs:
           echo "// Cloudflare Workers API" >> ios-app/FareLens/Config/Secrets.xcconfig
           echo "CLOUDFLARE_WORKER_URL = ${CLOUDFLARE_WORKER_URL}" >> ios-app/FareLens/Config/Secrets.xcconfig
 
-          # Also create Secrets.xcconfig.local for Debug builds (used in project.yml)
-          cp ios-app/FareLens/Config/Secrets.xcconfig ios-app/FareLens/Config/Secrets.xcconfig.local
-          echo "✅ Created Secrets.xcconfig and Secrets.xcconfig.local from GitHub Secrets"
+          echo "✅ Created Secrets.xcconfig from GitHub Secrets"
 
       - name: Check for Xcode project
         id: check_project
