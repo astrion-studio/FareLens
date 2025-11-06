@@ -591,7 +591,7 @@ async function createWatchlist(
   const watchlistData: WatchlistInput = parseResult.data;
 
   // Create watchlist in Supabase
-  // RLS policy will automatically set user_id to authenticated user
+  // Explicitly include user_id to satisfy RLS INSERT policy (user_id must match auth.uid())
   const response = await fetch(`${env.SUPABASE_URL}/rest/v1/watchlists`, {
     method: 'POST',
     headers: {
@@ -600,7 +600,10 @@ async function createWatchlist(
       'Content-Type': 'application/json',
       'Prefer': 'return=representation', // Return created record
     },
-    body: JSON.stringify(watchlistData),
+    body: JSON.stringify({
+      ...watchlistData,
+      user_id: userId,
+    }),
   });
 
   if (!response.ok) {

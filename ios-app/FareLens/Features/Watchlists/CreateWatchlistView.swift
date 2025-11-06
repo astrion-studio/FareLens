@@ -168,7 +168,7 @@ struct CreateWatchlistView: View {
                                             Spacer()
                                         }
 
-                                        Slider(value: $maxPrice, in: 100...6000, step: 50)
+                                        Slider(value: $maxPrice, in: 100...10000, step: 50)
                                             .tint(.brandBlue)
                                             .accessibilityLabel("Maximum Price")
                                             .accessibilityValue(maxPrice.formatted(.currency(code: "USD")))
@@ -177,7 +177,7 @@ struct CreateWatchlistView: View {
                                             Text("$100")
                                                 .captionStyle()
                                             Spacer()
-                                            Text("$6,000")
+                                            Text("$10,000")
                                                 .captionStyle()
                                         }
                                     }

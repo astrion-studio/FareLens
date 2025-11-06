@@ -78,29 +78,32 @@ final class AppState {
     /// If token expired, signs out gracefully
     /// If network error, keeps cached user and retries
     private func validateAuthInBackground() async {
-        // Note: getCurrentUser returns nil for BOTH network errors AND auth failures
-        // We distinguish by checking if tokens were cleared by AuthService
-        let hadTokensBefore = await AuthService.shared.hasValidTokens()
-        let user = await AuthService.shared.getCurrentUser()
-        let hasTokensAfter = await AuthService.shared.hasValidTokens()
+        while true {
+            // Note: getCurrentUser returns nil for BOTH network errors AND auth failures
+            // We distinguish by checking if tokens were cleared by AuthService
+            let hadTokensBefore = await AuthService.shared.hasValidTokens()
+            let user = await AuthService.shared.getCurrentUser()
+            let hasTokensAfter = await AuthService.shared.hasValidTokens()
 
-        if let user {
-            // Token valid - update user data (may have changed on server)
-            currentUser = user
-            isAuthenticated = true
-        } else if hadTokensBefore, !hasTokensAfter {
-            // Tokens were cleared = confirmed auth failure (expired/invalid)
-            // Sign out immediately
-            logger.warning("Session expired/invalid - signing out")
-            await signOut()
-        } else {
-            // Tokens still exist = network error or timeout
-            // Keep cached user and retry later
-            logger.warning("Background auth validation failed (network error), keeping cached session")
+            if let user {
+                // Token valid - update user data (may have changed on server)
+                currentUser = user
+                isAuthenticated = true
+                break
+            } else if hadTokensBefore, !hasTokensAfter {
+                // Tokens were cleared = confirmed auth failure (expired/invalid)
+                // Sign out immediately
+                logger.warning("Session expired/invalid - signing out")
+                await signOut()
+                break
+            } else {
+                // Tokens still exist = network error or timeout
+                // Keep cached user and retry later
+                logger.warning("Background auth validation failed (network error), keeping cached session")
 
-            // Retry after 30 seconds
-            try? await Task.sleep(nanoseconds: 30_000_000_000)
-            await validateAuthInBackground()
+                // Retry after 30 seconds
+                try? await Task.sleep(nanoseconds: 30_000_000_000)
+            }
         }
     }
 
