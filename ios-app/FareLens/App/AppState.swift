@@ -37,10 +37,8 @@ final class AppState {
     }
 
     deinit {
-        MainActor.assumeIsolated {
-            if let notificationObserver {
-                NotificationCenter.default.removeObserver(notificationObserver)
-            }
+        if let notificationObserver {
+            NotificationCenter.default.removeObserver(notificationObserver)
         }
     }
 
