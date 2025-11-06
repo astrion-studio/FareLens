@@ -614,21 +614,36 @@ async function createWatchlist(
   // Return first item if array, otherwise return as-is
   const watchlist = Array.isArray(data) ? data[0] : data;
 
-  return jsonResponse({ watchlist, user_id: userId }, 201, {}, env);
+  // Return bare watchlist object (not wrapped) to match iOS expectations
+  return jsonResponse(watchlist, 201, {}, env);
 }
 
 /**
  * GET /watchlists - List all watchlists for authenticated user
+ * Returns bare array (not wrapped) to match single-item endpoint pattern
  */
 async function listWatchlists(token: string, env: Env, userId: string): Promise<Response> {
-  return fetchSupabaseListQuery(
-    token,
-    env,
-    'watchlists',
-    'order=created_at.desc',
-    'watchlists',
-    userId
+  const response = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/watchlists?order=created_at.desc`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
+    }
   );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to fetch watchlists:', errorText);
+    return jsonResponse({ error: 'Failed to fetch watchlists' }, response.status, {}, env);
+  }
+
+  const watchlists = await response.json();
+
+  // Return bare array to match other endpoints (create/get/update return bare objects)
+  return jsonResponse(watchlists, 200, {}, env);
 }
 
 /**
@@ -664,7 +679,8 @@ async function getWatchlist(
     return jsonResponse({ error: 'Watchlist not found' }, 404, {}, env);
   }
 
-  return jsonResponse({ watchlist: watchlists[0], user_id: userId }, 200, {}, env);
+  // Return bare watchlist object (not wrapped) to match iOS expectations
+  return jsonResponse(watchlists[0], 200, {}, env);
 }
 
 /**
@@ -726,7 +742,8 @@ async function updateWatchlist(
     return jsonResponse({ error: 'Watchlist not found or access denied' }, 404, {}, env);
   }
 
-  return jsonResponse({ watchlist: data[0], user_id: userId }, 200, {}, env);
+  // Return bare watchlist object (not wrapped) to match iOS expectations
+  return jsonResponse(data[0], 200, {}, env);
 }
 
 /**
