@@ -319,7 +319,7 @@ actor AuthService: AuthServiceProtocol {
 
             // Build AlertPreferences from actual DB values
             let alertPrefs = AlertPreferences(
-                enabled: profile.alertEnabled,
+                alertEnabled: profile.alertEnabled,
                 quietHoursEnabled: profile.quietHoursEnabled,
                 quietHoursStart: profile.quietHoursStart,
                 quietHoursEnd: profile.quietHoursEnd,

@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -95,11 +95,11 @@
 		17524802C287C8DBEFC0EB09 /* AuthTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthTokenStore.swift; sourceTree = "<group>"; };
 		180321B81400CEFAEB1ED91F /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
 		19C6D922A353319A95C17487 /* DealsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DealsView.swift; sourceTree = "<group>"; };
-		1B75C10E76277C86A0CAFF3F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		1B75C10E76277C86A0CAFF3F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		1B8D614CA266A4DA4BCC720D /* AlertsRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsRepositoryTests.swift; sourceTree = "<group>"; };
 		2069BB3D7431040F6C0F3EAC /* FLButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FLButton.swift; sourceTree = "<group>"; };
 		20DF27A3F0C912E505B21DB5 /* DealDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DealDetailView.swift; sourceTree = "<group>"; };
-		216D7BAF239B9E2F1217E99D /* FareLensTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FareLensTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		216D7BAF239B9E2F1217E99D /* FareLensTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FareLensTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		26997E9D431F73DF28362BC2 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		416F5EE210D06576421BD575 /* SmartQueueServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartQueueServiceTests.swift; sourceTree = "<group>"; };
 		4504340B7860133AD132C412 /* DealsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DealsViewModel.swift; sourceTree = "<group>"; };
@@ -115,11 +115,11 @@
 		69263D029AFA8F51AF063627 /* InfoBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfoBox.swift; sourceTree = "<group>"; };
 		753E73E6FF94861A986E57BB /* DealDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DealDetailViewModel.swift; sourceTree = "<group>"; };
 		7A33200F9C341BB8FBEEF9DC /* AlertPreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPreferencesView.swift; sourceTree = "<group>"; };
-		7CDE0955462003CE74DB7237 /* FareLens.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FareLens.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7CDE0955462003CE74DB7237 /* FareLens.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FareLens.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		88087F75DA8A84E6C01147D2 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		8DA3969D738954B97706F183 /* WatchlistRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchlistRepository.swift; sourceTree = "<group>"; };
 		912442EDFA73A60E5BACADBC /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
-		97C966EA1FD07E16BD36DD8F /* Secrets.xcconfig.local */ = {isa = PBXFileReference; path = Secrets.xcconfig.local; sourceTree = "<group>"; };
+		97C966EA1FD07E16BD36DD8F /* Secrets.xcconfig.local */ = {isa = PBXFileReference; lastKnownFileType = text; path = Secrets.xcconfig.local; sourceTree = "<group>"; };
 		A5FC6C79B3216189BA4E7733 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		ABE70352116288814E2C56FD /* Spacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Spacing.swift; sourceTree = "<group>"; };
 		ACCA7D3EE71693299485D505 /* AlertService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertService.swift; sourceTree = "<group>"; };
@@ -130,7 +130,7 @@
 		AF22B75715CF87372B3677EA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B0718AAC7D0BA66103025FD2 /* PreferredAirportsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferredAirportsView.swift; sourceTree = "<group>"; };
 		B98EE21EE4676692AA8EE93B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
-		B9E028400BC2ECB305B12948 /* Secrets.xcconfig.example */ = {isa = PBXFileReference; path = Secrets.xcconfig.example; sourceTree = "<group>"; };
+		B9E028400BC2ECB305B12948 /* Secrets.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = file; path = Secrets.xcconfig.example; sourceTree = "<group>"; };
 		BEE6BFEEE1781D83F54D0278 /* AlertsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsView.swift; sourceTree = "<group>"; };
 		C440E8EA067F98F7B6DC2DCC /* Airport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Airport.swift; sourceTree = "<group>"; };
 		C8BEE19675754DE7A6590C08 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
@@ -425,13 +425,6 @@
 			path = Persistence;
 			sourceTree = "<group>";
 		};
-		"TEMP_A82D4FC3-3867-4A9A-8BC4-4E9D52A820F6" /* Localizations */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Localizations;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -503,7 +496,6 @@
 			packageReferences = (
 				2A68864A817C91F5FDE48EC8 /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -618,6 +610,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = CW5S2VLLV4;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -638,6 +631,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = CW5S2VLLV4;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -728,6 +722,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = CW5S2VLLV4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = FareLens/Resources/Info.plist;
@@ -754,6 +749,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = CW5S2VLLV4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = FareLens/Resources/Info.plist;

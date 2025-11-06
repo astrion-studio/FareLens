@@ -35,7 +35,12 @@ actor APIClient: APIClientProtocol {
             throw APIError.invalidResponse
         }
 
+        // Parse error responses for better context
         guard (200...299).contains(httpResponse.statusCode) else {
+            // Try to parse error JSON for detailed message
+            if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+                throw APIError.serverError(errorResponse.error)
+            }
             throw APIError.httpError(httpResponse.statusCode)
         }
 
@@ -53,15 +58,26 @@ actor APIClient: APIClientProtocol {
     func requestNoResponse(_ endpoint: APIEndpoint) async throws {
         let urlRequest = try buildRequest(endpoint)
 
-        let (_, response) = try await session.data(for: urlRequest)
+        let (data, response) = try await session.data(for: urlRequest)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
 
+        // Parse error responses for better context
         guard (200...299).contains(httpResponse.statusCode) else {
+            // Try to parse error JSON for detailed message
+            if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+                throw APIError.serverError(errorResponse.error)
+            }
             throw APIError.httpError(httpResponse.statusCode)
         }
+    }
+
+    // MARK: - Error Response
+
+    private struct ErrorResponse: Decodable {
+        let error: String
     }
 
     // MARK: - Private Methods

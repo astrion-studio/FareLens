@@ -60,7 +60,7 @@ struct SettingsView: View {
                                 icon: "bell.fill",
                                 iconColor: .brandBlue,
                                 title: "Alert Preferences",
-                                subtitle: viewModel.alertPreferences.enabled ? "Enabled" : "Disabled"
+                                subtitle: viewModel.alertPreferences.alertEnabled ? "Enabled" : "Disabled"
                             )
                         }
 

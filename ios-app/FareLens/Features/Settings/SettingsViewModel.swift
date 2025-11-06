@@ -39,7 +39,14 @@ final class SettingsViewModel {
 
     func updateAlertPreferences() async {
         do {
-            let endpoint = APIEndpoint.updateAlertPreferences(alertPreferences)
+            // Use consolidated /user endpoint with correct field names
+            let endpoint = APIEndpoint.updateUser(
+                alertEnabled: alertPreferences.alertEnabled,
+                quietHoursEnabled: alertPreferences.quietHoursEnabled,
+                quietHoursStart: alertPreferences.quietHoursStart,
+                quietHoursEnd: alertPreferences.quietHoursEnd,
+                watchlistOnlyMode: alertPreferences.watchlistOnlyMode
+            )
             try await APIClient.shared.requestNoResponse(endpoint)
             user.alertPreferences = alertPreferences
         } catch {
@@ -55,7 +62,10 @@ final class SettingsViewModel {
         }
 
         do {
-            let endpoint = APIEndpoint.updatePreferredAirports(preferredAirports)
+            // Use consolidated /user endpoint
+            let endpoint = APIEndpoint.updateUser(
+                preferredAirports: preferredAirports
+            )
             try await APIClient.shared.requestNoResponse(endpoint)
             user.preferredAirports = preferredAirports
         } catch {
@@ -92,7 +102,7 @@ final class SettingsViewModel {
         user.timezone = timezone
 
         do {
-            let endpoint = APIEndpoint.updateUser(user)
+            let endpoint = APIEndpoint.updateUser(timezone: timezone)
             try await APIClient.shared.requestNoResponse(endpoint)
         } catch {
             errorMessage = error.localizedDescription

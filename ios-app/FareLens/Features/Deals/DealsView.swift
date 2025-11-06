@@ -70,16 +70,20 @@ struct DealsView: View {
         }
         .task {
             await viewModel.loadDeals()
-
-            // Initialize WatchlistsViewModel once at view lifecycle
-            if let user = appState.currentUser {
+        }
+        .onAppear {
+            // Initialize WatchlistsViewModel once on appear (not in .task to avoid race)
+            if watchlistsViewModel == nil, let user = appState.currentUser {
                 watchlistsViewModel = WatchlistsViewModel(user: user)
             }
         }
         .onChange(of: appState.currentUser) { _, newUser in
-            // Update ViewModel if user changes
+            // Only recreate if user actually changed
             if let user = newUser {
-                watchlistsViewModel = WatchlistsViewModel(user: user)
+                // Check if we need to create new instance (different user)
+                if watchlistsViewModel?.user.id != user.id {
+                    watchlistsViewModel = WatchlistsViewModel(user: user)
+                }
             } else {
                 watchlistsViewModel = nil
             }
