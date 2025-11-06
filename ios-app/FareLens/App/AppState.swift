@@ -114,17 +114,14 @@ final class AppState {
                 throw TimeoutError()
             }
             group.addTask {
-                await operation()
+                return await operation()
             }
 
-            // Return first result that completes
-            // Note: group.next() returns T?? because the task group can return nil
-            if let result = try await group.next() {
-                group.cancelAll()
-                return result
-            }
+            // Return first result that completes.
+            // group.next() yields an optional optional (T??) because the task itself may return nil.
+            let firstCompleted = try await group.next()
             group.cancelAll()
-            return nil
+            return firstCompleted ?? nil
         }
     }
 
