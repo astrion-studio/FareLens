@@ -8,15 +8,18 @@ import XCTest
 final class OnboardingViewModelTests: XCTestCase {
     var sut: OnboardingViewModel!
     var mockAppState: AppState!
+    var mockAuthService: MockAuthService!
 
     override func setUp() async throws {
         try await super.setUp()
         mockAppState = AppState()
-        sut = OnboardingViewModel(appState: mockAppState)
+        mockAuthService = MockAuthService()
+        sut = OnboardingViewModel(appState: mockAppState, authService: mockAuthService)
     }
 
     override func tearDown() async throws {
         sut = nil
+        mockAuthService = nil
         mockAppState = nil
         try await super.tearDown()
     }
@@ -217,11 +220,71 @@ final class OnboardingViewModelTests: XCTestCase {
         // Arrange
         sut.email = "test@example.com"
         sut.password = "12345678"
+        mockAuthService.signInResult = .success(makeSampleUser())
 
         // Act
         await sut.validateAndSubmit(isSignUp: false)
 
         // Assert
         XCTAssertNil(sut.passwordError, "Password with exactly 8 characters should pass")
+    }
+
+    // MARK: - Helpers
+
+    private func makeSampleUser() -> User {
+        User(
+            id: UUID(),
+            email: "test@example.com",
+            createdAt: Date(),
+            timezone: TimeZone.current.identifier,
+            subscriptionTier: .free,
+            alertPreferences: .default,
+            preferredAirports: [],
+            watchlists: []
+        )
+    }
+}
+
+// MARK: - Test Doubles
+
+final class MockAuthService: AuthServiceProtocol {
+    enum MockError: Error {
+        case notImplemented
+    }
+
+    var signInResult: Result<User, Error> = .failure(MockError.notImplemented)
+    var signUpResult: Result<User, Error> = .failure(MockError.notImplemented)
+    var getCurrentUserResult: User?
+    var didSignOut = false
+    var resetPasswordCalledWith: String?
+
+    func signIn(email: String, password: String) async throws -> User {
+        switch signInResult {
+        case let .success(user):
+            return user
+        case let .failure(error):
+            throw error
+        }
+    }
+
+    func signUp(email: String, password: String) async throws -> User {
+        switch signUpResult {
+        case let .success(user):
+            return user
+        case let .failure(error):
+            throw error
+        }
+    }
+
+    func signOut() async {
+        didSignOut = true
+    }
+
+    func getCurrentUser() async -> User? {
+        getCurrentUserResult
+    }
+
+    func resetPassword(email: String) async throws {
+        resetPasswordCalledWith = email
     }
 }

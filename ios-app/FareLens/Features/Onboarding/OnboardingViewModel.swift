@@ -21,9 +21,11 @@ final class OnboardingViewModel {
     var serverError: ServerError?
 
     private let appState: AppState
+    private let authService: AuthServiceProtocol
 
-    init(appState: AppState) {
+    init(appState: AppState, authService: AuthServiceProtocol = AuthService.shared) {
         self.appState = appState
+        self.authService = authService
     }
 
     var isFormValid: Bool {
@@ -108,7 +110,7 @@ final class OnboardingViewModel {
         serverError = nil
 
         do {
-            let user = try await AuthService.shared.signIn(email: email, password: password)
+            let user = try await authService.signIn(email: email, password: password)
             isLoading = false
 
             // Success haptic
@@ -135,7 +137,7 @@ final class OnboardingViewModel {
         serverError = nil
 
         do {
-            let user = try await AuthService.shared.signUp(email: email, password: password)
+            let user = try await authService.signUp(email: email, password: password)
             isLoading = false
 
             // Success haptic

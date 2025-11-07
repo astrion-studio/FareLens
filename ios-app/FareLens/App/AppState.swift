@@ -51,6 +51,10 @@ final class AppState {
 
         // Phase 1: INSTANT - Load cached auth state (< 100ms)
         if let cachedUser = await PersistenceService.shared.loadUser() {
+            // Restore stored auth token immediately so API requests include credentials
+            let storedToken = await AuthService.shared.getAuthToken()
+            await APIClient.shared.setAuthToken(storedToken)
+
             // Optimistically show as authenticated
             currentUser = cachedUser
             isAuthenticated = true
