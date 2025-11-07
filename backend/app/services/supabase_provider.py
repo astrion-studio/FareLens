@@ -261,16 +261,17 @@ class SupabaseProvider(DataProvider):
     ) -> dict:
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
-            await conn.execute("DELETE FROM preferred_airports")
-            for airport in payload.preferred_airports:
-                await conn.execute(
-                    """
-                    INSERT INTO preferred_airports (iata, weight)
-                    VALUES ($1, $2)
-                    """,
-                    airport.iata.upper(),
-                    airport.weight,
-                )
+            async with conn.transaction():
+                await conn.execute("DELETE FROM preferred_airports")
+                for airport in payload.preferred_airports:
+                    await conn.execute(
+                        """
+                        INSERT INTO preferred_airports (iata, weight)
+                        VALUES ($1, $2)
+                        """,
+                        airport.iata.upper(),
+                        airport.weight,
+                    )
         return {"status": "updated"}
 
     async def register_device_token(
