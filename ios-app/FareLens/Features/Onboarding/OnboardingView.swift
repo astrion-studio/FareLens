@@ -363,6 +363,9 @@ struct AuthScreen: View {
             Task {
                 await viewModel.validateAndSubmit(isSignUp: isSignUp)
             }
+        case .weakPassword:
+            focusedField = .password
+            viewModel.passwordError = .tooShort
         default:
             break
         }

@@ -159,16 +159,16 @@ final class OnboardingViewModel {
 
     private func mapAuthError(_ error: AuthError) -> ServerError {
         switch error {
-        case .invalidCredentials:
+        case .invalidCredentials, .userNotFound:
             return .invalidCredentials
         case .emailNotConfirmed:
             return .emailNotConfirmed
         case .emailAlreadyExists:
             return .emailAlreadyExists
+        case .weakPassword:
+            return .weakPassword
         case .networkError:
             return .network
-        default:
-            return .unknown
         }
     }
 
@@ -245,6 +245,7 @@ enum ServerError: Identifiable {
     case emailAlreadyExists
     case network
     case unknown
+    case weakPassword
 
     var id: String {
         switch self {
@@ -253,6 +254,7 @@ enum ServerError: Identifiable {
         case .emailAlreadyExists: "exists"
         case .network: "network"
         case .unknown: "unknown"
+        case .weakPassword: "weak_password"
         }
     }
 
@@ -268,6 +270,8 @@ enum ServerError: Identifiable {
             "Unable to connect. Please check your internet connection and try again."
         case .unknown:
             "Something went wrong. Please try again."
+        case .weakPassword:
+            "Password must be at least 8 characters."
         }
     }
 
@@ -279,6 +283,8 @@ enum ServerError: Identifiable {
             "Go to Sign In"
         case .network:
             "Try Again"
+        case .weakPassword:
+            "Update Password"
         default:
             nil
         }
