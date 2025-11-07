@@ -108,20 +108,37 @@ final class AppState {
     /// Helper function to add timeout to async operations
     /// Throws TimeoutError if operation exceeds the specified timeout
     private func withTimeout<T>(seconds: TimeInterval, operation: @escaping () async -> T?) async throws -> T? {
-        try await withThrowingTaskGroup(of: T?.self) { group -> T? in
+        // Guard against invalid timeout values to avoid undefined behaviour in Task.sleep
+        guard seconds.isFinite, seconds > 0 else {
+            throw TimeoutError()
+        }
+
+        // Convert seconds to nanoseconds while clamping to the maximum supported range
+        let maxSeconds = Double(UInt64.max) / 1_000_000_000
+        let boundedSeconds = min(seconds, maxSeconds)
+        let rawNanoseconds = boundedSeconds * 1_000_000_000
+        let timeoutNanoseconds = max(UInt64(rawNanoseconds), 1)
+
+        return try await withThrowingTaskGroup(of: T?.self) { group -> T? in
             group.addTask {
-                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                try await Task.sleep(nanoseconds: timeoutNanoseconds)
                 throw TimeoutError()
             }
+
             group.addTask {
-                return await operation()
+                await operation()
             }
 
-            // Return first result that completes.
-            // group.next() yields an optional optional (T??) because the task itself may return nil.
-            let firstCompleted = try await group.next()
-            group.cancelAll()
-            return firstCompleted ?? nil
+            defer {
+                group.cancelAll()
+            }
+
+            guard let firstCompleted = try await group.next() else {
+                // All tasks completed without producing a value
+                return nil
+            }
+
+            return firstCompleted
         }
     }
 
