@@ -137,7 +137,10 @@ class ResetPasswordRequest(BaseModel):
 
 
 class SubscriptionInfo(BaseModel):
-    tier: str = Field(default="free", description="Subscription tier (free|pro)")
+    tier: str = Field(
+        default="free",
+        description="Subscription tier (free|pro)",
+    )
     max_watchlists: Optional[int] = 5
     max_alerts_per_day: int = 3
     trial_ends_at: Optional[datetime] = None
@@ -149,7 +152,9 @@ class User(BaseModel):
     subscription_tier: str = "free"
     timezone: str = "America/Los_Angeles"
     created_at: datetime
-    subscription: SubscriptionInfo = Field(default_factory=lambda: SubscriptionInfo())
+    subscription: SubscriptionInfo = Field(
+        default_factory=SubscriptionInfo,
+    )
 
 
 class UserUpdate(BaseModel):

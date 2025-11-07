@@ -18,7 +18,11 @@ async def list_watchlists(
     return await provider.list_watchlists()
 
 
-@router.post("/", response_model=Watchlist, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=Watchlist,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_watchlist(
     payload: WatchlistCreate,
     provider: DataProvider = Depends(get_data_provider),
@@ -35,7 +39,10 @@ async def update_watchlist(
     try:
         return await provider.update_watchlist(watchlist_id, payload)
     except KeyError as exc:
-        raise HTTPException(status_code=404, detail="Watchlist not found") from exc
+        raise HTTPException(
+            status_code=404,
+            detail="Watchlist not found",
+        ) from exc
 
 
 @router.delete("/{watchlist_id}", status_code=status.HTTP_204_NO_CONTENT)

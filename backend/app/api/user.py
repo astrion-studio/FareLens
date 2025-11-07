@@ -29,8 +29,15 @@ async def register_apns_token(
 ) -> dict:
     # Store tokens keyed by a synthetic device id.
     device_id = _mock_user().id
-    await provider.register_device_token(device_id, payload.token, payload.platform)
-    return {"status": "registered", "device_id": str(device_id)}
+    await provider.register_device_token(
+        device_id,
+        payload.token,
+        payload.platform,
+    )
+    return {
+        "status": "registered",
+        "device_id": str(device_id),
+    }
 
 
 def _mock_user() -> User:

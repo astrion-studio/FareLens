@@ -22,7 +22,11 @@ class DataProvider(ABC):
     """Abstract interface backed by Supabase or in-memory store."""
 
     @abstractmethod
-    async def list_deals(self, origin: Optional[str], limit: int) -> DealsResponse: ...
+    async def list_deals(
+        self,
+        origin: Optional[str],
+        limit: int,
+    ) -> DealsResponse: ...
 
     @abstractmethod
     async def get_deal(self, deal_id: UUID) -> FlightDeal: ...
@@ -31,7 +35,10 @@ class DataProvider(ABC):
     async def list_watchlists(self) -> List[Watchlist]: ...
 
     @abstractmethod
-    async def create_watchlist(self, payload: WatchlistCreate) -> Watchlist: ...
+    async def create_watchlist(
+        self,
+        payload: WatchlistCreate,
+    ) -> Watchlist: ...
 
     @abstractmethod
     async def update_watchlist(

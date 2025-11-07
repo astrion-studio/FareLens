@@ -81,7 +81,11 @@ class InMemoryProvider(DataProvider):
 
     # Deals -----------------------------------------------------------------
 
-    async def list_deals(self, origin: Optional[str], limit: int) -> DealsResponse:
+    async def list_deals(
+        self,
+        origin: Optional[str],
+        limit: int,
+    ) -> DealsResponse:
         deals = list(self._deals.values())
         if origin:
             deals = [d for d in deals if d.origin == origin.upper()]
@@ -95,10 +99,15 @@ class InMemoryProvider(DataProvider):
 
     async def list_watchlists(self) -> List[Watchlist]:
         return sorted(
-            self._watchlists.values(), key=lambda w: w.created_at, reverse=True
+            self._watchlists.values(),
+            key=lambda watchlist: watchlist.created_at,
+            reverse=True,
         )
 
-    async def create_watchlist(self, payload: WatchlistCreate) -> Watchlist:
+    async def create_watchlist(
+        self,
+        payload: WatchlistCreate,
+    ) -> Watchlist:
         watchlist = Watchlist(
             id=uuid4(),
             user_id=uuid4(),
@@ -120,7 +129,9 @@ class InMemoryProvider(DataProvider):
     ) -> Watchlist:
         watchlist = self._watchlists[watchlist_id]
         update_data = payload.model_dump(exclude_unset=True)
-        updated = watchlist.model_copy(update=update_data | {"updated_at": _now()})
+        updated = watchlist.model_copy(
+            update=update_data | {"updated_at": _now()},
+        )
         self._watchlists[watchlist_id] = updated
         return updated
 
@@ -149,11 +160,18 @@ class InMemoryProvider(DataProvider):
         self._alert_preferences = prefs
         return prefs
 
-    async def update_preferred_airports(self, payload: PreferredAirportsUpdate) -> dict:
-        self._preferred_airports = {
-            item.iata.upper(): item.weight for item in payload.preferred_airports
+    async def update_preferred_airports(
+        self,
+        payload: PreferredAirportsUpdate,
+    ) -> dict:
+        preferred_airports: Dict[str, float] = {}
+        for item in payload.preferred_airports:
+            preferred_airports[item.iata.upper()] = item.weight
+        self._preferred_airports = preferred_airports
+        return {
+            "status": "updated",
+            "preferred_airports": self._preferred_airports,
         }
-        return {"status": "updated", "preferred_airports": self._preferred_airports}
 
     async def register_device_token(
         self, device_id: UUID, token: str, platform: str
