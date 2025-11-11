@@ -160,15 +160,15 @@ final class OnboardingViewModel {
     private func mapAuthError(_ error: AuthError) -> ServerError {
         switch error {
         case .invalidCredentials, .userNotFound:
-            return .invalidCredentials
+            .invalidCredentials
         case .emailNotConfirmed:
-            return .emailNotConfirmed
+            .emailNotConfirmed
         case .emailAlreadyExists:
-            return .emailAlreadyExists
+            .emailAlreadyExists
         case .weakPassword:
-            return .weakPassword
+            .weakPassword
         case .networkError:
-            return .network
+            .network
         }
     }
 
