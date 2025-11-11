@@ -8,16 +8,19 @@ import XCTest
 final class OnboardingViewModelTests: XCTestCase {
     var sut: OnboardingViewModel!
     var mockAppState: AppState!
+    var mockAuthService: MockAuthService!
 
     override func setUp() async throws {
         try await super.setUp()
         mockAppState = AppState()
-        sut = OnboardingViewModel(appState: mockAppState)
+        mockAuthService = MockAuthService()
+        sut = OnboardingViewModel(appState: mockAppState, authService: mockAuthService)
     }
 
     override func tearDown() async throws {
         sut = nil
         mockAppState = nil
+        mockAuthService = nil
         try await super.tearDown()
     }
 
@@ -223,5 +226,77 @@ final class OnboardingViewModelTests: XCTestCase {
 
         // Assert
         XCTAssertNil(sut.passwordError, "Password with exactly 8 characters should pass")
+    }
+
+    // MARK: - Helper Methods
+
+    private func makeSampleUser() -> User {
+        User(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000000")!,
+            email: "test@example.com",
+            createdAt: Date(timeIntervalSince1970: 1672531200), // 2023-01-01 00:00:00 UTC
+            timezone: "UTC",
+            subscriptionTier: .free,
+            alertPreferences: .default,
+            preferredAirports: [],
+            watchlists: []
+        )
+    }
+}
+
+// MARK: - Mock Auth Service
+
+final class MockAuthService: AuthServiceProtocol {
+    var signInCalledWith: (email: String, password: String)?
+    var signUpCalledWith: (email: String, password: String)?
+    var resetPasswordCalledWith: String?
+
+    var signInResult: Result<User, Error> = .success(
+        User(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000000")!,
+            email: "test@example.com",
+            createdAt: Date(timeIntervalSince1970: 1672531200),
+            timezone: "UTC",
+            subscriptionTier: .free,
+            alertPreferences: .default,
+            preferredAirports: [],
+            watchlists: []
+        )
+    )
+    var signUpResult: Result<User, Error> = .success(
+        User(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000000")!,
+            email: "test@example.com",
+            createdAt: Date(timeIntervalSince1970: 1672531200),
+            timezone: "UTC",
+            subscriptionTier: .free,
+            alertPreferences: .default,
+            preferredAirports: [],
+            watchlists: []
+        )
+    )
+    var resetPasswordResult: Result<Void, Error> = .success(())
+
+    func signIn(email: String, password: String) async throws -> User {
+        signInCalledWith = (email, password)
+        return try signInResult.get()
+    }
+
+    func signUp(email: String, password: String) async throws -> User {
+        signUpCalledWith = (email, password)
+        return try signUpResult.get()
+    }
+
+    func resetPassword(email: String) async throws {
+        resetPasswordCalledWith = email
+        try resetPasswordResult.get()
+    }
+
+    func refreshSession() async throws -> User {
+        fatalError("refreshSession not implemented in mock")
+    }
+
+    func signOut() async throws {
+        fatalError("signOut not implemented in mock")
     }
 }
