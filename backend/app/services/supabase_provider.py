@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+from textwrap import dedent
 from typing import List, Optional, Tuple
 from uuid import UUID
 
 import asyncpg
-from textwrap import dedent
 
 from ..core.config import settings
 from ..models.schemas import (
