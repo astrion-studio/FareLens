@@ -48,7 +48,6 @@
 		8CED9C038BB6A56F08DFCB0E /* InfoBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69263D029AFA8F51AF063627 /* InfoBox.swift */; };
 		9021A8050CC06CA3A22BAE08 /* DealDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20DF27A3F0C912E505B21DB5 /* DealDetailView.swift */; };
 		97D9968E2F06AD493AF0AC1E /* Watchlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5EBD8B474A88F6C2C6814A4 /* Watchlist.swift */; };
-		9A7189732F540B915D84BD38 /* Secrets.xcconfig.example in Resources */ = {isa = PBXBuildFile; fileRef = B9E028400BC2ECB305B12948 /* Secrets.xcconfig.example */; };
 		9C8ACC98E852201027661A7A /* DealsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2F11A469B03BFC410D038E /* DealsRepository.swift */; };
 		A1F9D841C37BFB9FE59C78C5 /* AlertPreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A33200F9C341BB8FBEEF9DC /* AlertPreferencesView.swift */; };
 		A21873D62358BB98637F4A12 /* Airport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C440E8EA067F98F7B6DC2DCC /* Airport.swift */; };
@@ -130,7 +129,6 @@
 		AF22B75715CF87372B3677EA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B0718AAC7D0BA66103025FD2 /* PreferredAirportsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferredAirportsView.swift; sourceTree = "<group>"; };
 		B98EE21EE4676692AA8EE93B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
-		B9E028400BC2ECB305B12948 /* Secrets.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = file; path = Secrets.xcconfig.example; sourceTree = "<group>"; };
 		BEE6BFEEE1781D83F54D0278 /* AlertsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsView.swift; sourceTree = "<group>"; };
 		C440E8EA067F98F7B6DC2DCC /* Airport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Airport.swift; sourceTree = "<group>"; };
 		C8BEE19675754DE7A6590C08 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
@@ -352,7 +350,6 @@
 			children = (
 				88087F75DA8A84E6C01147D2 /* Config.swift */,
 				C8BEE19675754DE7A6590C08 /* Secrets.xcconfig */,
-				B9E028400BC2ECB305B12948 /* Secrets.xcconfig.example */,
 				97C966EA1FD07E16BD36DD8F /* Secrets.xcconfig.local */,
 			);
 			path = Config;
@@ -512,7 +509,6 @@
 			files = (
 				EE20F503D77D08B64F130525 /* Assets.xcassets in Resources */,
 				FC5838FEA7CE5D9BCD89CA31 /* PrivacyInfo.xcprivacy in Resources */,
-				9A7189732F540B915D84BD38 /* Secrets.xcconfig.example in Resources */,
 				19778419C61BE0BB319F2D67 /* Secrets.xcconfig.local in Resources */,
 				F165BC9ADBA76E31732CEA2D /* airports.json in Resources */,
 			);
