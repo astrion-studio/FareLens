@@ -194,6 +194,24 @@ actor AuthService: AuthServiceProtocol {
         await tokenStore.loadTokens() != nil
     }
 
+    /// Preloads cached auth state so API requests include the JWT immediately after launch.
+    /// - Parameter user: The cached user that will be shown while validation runs in the background.
+    /// - Returns: `true` if cached tokens were restored and the API client primed; `false` if no tokens exist.
+    func primeSessionFromCache(using user: User) async -> Bool {
+        guard let tokens = await tokenStore.loadTokens() else {
+            logger.warning("Cached user found without corresponding auth tokens - clearing cached session")
+            currentUser = nil
+            await apiClient.setAuthToken(nil)
+            await persistenceService.clearUser()
+            await tokenStore.clearTokens()
+            return false
+        }
+
+        await apiClient.setAuthToken(tokens.accessToken)
+        currentUser = user
+        return true
+    }
+
     /// Get current authenticated user
     func getCurrentUser() async -> User? {
         // IMPORTANT: Always validate tokens before returning user to prevent

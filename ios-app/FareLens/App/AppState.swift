@@ -50,12 +50,10 @@ final class AppState {
         // Then validate auth in background without blocking UI
 
         // Phase 1: INSTANT - Load cached auth state (< 100ms)
-        if let cachedUser = await PersistenceService.shared.loadUser() {
-            // Restore auth token immediately so API requests include credentials
-            let cachedToken = await AuthService.shared.getAuthToken()
-            await APIClient.shared.setAuthToken(cachedToken)
-
-            // Optimistically show as authenticated
+        if let cachedUser = await PersistenceService.shared.loadUser(),
+           await AuthService.shared.primeSessionFromCache(using: cachedUser)
+        {
+            // Optimistically show as authenticated (API client already has JWT)
             currentUser = cachedUser
             isAuthenticated = true
             isLoading = false
@@ -67,6 +65,7 @@ final class AppState {
         } else {
             // No cached user - show onboarding immediately
             isAuthenticated = false
+            currentUser = nil
             isLoading = false
         }
 
