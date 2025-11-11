@@ -56,4 +56,7 @@ async def reset_password(payload: ResetPasswordRequest) -> dict:
     """Send password reset email (mock)."""
     if not payload.email:
         raise HTTPException(status_code=400, detail="Email required")
-    return {"status": "accepted", "message": "Password reset instructions sent"}
+    return {
+        "status": "accepted",
+        "message": "Password reset instructions sent",
+    }

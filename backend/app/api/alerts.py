@@ -28,7 +28,10 @@ async def register_device(
     await provider.register_device_token(
         payload.device_id, payload.token, payload.platform
     )
-    return DeviceRegistrationResponse(status="registered", message="Device token saved")
+    return DeviceRegistrationResponse(
+        status="registered",
+        message="Device token saved",
+    )
 
 
 @alerts_router.get("/history", response_model=AlertHistoryResponse)
@@ -37,9 +40,15 @@ async def get_history(
     per_page: int = 20,
     provider: DataProvider = Depends(get_data_provider),
 ) -> AlertHistoryResponse:
-    alerts, total = await provider.list_alert_history(page=page, per_page=per_page)
+    alerts, total = await provider.list_alert_history(
+        page=page,
+        per_page=per_page,
+    )
     return AlertHistoryResponse(
-        alerts=alerts, page=page, per_page=per_page, total=total
+        alerts=alerts,
+        page=page,
+        per_page=per_page,
+        total=total,
     )
 
 

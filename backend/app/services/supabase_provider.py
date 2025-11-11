@@ -6,6 +6,7 @@ from typing import List, Optional, Tuple
 from uuid import UUID
 
 import asyncpg
+from textwrap import dedent
 
 from ..core.config import settings
 from ..models.schemas import (
@@ -30,20 +31,35 @@ class SupabaseProvider(DataProvider):
     async def _ensure_pool(self) -> asyncpg.Pool:
         if self._pool is None:
             self._pool = await asyncpg.create_pool(
-                dsn=settings.database_url, min_size=1, max_size=5
+                dsn=settings.database_url,
+                min_size=1,
+                max_size=5,
             )
         return self._pool
 
     # Deals -----------------------------------------------------------------
 
-    async def list_deals(self, origin: Optional[str], limit: int) -> DealsResponse:
+    async def list_deals(
+        self,
+        origin: Optional[str],
+        limit: int,
+    ) -> DealsResponse:
         pool = await self._ensure_pool()
-        query = (
-            "SELECT * FROM flight_deals WHERE ($1::text IS NULL OR origin = $1) "
-            "ORDER BY deal_score DESC LIMIT $2"
+        query = dedent(
+            """
+            SELECT *
+            FROM flight_deals
+            WHERE ($1::text IS NULL OR origin = $1)
+            ORDER BY deal_score DESC
+            LIMIT $2
+            """
         )
         async with pool.acquire() as conn:
-            rows = await conn.fetch(query, origin.upper() if origin else None, limit)
+            rows = await conn.fetch(
+                query,
+                origin.upper() if origin else None,
+                limit,
+            )
         deals = [self._map_deal(row) for row in rows]
         return DealsResponse(deals=deals)
 
@@ -62,17 +78,34 @@ class SupabaseProvider(DataProvider):
     async def list_watchlists(self) -> List[Watchlist]:
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
-            rows = await conn.fetch("SELECT * FROM watchlists ORDER BY created_at DESC")
+            rows = await conn.fetch(
+                dedent(
+                    """
+                    SELECT *
+                    FROM watchlists
+                    ORDER BY created_at DESC
+                    """
+                )
+            )
         return [self._map_watchlist(row) for row in rows]
 
     async def create_watchlist(self, payload: WatchlistCreate) -> Watchlist:
         pool = await self._ensure_pool()
-        query = """
-            INSERT INTO watchlists (name, origin, destination, date_range_start,
-                                   date_range_end, max_price, is_active)
+        query = dedent(
+            """
+            INSERT INTO watchlists (
+                name,
+                origin,
+                destination,
+                date_range_start,
+                date_range_end,
+                max_price,
+                is_active
+            )
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
-        """
+            """
+        )
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
                 query,
@@ -91,9 +124,10 @@ class SupabaseProvider(DataProvider):
     ) -> Watchlist:
         pool = await self._ensure_pool()
         update_data = payload.model_dump(exclude_unset=True)
-        set_clause = ", ".join(
+        assignments = [
             f"{key} = ${idx}" for idx, key in enumerate(update_data.keys(), start=2)
-        )
+        ]
+        set_clause = ", ".join(assignments)
         # Column names from Pydantic model fields (not user input)
         query = (
             f"UPDATE watchlists SET {set_clause}, updated_at = NOW() "  # nosec
@@ -109,7 +143,10 @@ class SupabaseProvider(DataProvider):
     async def delete_watchlist(self, watchlist_id: UUID) -> None:
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
-            await conn.execute("DELETE FROM watchlists WHERE id = $1", watchlist_id)
+            await conn.execute(
+                "DELETE FROM watchlists WHERE id = $1",
+                watchlist_id,
+            )
 
     # Alerts ----------------------------------------------------------------
 
@@ -120,16 +157,36 @@ class SupabaseProvider(DataProvider):
         offset = (page - 1) * per_page
         async with pool.acquire() as conn:
             rows = await conn.fetch(
-                "SELECT "
-                "a.id AS alert_id, a.sent_at, a.opened_at, "
-                "a.clicked_through, a.expires_at AS alert_expires_at, "
-                "fd.id AS deal_id, fd.origin, fd.destination, fd.departure_date, "
-                "fd.return_date, fd.total_price, fd.currency, fd.deal_score, "
-                "fd.discount_percent, fd.normal_price, fd.created_at, "
-                "fd.expires_at AS deal_expires_at, fd.airline, fd.stops, "
-                "fd.return_stops, fd.deep_link "
-                "FROM alert_history a JOIN flight_deals fd ON a.deal_id = fd.id "
-                "ORDER BY a.sent_at DESC LIMIT $1 OFFSET $2",
+                dedent(
+                    """
+                    SELECT
+                        a.id AS alert_id,
+                        a.sent_at,
+                        a.opened_at,
+                        a.clicked_through,
+                        a.expires_at AS alert_expires_at,
+                        fd.id AS deal_id,
+                        fd.origin,
+                        fd.destination,
+                        fd.departure_date,
+                        fd.return_date,
+                        fd.total_price,
+                        fd.currency,
+                        fd.deal_score,
+                        fd.discount_percent,
+                        fd.normal_price,
+                        fd.created_at,
+                        fd.expires_at AS deal_expires_at,
+                        fd.airline,
+                        fd.stops,
+                        fd.return_stops,
+                        fd.deep_link
+                    FROM alert_history a
+                    JOIN flight_deals fd ON a.deal_id = fd.id
+                    ORDER BY a.sent_at DESC
+                    LIMIT $1 OFFSET $2
+                    """
+                ),
                 per_page,
                 offset,
             )
@@ -144,8 +201,19 @@ class SupabaseProvider(DataProvider):
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
             await conn.execute(
-                "INSERT INTO alert_history (id, deal_id, sent_at, opened_at, "
-                "clicked_through, expires_at) VALUES ($1, $2, $3, $4, $5, $6)",
+                dedent(
+                    """
+                    INSERT INTO alert_history (
+                        id,
+                        deal_id,
+                        sent_at,
+                        opened_at,
+                        clicked_through,
+                        expires_at
+                    )
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                    """
+                ),
                 alert.id,
                 alert.deal.id,
                 alert.sent_at,
@@ -156,8 +224,9 @@ class SupabaseProvider(DataProvider):
 
     async def get_alert_preferences(self) -> AlertPreferences:
         pool = await self._ensure_pool()
+        query = "SELECT * FROM alert_preferences LIMIT 1"
         async with pool.acquire() as conn:
-            row = await conn.fetchrow("SELECT * FROM alert_preferences LIMIT 1")
+            row = await conn.fetchrow(query)
         if row is None:
             return AlertPreferences()
         return AlertPreferences(
@@ -173,11 +242,21 @@ class SupabaseProvider(DataProvider):
     ) -> AlertPreferences:
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
-            await conn.execute("DELETE FROM alert_preferences")  # ensure single row
+            # ensure single row
+            await conn.execute("DELETE FROM alert_preferences")
             await conn.execute(
-                "INSERT INTO alert_preferences (enabled, quiet_hours_enabled, "
-                "quiet_hours_start, quiet_hours_end, watchlist_only_mode)"
-                " VALUES ($1, $2, $3, $4, $5)",
+                dedent(
+                    """
+                    INSERT INTO alert_preferences (
+                        enabled,
+                        quiet_hours_enabled,
+                        quiet_hours_start,
+                        quiet_hours_end,
+                        watchlist_only_mode
+                    )
+                    VALUES ($1, $2, $3, $4, $5)
+                    """
+                ),
                 prefs.enabled,
                 prefs.quiet_hours_enabled,
                 prefs.quiet_hours_start,
@@ -186,16 +265,25 @@ class SupabaseProvider(DataProvider):
             )
         return prefs
 
-    async def update_preferred_airports(self, payload: PreferredAirportsUpdate) -> dict:
+    async def update_preferred_airports(
+        self,
+        payload: PreferredAirportsUpdate,
+    ) -> dict:
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
-            await conn.execute("DELETE FROM preferred_airports")
-            for airport in payload.preferred_airports:
-                await conn.execute(
-                    "INSERT INTO preferred_airports (iata, weight) VALUES ($1, $2)",
-                    airport.iata.upper(),
-                    airport.weight,
-                )
+            async with conn.transaction():
+                await conn.execute("DELETE FROM preferred_airports")
+                for airport in payload.preferred_airports:
+                    await conn.execute(
+                        dedent(
+                            """
+                            INSERT INTO preferred_airports (iata, weight)
+                            VALUES ($1, $2)
+                            """
+                        ),
+                        airport.iata.upper(),
+                        airport.weight,
+                    )
         return {"status": "updated"}
 
     async def register_device_token(
@@ -204,10 +292,16 @@ class SupabaseProvider(DataProvider):
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
             await conn.execute(
-                "INSERT INTO device_tokens (id, token, platform, created_at)"
-                " VALUES ($1, $2, $3, NOW())"
-                " ON CONFLICT (id) DO UPDATE SET token = EXCLUDED.token, "
-                "platform = EXCLUDED.platform, last_used_at = NOW()",
+                dedent(
+                    """
+                    INSERT INTO device_tokens (id, token, platform, created_at)
+                    VALUES ($1, $2, $3, NOW())
+                    ON CONFLICT (id) DO UPDATE SET
+                        token = EXCLUDED.token,
+                        platform = EXCLUDED.platform,
+                        last_used_at = NOW()
+                    """
+                ),
                 device_id,
                 token,
                 platform,

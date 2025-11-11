@@ -29,8 +29,15 @@ async def list_deals(
     summary="Background refresh task",
 )
 async def background_refresh() -> BackgroundRefreshResponse:
-    """Placeholder background refresh endpoint (see API.md `GET /v1/background-refresh`)."""
-    return BackgroundRefreshResponse(status="ok", new_deals=0, refreshed_at=_utcnow())
+    """Placeholder background refresh endpoint.
+
+    References API.md `GET /v1/background-refresh`.
+    """
+    return BackgroundRefreshResponse(
+        status="ok",
+        new_deals=0,
+        refreshed_at=_utcnow(),
+    )
 
 
 @router.get("/{deal_id}", response_model=FlightDeal, summary="Deal detail")
@@ -41,7 +48,8 @@ async def get_deal(
         return await provider.get_deal(deal_id)
     except KeyError as exc:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Deal not found"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Deal not found",
         ) from exc
 
 
