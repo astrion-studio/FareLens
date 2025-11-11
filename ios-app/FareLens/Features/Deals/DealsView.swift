@@ -77,14 +77,14 @@ struct DealsView: View {
                 watchlistsViewModel = WatchlistsViewModel(user: user)
             }
         }
-        .onChange(of: appState.currentUser) { _, newUser in
-            // Only recreate if user actually changed
-            if let user = newUser {
-                // Check if we need to create new instance (different user)
-                if watchlistsViewModel?.user.id != user.id {
-                    watchlistsViewModel = WatchlistsViewModel(user: user)
-                }
-            } else {
+        .onChange(of: appState.currentUser?.id) { _, newUserId in
+            // Only recreate if user ID actually changed (UUID? is Equatable)
+            if let newUserId,
+               let current = appState.currentUser,
+               watchlistsViewModel?.user.id != newUserId
+            {
+                watchlistsViewModel = WatchlistsViewModel(user: current)
+            } else if newUserId == nil {
                 watchlistsViewModel = nil
             }
         }
