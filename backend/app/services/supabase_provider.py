@@ -45,13 +45,15 @@ class SupabaseProvider(DataProvider):
         limit: int,
     ) -> DealsResponse:
         pool = await self._ensure_pool()
-        query = """
+        query = dedent(
+            """
             SELECT *
             FROM flight_deals
             WHERE ($1::text IS NULL OR origin = $1)
             ORDER BY deal_score DESC
             LIMIT $2
-        """
+            """
+        )
         async with pool.acquire() as conn:
             rows = await conn.fetch(
                 query,
@@ -77,11 +79,13 @@ class SupabaseProvider(DataProvider):
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
             rows = await conn.fetch(
-                """
-                SELECT *
-                FROM watchlists
-                ORDER BY created_at DESC
-                """
+                dedent(
+                    """
+                    SELECT *
+                    FROM watchlists
+                    ORDER BY created_at DESC
+                    """
+                )
             )
         return [self._map_watchlist(row) for row in rows]
 
@@ -120,9 +124,9 @@ class SupabaseProvider(DataProvider):
     ) -> Watchlist:
         pool = await self._ensure_pool()
         update_data = payload.model_dump(exclude_unset=True)
-        assignments: list[str] = []
-        for idx, key in enumerate(update_data.keys(), start=2):
-            assignments.append(f"{key} = ${idx}")
+        assignments = [
+            f"{key} = ${idx}" for idx, key in enumerate(update_data.keys(), start=2)
+        ]
         set_clause = ", ".join(assignments)
         # Column names from Pydantic model fields (not user input)
         query = (
@@ -153,34 +157,36 @@ class SupabaseProvider(DataProvider):
         offset = (page - 1) * per_page
         async with pool.acquire() as conn:
             rows = await conn.fetch(
-                """
-                SELECT
-                    a.id AS alert_id,
-                    a.sent_at,
-                    a.opened_at,
-                    a.clicked_through,
-                    a.expires_at AS alert_expires_at,
-                    fd.id AS deal_id,
-                    fd.origin,
-                    fd.destination,
-                    fd.departure_date,
-                    fd.return_date,
-                    fd.total_price,
-                    fd.currency,
-                    fd.deal_score,
-                    fd.discount_percent,
-                    fd.normal_price,
-                    fd.created_at,
-                    fd.expires_at AS deal_expires_at,
-                    fd.airline,
-                    fd.stops,
-                    fd.return_stops,
-                    fd.deep_link
-                FROM alert_history a
-                JOIN flight_deals fd ON a.deal_id = fd.id
-                ORDER BY a.sent_at DESC
-                LIMIT $1 OFFSET $2
-                """,
+                dedent(
+                    """
+                    SELECT
+                        a.id AS alert_id,
+                        a.sent_at,
+                        a.opened_at,
+                        a.clicked_through,
+                        a.expires_at AS alert_expires_at,
+                        fd.id AS deal_id,
+                        fd.origin,
+                        fd.destination,
+                        fd.departure_date,
+                        fd.return_date,
+                        fd.total_price,
+                        fd.currency,
+                        fd.deal_score,
+                        fd.discount_percent,
+                        fd.normal_price,
+                        fd.created_at,
+                        fd.expires_at AS deal_expires_at,
+                        fd.airline,
+                        fd.stops,
+                        fd.return_stops,
+                        fd.deep_link
+                    FROM alert_history a
+                    JOIN flight_deals fd ON a.deal_id = fd.id
+                    ORDER BY a.sent_at DESC
+                    LIMIT $1 OFFSET $2
+                    """
+                ),
                 per_page,
                 offset,
             )
@@ -195,17 +201,19 @@ class SupabaseProvider(DataProvider):
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
             await conn.execute(
-                """
-                INSERT INTO alert_history (
-                    id,
-                    deal_id,
-                    sent_at,
-                    opened_at,
-                    clicked_through,
-                    expires_at
-                )
-                VALUES ($1, $2, $3, $4, $5, $6)
-                """,
+                dedent(
+                    """
+                    INSERT INTO alert_history (
+                        id,
+                        deal_id,
+                        sent_at,
+                        opened_at,
+                        clicked_through,
+                        expires_at
+                    )
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                    """
+                ),
                 alert.id,
                 alert.deal.id,
                 alert.sent_at,
@@ -237,16 +245,18 @@ class SupabaseProvider(DataProvider):
             # ensure single row
             await conn.execute("DELETE FROM alert_preferences")
             await conn.execute(
-                """
-                INSERT INTO alert_preferences (
-                    enabled,
-                    quiet_hours_enabled,
-                    quiet_hours_start,
-                    quiet_hours_end,
-                    watchlist_only_mode
-                )
-                VALUES ($1, $2, $3, $4, $5)
-                """,
+                dedent(
+                    """
+                    INSERT INTO alert_preferences (
+                        enabled,
+                        quiet_hours_enabled,
+                        quiet_hours_start,
+                        quiet_hours_end,
+                        watchlist_only_mode
+                    )
+                    VALUES ($1, $2, $3, $4, $5)
+                    """
+                ),
                 prefs.enabled,
                 prefs.quiet_hours_enabled,
                 prefs.quiet_hours_start,
@@ -265,10 +275,12 @@ class SupabaseProvider(DataProvider):
                 await conn.execute("DELETE FROM preferred_airports")
                 for airport in payload.preferred_airports:
                     await conn.execute(
-                        """
-                        INSERT INTO preferred_airports (iata, weight)
-                        VALUES ($1, $2)
-                        """,
+                        dedent(
+                            """
+                            INSERT INTO preferred_airports (iata, weight)
+                            VALUES ($1, $2)
+                            """
+                        ),
                         airport.iata.upper(),
                         airport.weight,
                     )
@@ -280,14 +292,16 @@ class SupabaseProvider(DataProvider):
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
             await conn.execute(
-                """
-                INSERT INTO device_tokens (id, token, platform, created_at)
-                VALUES ($1, $2, $3, NOW())
-                ON CONFLICT (id) DO UPDATE SET
-                    token = EXCLUDED.token,
-                    platform = EXCLUDED.platform,
-                    last_used_at = NOW()
-                """,
+                dedent(
+                    """
+                    INSERT INTO device_tokens (id, token, platform, created_at)
+                    VALUES ($1, $2, $3, NOW())
+                    ON CONFLICT (id) DO UPDATE SET
+                        token = EXCLUDED.token,
+                        platform = EXCLUDED.platform,
+                        last_used_at = NOW()
+                    """
+                ),
                 device_id,
                 token,
                 platform,

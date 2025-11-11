@@ -164,10 +164,9 @@ class InMemoryProvider(DataProvider):
         self,
         payload: PreferredAirportsUpdate,
     ) -> dict:
-        preferred_airports: Dict[str, float] = {}
-        for item in payload.preferred_airports:
-            preferred_airports[item.iata.upper()] = item.weight
-        self._preferred_airports = preferred_airports
+        self._preferred_airports = {
+            item.iata.upper(): item.weight for item in payload.preferred_airports
+        }
         return {
             "status": "updated",
             "preferred_airports": self._preferred_airports,
