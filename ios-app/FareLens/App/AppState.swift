@@ -19,7 +19,7 @@ final class AppState {
     var deepLinkDeal: FlightDeal?
     var isPresentingDeepLink = false
 
-    private var notificationObserver: NSObjectProtocol?
+    private nonisolated(unsafe) var notificationObserver: NSObjectProtocol?
     private let logger = Logger(subsystem: "com.astrionstudio.farelens", category: "AppState")
 
     init() {
