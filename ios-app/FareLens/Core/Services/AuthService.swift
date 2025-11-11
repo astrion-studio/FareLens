@@ -203,6 +203,7 @@ actor AuthService: AuthServiceProtocol {
             currentUser = nil
             await apiClient.setAuthToken(nil)
             await persistenceService.clearUser()
+            await tokenStore.clearTokens()
             return false
         }
 
