@@ -27,7 +27,7 @@ class InMemoryProvider(DataProvider):
     def __init__(self) -> None:
         self._deals: Dict[UUID, FlightDeal] = {}
         self._watchlists: Dict[UUID, Watchlist] = {}
-        self._alerts: List[AlertHistory] = []
+        self._alerts: Dict[UUID, List[AlertHistory]] = {}  # Keyed by user_id for security
         # User-specific preferences (keyed by user_id)
         self._alert_preferences: Dict[UUID, AlertPreferences] = {}
         self._preferred_airports: Dict[UUID, List[Dict[str, float]]] = {}
@@ -111,12 +111,15 @@ class InMemoryProvider(DataProvider):
         )
 
     async def create_watchlist(
-        self,
-        payload: WatchlistCreate,
+        self, user_id: UUID, payload: WatchlistCreate
     ) -> Watchlist:
+        """Create watchlist for authenticated user.
+
+        Security: Uses authenticated user_id from JWT token, not random UUID.
+        """
         watchlist = Watchlist(
             id=uuid4(),
-            user_id=uuid4(),
+            user_id=user_id,  # Use authenticated user_id, not random!
             name=payload.name,
             origin=payload.origin.upper(),
             destination=payload.destination.upper(),
@@ -131,9 +134,16 @@ class InMemoryProvider(DataProvider):
         return watchlist
 
     async def update_watchlist(
-        self, watchlist_id: UUID, payload: WatchlistUpdate
+        self, user_id: UUID, watchlist_id: UUID, payload: WatchlistUpdate
     ) -> Watchlist:
-        watchlist = self._watchlists[watchlist_id]
+        """Update watchlist owned by authenticated user.
+
+        Security: Validates ownership before updating to prevent IDOR attacks.
+        Raises KeyError if watchlist not found or not owned by user.
+        """
+        watchlist = self._watchlists.get(watchlist_id)
+        if watchlist is None or watchlist.user_id != user_id:
+            raise KeyError(str(watchlist_id))
         update_data = payload.model_dump(exclude_unset=True)
         updated = watchlist.model_copy(
             update=update_data | {"updated_at": _now()},
@@ -141,23 +151,39 @@ class InMemoryProvider(DataProvider):
         self._watchlists[watchlist_id] = updated
         return updated
 
-    async def delete_watchlist(self, watchlist_id: UUID) -> None:
-        self._watchlists.pop(watchlist_id, None)
+    async def delete_watchlist(self, user_id: UUID, watchlist_id: UUID) -> None:
+        """Delete watchlist owned by authenticated user.
+
+        Security: Validates ownership before deleting to prevent IDOR attacks.
+        Silently succeeds if watchlist not found or not owned by user (idempotent).
+        """
+        watchlist = self._watchlists.get(watchlist_id)
+        if watchlist is not None and watchlist.user_id == user_id:
+            self._watchlists.pop(watchlist_id)
 
     # Alerts ----------------------------------------------------------------
 
     async def list_alert_history(
         self, user_id: UUID, page: int, per_page: int
     ) -> Tuple[List[AlertHistory], int]:
-        # In-memory provider doesn't track user_id per alert in demo
-        # In real implementation, alerts would have user_id
-        alerts = sorted(self._alerts, key=lambda a: a.sent_at, reverse=True)
+        """List alert history for specific user only.
+
+        Security: Filters alerts by user_id to prevent users from seeing each other's alerts.
+        """
+        user_alerts = self._alerts.get(user_id, [])
+        alerts = sorted(user_alerts, key=lambda a: a.sent_at, reverse=True)
         start = (page - 1) * per_page
         end = start + per_page
-        return alerts[start:end], len(alerts)
+        return alerts[start:end], len(user_alerts)
 
-    async def append_alert(self, alert: AlertHistory) -> None:
-        self._alerts.append(alert)
+    async def append_alert(self, user_id: UUID, alert: AlertHistory) -> None:
+        """Append alert to history for specific user.
+
+        Security: Associates alert with authenticated user_id to prevent data leakage.
+        """
+        if user_id not in self._alerts:
+            self._alerts[user_id] = []
+        self._alerts[user_id].append(alert)
 
     async def get_alert_preferences(self, user_id: UUID) -> AlertPreferences:
         # Return user-specific preferences or defaults

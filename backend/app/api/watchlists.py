@@ -31,19 +31,32 @@ async def list_watchlists(
 )
 async def create_watchlist(
     payload: WatchlistCreate,
+    user_id: UUID = Depends(get_current_user_id),
     provider: DataProvider = Depends(get_data_provider),
 ) -> Watchlist:
-    return await provider.create_watchlist(payload)
+    """Create watchlist for authenticated user only.
+
+    Security: Associates watchlist with authenticated user from JWT token.
+    """
+    return await provider.create_watchlist(user_id=user_id, payload=payload)
 
 
 @router.put("/{watchlist_id}", response_model=Watchlist)
 async def update_watchlist(
     watchlist_id: UUID,
     payload: WatchlistUpdate,
+    user_id: UUID = Depends(get_current_user_id),
     provider: DataProvider = Depends(get_data_provider),
 ) -> Watchlist:
+    """Update watchlist owned by authenticated user only.
+
+    Security: Only allows updating watchlists owned by the authenticated user.
+    Returns 404 if watchlist not found or not owned by user (prevents IDOR).
+    """
     try:
-        return await provider.update_watchlist(watchlist_id, payload)
+        return await provider.update_watchlist(
+            user_id=user_id, watchlist_id=watchlist_id, payload=payload
+        )
     except KeyError as exc:
         raise HTTPException(
             status_code=404,
@@ -54,6 +67,12 @@ async def update_watchlist(
 @router.delete("/{watchlist_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_watchlist(
     watchlist_id: UUID,
+    user_id: UUID = Depends(get_current_user_id),
     provider: DataProvider = Depends(get_data_provider),
 ) -> None:
-    await provider.delete_watchlist(watchlist_id)
+    """Delete watchlist owned by authenticated user only.
+
+    Security: Only allows deleting watchlists owned by the authenticated user.
+    Silently succeeds if watchlist not found or not owned by user (idempotent).
+    """
+    await provider.delete_watchlist(user_id=user_id, watchlist_id=watchlist_id)

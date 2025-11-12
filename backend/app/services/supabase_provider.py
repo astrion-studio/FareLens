@@ -95,11 +95,18 @@ class SupabaseProvider(DataProvider):
             )
         return [self._map_watchlist(row) for row in rows]
 
-    async def create_watchlist(self, payload: WatchlistCreate) -> Watchlist:
+    async def create_watchlist(
+        self, user_id: UUID, payload: WatchlistCreate
+    ) -> Watchlist:
+        """Create a new watchlist for the authenticated user.
+
+        Security: Associates watchlist with authenticated user_id from JWT token.
+        """
         pool = await self._ensure_pool()
         query = dedent(
             """
             INSERT INTO watchlists (
+                user_id,
                 name,
                 origin,
                 destination,
@@ -108,13 +115,14 @@ class SupabaseProvider(DataProvider):
                 max_price,
                 is_active
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
             """
         )
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
                 query,
+                user_id,
                 payload.name,
                 payload.origin.upper(),
                 payload.destination.upper(),
@@ -126,8 +134,13 @@ class SupabaseProvider(DataProvider):
         return self._map_watchlist(row)
 
     async def update_watchlist(
-        self, watchlist_id: UUID, payload: WatchlistUpdate
+        self, user_id: UUID, watchlist_id: UUID, payload: WatchlistUpdate
     ) -> Watchlist:
+        """Update a watchlist owned by the authenticated user.
+
+        Security: Only allows updating watchlists owned by the authenticated user.
+        Raises KeyError if watchlist not found OR not owned by user (prevents IDOR).
+        """
         pool = await self._ensure_pool()
         update_data = payload.model_dump(exclude_unset=True)
 
@@ -146,10 +159,12 @@ class SupabaseProvider(DataProvider):
         filtered_data = {k: v for k, v in update_data.items() if k in ALLOWED_COLUMNS}
 
         if not filtered_data:
-            # No valid fields to update - just return current watchlist
+            # No valid fields to update - just return current watchlist if owned by user
             async with pool.acquire() as conn:
                 row = await conn.fetchrow(
-                    "SELECT * FROM watchlists WHERE id = $1", watchlist_id
+                    "SELECT * FROM watchlists WHERE id = $1 AND user_id = $2",
+                    watchlist_id,
+                    user_id,
                 )
                 if row is None:
                     raise KeyError(str(watchlist_id))
@@ -159,23 +174,30 @@ class SupabaseProvider(DataProvider):
             f"{key} = ${idx}" for idx, key in enumerate(filtered_data.keys(), start=2)
         ]
         set_clause = ", ".join(assignments)
+        # Add user_id check to prevent IDOR attacks
         query = (
             f"UPDATE watchlists SET {set_clause}, updated_at = NOW() "
-            f"WHERE id = $1 RETURNING *"
+            f"WHERE id = $1 AND user_id = ${len(filtered_data) + 2} RETURNING *"
         )
-        params = [watchlist_id] + list(filtered_data.values())
+        params = [watchlist_id] + list(filtered_data.values()) + [user_id]
         async with pool.acquire() as conn:
             row = await conn.fetchrow(query, *params)
             if row is None:
                 raise KeyError(str(watchlist_id))
         return self._map_watchlist(row)
 
-    async def delete_watchlist(self, watchlist_id: UUID) -> None:
+    async def delete_watchlist(self, user_id: UUID, watchlist_id: UUID) -> None:
+        """Delete a watchlist owned by the authenticated user.
+
+        Security: Only allows deleting watchlists owned by the authenticated user.
+        Silently succeeds if watchlist not found (idempotent) or not owned by user.
+        """
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
             await conn.execute(
-                "DELETE FROM watchlists WHERE id = $1",
+                "DELETE FROM watchlists WHERE id = $1 AND user_id = $2",
                 watchlist_id,
+                user_id,
             )
 
     # Alerts ----------------------------------------------------------------
@@ -234,7 +256,11 @@ class SupabaseProvider(DataProvider):
         total = total_row["total"] if total_row else 0
         return alerts, total
 
-    async def append_alert(self, alert: AlertHistory) -> None:
+    async def append_alert(self, user_id: UUID, alert: AlertHistory) -> None:
+        """Append alert to history for specific user.
+
+        Security: Associates alert with authenticated user_id to prevent data leakage.
+        """
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
             await conn.execute(
@@ -242,16 +268,18 @@ class SupabaseProvider(DataProvider):
                     """
                     INSERT INTO alert_history (
                         id,
+                        user_id,
                         deal_id,
                         sent_at,
                         opened_at,
                         clicked_through,
                         expires_at
                     )
-                    VALUES ($1, $2, $3, $4, $5, $6)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7)
                     """
                 ),
                 alert.id,
+                user_id,
                 alert.deal.id,
                 alert.sent_at,
                 alert.opened_at,
