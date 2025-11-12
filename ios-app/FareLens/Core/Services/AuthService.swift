@@ -69,11 +69,10 @@ actor AuthService: AuthServiceProtocol {
         // Configuration is validated at app startup by ConfigValidator
         // If we reach here, config is guaranteed to be valid
         guard let url = URL(string: Config.supabaseURL) else {
-            // This should never happen if ConfigValidator is working correctly
-            // Log the error for debugging but don't crash
-            logger.error("⚠️ CRITICAL: Invalid SUPABASE_URL despite config validation: \(Config.supabaseURL)")
-            // Use a safe default URL - auth operations will fail gracefully
-            url = URL(string: "https://invalid.supabase.co")!
+            preconditionFailure(
+                "Invalid SUPABASE_URL despite config validation: '\(Config.supabaseURL)'. " +
+                    "This indicates a bug in ConfigValidator. URL validation should prevent this."
+            )
         }
 
         self.supabaseClient = SupabaseClient(

@@ -33,6 +33,7 @@ enum ConfigValidator {
         case missingValue(key: String)
         case invalidURL(key: String, value: String)
         case emptyValue(key: String)
+        case placeholderValue(key: String, value: String)
 
         var errorDescription: String? {
             switch self {
@@ -42,11 +43,18 @@ enum ConfigValidator {
                 "\(key) has invalid URL format: '\(value)'"
             case let .emptyValue(key):
                 "\(key) is empty"
+            case let .placeholderValue(key, value):
+                "\(key) contains placeholder value: '\(value)'"
             }
         }
 
         var recoverySuggestion: String? {
-            "Check ios-app/FareLens/Config/Secrets.xcconfig.local file"
+            switch self {
+            case .placeholderValue:
+                "Replace placeholder with actual value in ios-app/FareLens/Config/Secrets.xcconfig.local"
+            default:
+                "Check ios-app/FareLens/Config/Secrets.xcconfig.local file"
+            }
         }
     }
 
@@ -101,7 +109,7 @@ enum ConfigValidator {
 
         // Check if it's a placeholder value from CI
         if value == "https://example.supabase.co" || value == "https://example.workers.dev" {
-            return .invalidURL(key: key, value: value)
+            return .placeholderValue(key: key, value: value)
         }
 
         // Validate URL format
@@ -119,7 +127,7 @@ enum ConfigValidator {
 
         // Check for placeholder values
         if value == "public-anon-key" {
-            return .invalidURL(key: key, value: value)
+            return .placeholderValue(key: key, value: value)
         }
 
         return nil

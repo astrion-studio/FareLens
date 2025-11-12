@@ -79,7 +79,10 @@ class InMemoryProvider(DataProvider):
             clicked_through=True,
             expires_at=demo_deal.expires_at,
         )
-        self._alerts.append(alert)
+        # Associate alert with demo watchlist's user_id
+        if watchlist.user_id not in self._alerts:
+            self._alerts[watchlist.user_id] = []
+        self._alerts[watchlist.user_id].append(alert)
 
     # Deals -----------------------------------------------------------------
 

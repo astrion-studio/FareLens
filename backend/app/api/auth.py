@@ -3,7 +3,9 @@
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from ..models.schemas import (
     AuthRequest,
@@ -14,6 +16,10 @@ from ..models.schemas import (
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+# Rate limiter to prevent brute force attacks and spam
+# Uses in-memory storage by default (can be upgraded to Redis for production)
+limiter = Limiter(key_func=get_remote_address)
 
 
 def _mock_user(email: str) -> User:
@@ -36,24 +42,36 @@ def _mock_user(email: str) -> User:
 @router.post(
     "/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED
 )
-async def signup(payload: AuthRequest) -> AuthResponse:
-    """Create a new account and return JWT (placeholder implementation)."""
+@limiter.limit("5/hour")  # Prevent spam account creation
+async def signup(request: Request, payload: AuthRequest) -> AuthResponse:
+    """Create a new account and return JWT (placeholder implementation).
+
+    Rate limit: 5 requests per hour to prevent spam account creation.
+    """
     user = _mock_user(payload.email)
     token = f"mock-signup-token-{user.id}"
     return AuthResponse(user=user, token=token)
 
 
 @router.post("/signin", response_model=AuthResponse)
-async def signin(payload: AuthRequest) -> AuthResponse:
-    """Authenticate user and return JWT (placeholder implementation)."""
+@limiter.limit("10/minute")  # Prevent brute force attacks
+async def signin(request: Request, payload: AuthRequest) -> AuthResponse:
+    """Authenticate user and return JWT (placeholder implementation).
+
+    Rate limit: 10 requests per minute to prevent brute force attacks while allowing retries.
+    """
     user = _mock_user(payload.email)
     token = f"mock-signin-token-{user.id}"
     return AuthResponse(user=user, token=token)
 
 
 @router.post("/reset-password", status_code=status.HTTP_202_ACCEPTED)
-async def reset_password(payload: ResetPasswordRequest) -> dict:
-    """Send password reset email (mock)."""
+@limiter.limit("3/hour")  # Prevent email bombing
+async def reset_password(request: Request, payload: ResetPasswordRequest) -> dict:
+    """Send password reset email (mock).
+
+    Rate limit: 3 requests per hour to prevent email bombing and abuse.
+    """
     if not payload.email:
         raise HTTPException(status_code=400, detail="Email required")
     return {
