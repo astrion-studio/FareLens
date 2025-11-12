@@ -4,6 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from ..core.auth import get_current_user_id
 from ..models.schemas import Watchlist, WatchlistCreate, WatchlistUpdate
 from ..services.data_provider import DataProvider
 from ..services.provider_factory import get_data_provider
@@ -13,9 +14,14 @@ router = APIRouter(prefix="/watchlists", tags=["watchlists"])
 
 @router.get("/", response_model=list[Watchlist])
 async def list_watchlists(
+    user_id: UUID = Depends(get_current_user_id),
     provider: DataProvider = Depends(get_data_provider),
 ) -> list[Watchlist]:
-    return await provider.list_watchlists()
+    """List watchlists for authenticated user only.
+
+    Security: Only returns watchlists owned by the authenticated user.
+    """
+    return await provider.list_watchlists(user_id=user_id)
 
 
 @router.post(

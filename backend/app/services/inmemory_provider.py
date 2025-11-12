@@ -28,9 +28,11 @@ class InMemoryProvider(DataProvider):
         self._deals: Dict[UUID, FlightDeal] = {}
         self._watchlists: Dict[UUID, Watchlist] = {}
         self._alerts: List[AlertHistory] = []
-        self._alert_preferences = AlertPreferences()
-        self._preferred_airports: Dict[str, float] = {"LAX": 1.0}
-        self.device_tokens: Dict[UUID, str] = {}
+        # User-specific preferences (keyed by user_id)
+        self._alert_preferences: Dict[UUID, AlertPreferences] = {}
+        self._preferred_airports: Dict[UUID, List[Dict[str, float]]] = {}
+        # Device tokens (keyed by user_id, then device_id)
+        self.device_tokens: Dict[UUID, Dict[UUID, str]] = {}
         self._seed()
 
     def _seed(self) -> None:
@@ -97,9 +99,13 @@ class InMemoryProvider(DataProvider):
 
     # Watchlists ------------------------------------------------------------
 
-    async def list_watchlists(self) -> List[Watchlist]:
+    async def list_watchlists(self, user_id: UUID) -> List[Watchlist]:
+        # Filter watchlists by user_id
+        user_watchlists = [
+            w for w in self._watchlists.values() if w.user_id == user_id
+        ]
         return sorted(
-            self._watchlists.values(),
+            user_watchlists,
             key=lambda watchlist: watchlist.created_at,
             reverse=True,
         )
@@ -141,8 +147,10 @@ class InMemoryProvider(DataProvider):
     # Alerts ----------------------------------------------------------------
 
     async def list_alert_history(
-        self, page: int, per_page: int
+        self, user_id: UUID, page: int, per_page: int
     ) -> Tuple[List[AlertHistory], int]:
+        # In-memory provider doesn't track user_id per alert in demo
+        # In real implementation, alerts would have user_id
         alerts = sorted(self._alerts, key=lambda a: a.sent_at, reverse=True)
         start = (page - 1) * per_page
         end = start + per_page
@@ -151,31 +159,35 @@ class InMemoryProvider(DataProvider):
     async def append_alert(self, alert: AlertHistory) -> None:
         self._alerts.append(alert)
 
-    async def get_alert_preferences(self) -> AlertPreferences:
-        return self._alert_preferences
+    async def get_alert_preferences(self, user_id: UUID) -> AlertPreferences:
+        # Return user-specific preferences or defaults
+        return self._alert_preferences.get(user_id, AlertPreferences())
 
     async def update_alert_preferences(
-        self, prefs: AlertPreferences
+        self, user_id: UUID, prefs: AlertPreferences
     ) -> AlertPreferences:
-        self._alert_preferences = prefs
+        self._alert_preferences[user_id] = prefs
         return prefs
 
     async def update_preferred_airports(
-        self,
-        payload: PreferredAirportsUpdate,
+        self, user_id: UUID, payload: PreferredAirportsUpdate
     ) -> dict:
-        self._preferred_airports = {
-            item.iata.upper(): item.weight for item in payload.preferred_airports
-        }
+        airports_list = [
+            {"iata": item.iata.upper(), "weight": item.weight}
+            for item in payload.preferred_airports
+        ]
+        self._preferred_airports[user_id] = airports_list
         return {
             "status": "updated",
-            "preferred_airports": self._preferred_airports,
+            "preferred_airports": airports_list,
         }
 
     async def register_device_token(
-        self, device_id: UUID, token: str, platform: str
+        self, user_id: UUID, device_id: UUID, token: str, platform: str
     ) -> None:
-        self.device_tokens[device_id] = token
+        if user_id not in self.device_tokens:
+            self.device_tokens[user_id] = {}
+        self.device_tokens[user_id][device_id] = token
 
 
 provider = InMemoryProvider()

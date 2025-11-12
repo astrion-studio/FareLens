@@ -29,7 +29,8 @@ struct PreferredAirportsView: View {
                             )
                         }
                         .onDelete { indexSet in
-                            indexSet.forEach { viewModel.removePreferredAirport(at: $0) }
+                            // Remove in reverse order to prevent index shifting crashes
+                            indexSet.sorted().reversed().forEach { viewModel.removePreferredAirport(at: $0) }
                         }
 
                         // Weight Sum Validation

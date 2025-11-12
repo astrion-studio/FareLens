@@ -29,7 +29,7 @@
 	</array>
         <key>CFBundleVersion</key>
         <string>$(CURRENT_PROJECT_VERSION)</string>
-        <key>NSUserNotificationUsageDescription</key>
+        <key>NSUserNotificationsUsageDescription</key>
         <string>FareLens uses notifications to alert you when we find new flight deals that match your watchlists.</string>
         <key>CLOUDFLARE_WORKER_URL</key>
         <string>$(CLOUDFLARE_WORKER_URL)</string>

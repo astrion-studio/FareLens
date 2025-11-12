@@ -66,8 +66,15 @@ actor AuthService: AuthServiceProtocol {
         tokenStore: AuthTokenStore = .shared
     ) {
         // Initialize Supabase client with configuration
-        guard let url = URL(string: Config.supabaseURL) else {
-            fatalError("Invalid SUPABASE_URL configuration: \(Config.supabaseURL)")
+        // Use placeholder URL if configuration is invalid to prevent app crash
+        let url: URL
+        if let validURL = URL(string: Config.supabaseURL) {
+            url = validURL
+        } else {
+            // Log error and use placeholder to prevent crash
+            // This allows the app to launch and show an error message to the user
+            logger.error("⚠️ Invalid SUPABASE_URL configuration: \(Config.supabaseURL) - using placeholder")
+            url = URL(string: "https://placeholder.supabase.co")!
         }
 
         self.supabaseClient = SupabaseClient(

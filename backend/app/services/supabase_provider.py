@@ -75,7 +75,11 @@ class SupabaseProvider(DataProvider):
 
     # Watchlists ------------------------------------------------------------
 
-    async def list_watchlists(self) -> List[Watchlist]:
+    async def list_watchlists(self, user_id: UUID) -> List[Watchlist]:
+        """List watchlists for a specific user only.
+
+        Security: Filters by user_id to prevent users from seeing each other's watchlists.
+        """
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
             rows = await conn.fetch(
@@ -83,9 +87,11 @@ class SupabaseProvider(DataProvider):
                     """
                     SELECT *
                     FROM watchlists
+                    WHERE user_id = $1
                     ORDER BY created_at DESC
                     """
-                )
+                ),
+                user_id,
             )
         return [self._map_watchlist(row) for row in rows]
 
@@ -124,16 +130,40 @@ class SupabaseProvider(DataProvider):
     ) -> Watchlist:
         pool = await self._ensure_pool()
         update_data = payload.model_dump(exclude_unset=True)
+
+        # Whitelist of allowed column names to prevent SQL injection
+        ALLOWED_COLUMNS = {
+            "name",
+            "origin",
+            "destination",
+            "date_range_start",
+            "date_range_end",
+            "max_price",
+            "is_active",
+        }
+
+        # Filter update_data to only include whitelisted columns
+        filtered_data = {k: v for k, v in update_data.items() if k in ALLOWED_COLUMNS}
+
+        if not filtered_data:
+            # No valid fields to update - just return current watchlist
+            async with pool.acquire() as conn:
+                row = await conn.fetchrow(
+                    "SELECT * FROM watchlists WHERE id = $1", watchlist_id
+                )
+                if row is None:
+                    raise KeyError(str(watchlist_id))
+            return self._map_watchlist(row)
+
         assignments = [
-            f"{key} = ${idx}" for idx, key in enumerate(update_data.keys(), start=2)
+            f"{key} = ${idx}" for idx, key in enumerate(filtered_data.keys(), start=2)
         ]
         set_clause = ", ".join(assignments)
-        # Column names from Pydantic model fields (not user input)
         query = (
-            f"UPDATE watchlists SET {set_clause}, updated_at = NOW() "  # nosec
+            f"UPDATE watchlists SET {set_clause}, updated_at = NOW() "
             f"WHERE id = $1 RETURNING *"
         )
-        params = [watchlist_id] + list(update_data.values())
+        params = [watchlist_id] + list(filtered_data.values())
         async with pool.acquire() as conn:
             row = await conn.fetchrow(query, *params)
             if row is None:
@@ -151,8 +181,12 @@ class SupabaseProvider(DataProvider):
     # Alerts ----------------------------------------------------------------
 
     async def list_alert_history(
-        self, page: int, per_page: int
+        self, user_id: UUID, page: int, per_page: int
     ) -> Tuple[List[AlertHistory], int]:
+        """List alert history for a specific user only.
+
+        Security: Filters by user_id to prevent users from seeing each other's alerts.
+        """
         pool = await self._ensure_pool()
         offset = (page - 1) * per_page
         async with pool.acquire() as conn:
@@ -183,15 +217,18 @@ class SupabaseProvider(DataProvider):
                         fd.deep_link
                     FROM alert_history a
                     JOIN flight_deals fd ON a.deal_id = fd.id
+                    WHERE a.user_id = $1
                     ORDER BY a.sent_at DESC
-                    LIMIT $1 OFFSET $2
+                    LIMIT $2 OFFSET $3
                     """
                 ),
+                user_id,
                 per_page,
                 offset,
             )
             total_row = await conn.fetchrow(
-                "SELECT COUNT(*) AS total FROM alert_history"
+                "SELECT COUNT(*) AS total FROM alert_history WHERE user_id = $1",
+                user_id,
             )
         alerts = [self._map_alert(row) for row in rows]
         total = total_row["total"] if total_row else 0
@@ -222,15 +259,32 @@ class SupabaseProvider(DataProvider):
                 alert.expires_at,
             )
 
-    async def get_alert_preferences(self) -> AlertPreferences:
+    async def get_alert_preferences(self, user_id: UUID) -> AlertPreferences:
+        """Get alert preferences from users table columns.
+
+        Security: Fetches preferences for specific user only.
+        Schema: Reads from users table columns (alert_enabled, quiet_hours_*, watchlist_only_mode).
+        """
         pool = await self._ensure_pool()
-        query = "SELECT * FROM alert_preferences LIMIT 1"
+        query = dedent(
+            """
+            SELECT
+                alert_enabled,
+                quiet_hours_enabled,
+                quiet_hours_start,
+                quiet_hours_end,
+                watchlist_only_mode
+            FROM users
+            WHERE id = $1
+            """
+        )
         async with pool.acquire() as conn:
-            row = await conn.fetchrow(query)
+            row = await conn.fetchrow(query, user_id)
         if row is None:
+            # User not found - return defaults
             return AlertPreferences()
         return AlertPreferences(
-            enabled=row["enabled"],
+            enabled=row["alert_enabled"],
             quiet_hours_enabled=row["quiet_hours_enabled"],
             quiet_hours_start=row["quiet_hours_start"],
             quiet_hours_end=row["quiet_hours_end"],
@@ -238,25 +292,30 @@ class SupabaseProvider(DataProvider):
         )
 
     async def update_alert_preferences(
-        self, prefs: AlertPreferences
+        self, user_id: UUID, prefs: AlertPreferences
     ) -> AlertPreferences:
+        """Update alert preferences in users table columns.
+
+        Security: Updates preferences for specific user only.
+        Schema: Updates users table columns (alert_enabled, quiet_hours_*, watchlist_only_mode).
+        """
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
-            # ensure single row
-            await conn.execute("DELETE FROM alert_preferences")
             await conn.execute(
                 dedent(
                     """
-                    INSERT INTO alert_preferences (
-                        enabled,
-                        quiet_hours_enabled,
-                        quiet_hours_start,
-                        quiet_hours_end,
-                        watchlist_only_mode
-                    )
-                    VALUES ($1, $2, $3, $4, $5)
+                    UPDATE users
+                    SET
+                        alert_enabled = $2,
+                        quiet_hours_enabled = $3,
+                        quiet_hours_start = $4,
+                        quiet_hours_end = $5,
+                        watchlist_only_mode = $6,
+                        updated_at = NOW()
+                    WHERE id = $1
                     """
                 ),
+                user_id,
                 prefs.enabled,
                 prefs.quiet_hours_enabled,
                 prefs.quiet_hours_start,
@@ -266,42 +325,69 @@ class SupabaseProvider(DataProvider):
         return prefs
 
     async def update_preferred_airports(
-        self,
-        payload: PreferredAirportsUpdate,
+        self, user_id: UUID, payload: PreferredAirportsUpdate
     ) -> dict:
+        """Update preferred airports in users.preferred_airports JSONB column.
+
+        Security: Updates airports for specific user only.
+        Schema: Updates users.preferred_airports JSONB column (array of {iata, weight} objects).
+        """
         pool = await self._ensure_pool()
+
+        # Convert PreferredAirport objects to JSONB-compatible dicts
+        airports_json = [
+            {"iata": airport.iata.upper(), "weight": airport.weight}
+            for airport in payload.preferred_airports
+        ]
+
         async with pool.acquire() as conn:
-            async with conn.transaction():
-                await conn.execute("DELETE FROM preferred_airports")
-                for airport in payload.preferred_airports:
-                    await conn.execute(
-                        dedent(
-                            """
-                            INSERT INTO preferred_airports (iata, weight)
-                            VALUES ($1, $2)
-                            """
-                        ),
-                        airport.iata.upper(),
-                        airport.weight,
-                    )
+            await conn.execute(
+                dedent(
+                    """
+                    UPDATE users
+                    SET
+                        preferred_airports = $2::jsonb,
+                        updated_at = NOW()
+                    WHERE id = $1
+                    """
+                ),
+                user_id,
+                airports_json,  # asyncpg handles list->jsonb conversion
+            )
         return {"status": "updated"}
 
     async def register_device_token(
-        self, device_id: UUID, token: str, platform: str
+        self, user_id: UUID, device_id: UUID, token: str, platform: str
     ) -> None:
+        """Register device token in device_registrations table.
+
+        Security: Associates device with authenticated user_id.
+        Schema: Uses device_registrations table with user_id, device_id, apns_token columns.
+        UPSERT: Updates token if device already registered for this user.
+        """
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
             await conn.execute(
                 dedent(
                     """
-                    INSERT INTO device_tokens (id, token, platform, created_at)
-                    VALUES ($1, $2, $3, NOW())
-                    ON CONFLICT (id) DO UPDATE SET
-                        token = EXCLUDED.token,
+                    INSERT INTO device_registrations (
+                        user_id,
+                        device_id,
+                        apns_token,
+                        platform,
+                        created_at,
+                        updated_at,
+                        last_active_at
+                    )
+                    VALUES ($1, $2, $3, $4, NOW(), NOW(), NOW())
+                    ON CONFLICT (user_id, device_id) DO UPDATE SET
+                        apns_token = EXCLUDED.apns_token,
                         platform = EXCLUDED.platform,
-                        last_used_at = NOW()
+                        updated_at = NOW(),
+                        last_active_at = NOW()
                     """
                 ),
+                user_id,
                 device_id,
                 token,
                 platform,

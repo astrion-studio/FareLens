@@ -9,6 +9,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     database_url: Optional[str] = None
     supabase_service_role_key: Optional[str] = None
+    supabase_jwt_secret: Optional[str] = None
     use_in_memory_store: bool = True
 
     class Config:
