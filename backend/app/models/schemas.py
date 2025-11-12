@@ -162,6 +162,7 @@ class UserUpdate(BaseModel):
 
 
 class APNsRegistration(BaseModel):
+    device_id: UUID
     token: str
     platform: str = "ios"
 

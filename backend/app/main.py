@@ -4,7 +4,7 @@ FareLens Backend API
 FastAPI application entry point.
 """
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -17,9 +17,22 @@ app = FastAPI(
     version="0.1.0",
 )
 
+
+# Adapter to match Starlette's exception handler signature
+# slowapi's handler doesn't match Callable[[Request, Exception], Response]
+async def rate_limit_handler(request: Request, exc: Exception) -> Response:
+    """Adapter for slowapi's rate limit exception handler.
+
+    Starlette expects: Callable[[Request, Exception], Response]
+    slowapi provides: different signature
+    This adapter ensures type compatibility for mypy.
+    """
+    return _rate_limit_exceeded_handler(request, exc)
+
+
 # Add rate limiter state and exception handler
 app.state.limiter = auth.limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
 # CORS configuration for iOS app
 app.add_middleware(

@@ -8,6 +8,10 @@ struct CreateWatchlistView: View {
     @Bindable var viewModel: WatchlistsViewModel
     @Environment(\.dismiss) var dismiss
 
+    // Price range constants for slider (aligned with ISSUES_ANALYSIS.md recommendation)
+    private static let minPriceRange: Double = 100
+    private static let maxPriceRange: Double = 10000
+
     @State private var name = ""
     @State private var origin = ""
     @State private var destination = ""
@@ -168,16 +172,20 @@ struct CreateWatchlistView: View {
                                             Spacer()
                                         }
 
-                                        Slider(value: $maxPrice, in: 100...10000, step: 50)
-                                            .tint(.brandBlue)
-                                            .accessibilityLabel("Maximum Price")
-                                            .accessibilityValue(maxPrice.formatted(.currency(code: "USD")))
+                                        Slider(
+                                            value: $maxPrice,
+                                            in: Self.minPriceRange...Self.maxPriceRange,
+                                            step: 50
+                                        )
+                                        .tint(.brandBlue)
+                                        .accessibilityLabel("Maximum Price")
+                                        .accessibilityValue(maxPrice.formatted(.currency(code: "USD")))
 
                                         HStack {
-                                            Text("$100")
+                                            Text("$\(Int(Self.minPriceRange))")
                                                 .captionStyle()
                                             Spacer()
-                                            Text("$10,000")
+                                            Text("$\(Int(Self.maxPriceRange).formatted())")
                                                 .captionStyle()
                                         }
                                     }

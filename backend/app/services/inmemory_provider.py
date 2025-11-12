@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID, uuid4
 
 from ..models.schemas import (
@@ -30,7 +30,7 @@ class InMemoryProvider(DataProvider):
         self._alerts: Dict[UUID, List[AlertHistory]] = {}  # Keyed by user_id for security
         # User-specific preferences (keyed by user_id)
         self._alert_preferences: Dict[UUID, AlertPreferences] = {}
-        self._preferred_airports: Dict[UUID, List[Dict[str, float]]] = {}
+        self._preferred_airports: Dict[UUID, List[Dict[str, Any]]] = {}
         # Device tokens (keyed by user_id, then device_id)
         self.device_tokens: Dict[UUID, Dict[UUID, str]] = {}
         self._seed()

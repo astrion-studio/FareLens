@@ -1,12 +1,25 @@
 import sys
 from pathlib import Path
-from uuid import UUID
+from uuid import UUID, uuid4
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+from app.core.auth import get_current_user_id  # noqa: E402
 from app.main import app  # noqa: E402
+
+# Test user ID used for all authenticated requests
+TEST_USER_ID = uuid4()
+
+
+def override_get_current_user_id() -> UUID:
+    """Dependency override that returns test user ID for authentication."""
+    return TEST_USER_ID
+
+
+# Override authentication dependency for tests
+app.dependency_overrides[get_current_user_id] = override_get_current_user_id
 
 client = TestClient(app)
 
