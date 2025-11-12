@@ -37,8 +37,43 @@ uvicorn app.main:app --reload
 - **Database**: PostgreSQL
 - **Cache**: Redis
 - **Authentication**: JWT
+- **Rate Limiting**: slowapi (with Redis backend for distributed deployments)
 - **Testing**: pytest
 - **Linting**: black, flake8, isort
+
+## Rate Limiting
+
+All authentication endpoints are rate-limited to prevent abuse:
+
+| Endpoint | Rate Limit | Scope | Purpose |
+|----------|------------|-------|---------|
+| `POST /v1/auth/signup` | 5 requests/hour | Per IP | Prevent spam account creation |
+| `POST /v1/auth/signin` | 10 requests/minute | Per IP | Prevent brute force attacks while allowing retries |
+| `POST /v1/auth/reset-password` | 3 requests/hour | Per IP | Prevent email bombing |
+
+**Response on rate limit exceeded:**
+- HTTP Status: `429 Too Many Requests`
+- Body: Plain text error message (e.g., "429: Too Many Requests")
+- Note: Response format may be enhanced in future to include structured JSON with retry timing
+
+**Client handling recommendations:**
+- Implement exponential backoff on 429 responses
+- Show user-friendly message: "Too many attempts. Please try again in X minutes."
+- Don't retry immediately on 429
+- Assume 60-second default retry window if response doesn't specify timing
+
+**Production deployment:**
+
+Set `REDIS_URL` environment variable for distributed rate limiting:
+```bash
+# Development (local)
+REDIS_URL=memory://
+
+# Production (with Redis)
+REDIS_URL=redis://your-redis-host:6379
+```
+
+Without Redis, rate limits only apply per-instance. In distributed deployments (Kubernetes, multiple servers), use Redis to share rate limit state across all instances.
 
 ## API Documentation
 

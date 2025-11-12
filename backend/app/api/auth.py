@@ -1,5 +1,6 @@
 """Authentication endpoints (see API.md section 1)."""
 
+import os
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
@@ -18,8 +19,13 @@ from ..models.schemas import (
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # Rate limiter to prevent brute force attacks and spam
-# Uses in-memory storage by default (can be upgraded to Redis for production)
-limiter = Limiter(key_func=get_remote_address)
+# Production: Uses Redis for shared state across multiple instances (horizontal scaling)
+# Development: Falls back to in-memory storage (REDIS_URL=memory://)
+# This ensures rate limits work correctly in distributed deployments
+redis_url = os.getenv("REDIS_URL", "memory://")
+limiter = Limiter(key_func=get_remote_address, storage_uri=redis_url)
+
+
 
 
 def _mock_user(email: str) -> User:
@@ -58,7 +64,11 @@ async def signup(request: Request, payload: AuthRequest) -> AuthResponse:
 async def signin(request: Request, payload: AuthRequest) -> AuthResponse:
     """Authenticate user and return JWT (placeholder implementation).
 
-    Rate limit: 10 requests per minute to prevent brute force attacks while allowing retries.
+    Rate limit: 10 requests/minute per IP to prevent brute force attacks.
+
+    Note: Per-email rate limiting would provide additional protection against
+    distributed attacks but requires middleware to cache request body.
+    TODO: Add per-email rate limiting when implementing request body caching middleware.
     """
     user = _mock_user(payload.email)
     token = f"mock-signin-token-{user.id}"

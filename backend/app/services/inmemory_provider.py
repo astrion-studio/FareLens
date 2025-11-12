@@ -80,6 +80,9 @@ class InMemoryProvider(DataProvider):
             expires_at=demo_deal.expires_at,
         )
         # Associate alert with demo watchlist's user_id
+        # Note: _alerts structure changed from List[AlertHistory] to Dict[UUID, List[AlertHistory]]
+        # in commit 0c113ed to properly scope alerts per user and prevent IDOR vulnerabilities.
+        # This dictionary check ensures alerts are keyed by user_id, not stored globally.
         if watchlist.user_id not in self._alerts:
             self._alerts[watchlist.user_id] = []
         self._alerts[watchlist.user_id].append(alert)
