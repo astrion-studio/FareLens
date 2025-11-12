@@ -250,6 +250,8 @@ final class MockAuthService: AuthServiceProtocol {
     var signInCalledWith: (email: String, password: String)?
     var signUpCalledWith: (email: String, password: String)?
     var resetPasswordCalledWith: String?
+    var currentUser: User?
+    var signOutCallCount = 0
 
     var signInResult: Result<User, Error> = .success(
         User(
@@ -279,12 +281,16 @@ final class MockAuthService: AuthServiceProtocol {
 
     func signIn(email: String, password: String) async throws -> User {
         signInCalledWith = (email, password)
-        return try signInResult.get()
+        let user = try signInResult.get()
+        currentUser = user
+        return user
     }
 
     func signUp(email: String, password: String) async throws -> User {
         signUpCalledWith = (email, password)
-        return try signUpResult.get()
+        let user = try signUpResult.get()
+        currentUser = user
+        return user
     }
 
     func resetPassword(email: String) async throws {
@@ -292,11 +298,12 @@ final class MockAuthService: AuthServiceProtocol {
         try resetPasswordResult.get()
     }
 
-    func refreshSession() async throws -> User {
-        fatalError("refreshSession not implemented in mock")
+    func signOut() async {
+        signOutCallCount += 1
+        currentUser = nil
     }
 
-    func signOut() async throws {
-        fatalError("signOut not implemented in mock")
+    func getCurrentUser() async -> User? {
+        currentUser
     }
 }
