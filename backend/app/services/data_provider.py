@@ -37,16 +37,51 @@ class DataProvider(ABC):
     @abstractmethod
     async def create_watchlist(
         self,
+        user_id: UUID,
         payload: WatchlistCreate,
-    ) -> Watchlist: ...
+    ) -> Watchlist:
+        """Create a new watchlist for the authenticated user.
+
+        Args:
+            user_id: ID of the authenticated user (from JWT token)
+            payload: Watchlist creation data
+
+        Returns:
+            Created watchlist with user_id set to authenticated user
+        """
+        ...
 
     @abstractmethod
     async def update_watchlist(
-        self, watchlist_id: UUID, payload: WatchlistUpdate
-    ) -> Watchlist: ...
+        self, user_id: UUID, watchlist_id: UUID, payload: WatchlistUpdate
+    ) -> Watchlist:
+        """Update a watchlist owned by the authenticated user.
+
+        Args:
+            user_id: ID of the authenticated user (from JWT token)
+            watchlist_id: ID of watchlist to update
+            payload: Updated watchlist data
+
+        Returns:
+            Updated watchlist
+
+        Raises:
+            KeyError: If watchlist not found or not owned by user
+        """
+        ...
 
     @abstractmethod
-    async def delete_watchlist(self, watchlist_id: UUID) -> None: ...
+    async def delete_watchlist(self, user_id: UUID, watchlist_id: UUID) -> None:
+        """Delete a watchlist owned by the authenticated user.
+
+        Args:
+            user_id: ID of the authenticated user (from JWT token)
+            watchlist_id: ID of watchlist to delete
+
+        Raises:
+            KeyError: If watchlist not found or not owned by user
+        """
+        ...
 
     @abstractmethod
     async def list_alert_history(
@@ -54,7 +89,14 @@ class DataProvider(ABC):
     ) -> Tuple[List[AlertHistory], int]: ...
 
     @abstractmethod
-    async def append_alert(self, alert: AlertHistory) -> None: ...
+    async def append_alert(self, user_id: UUID, alert: AlertHistory) -> None:
+        """Append an alert to the alert history for a user.
+
+        Args:
+            user_id: ID of the user this alert belongs to
+            alert: Alert history entry to append
+        """
+        ...
 
     @abstractmethod
     async def get_alert_preferences(self, user_id: UUID) -> AlertPreferences: ...
