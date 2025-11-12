@@ -26,9 +26,12 @@ struct DealsView: View {
                         }
                     }
                 } else if viewModel.deals.isEmpty {
-                    EmptyDealsView(onCreateWatchlist: {
-                        showingCreateWatchlist = true
-                    })
+                    EmptyDealsView(
+                        watchlistsViewModel: watchlistsViewModel,
+                        onCreateWatchlist: {
+                            showingCreateWatchlist = true
+                        }
+                    )
                 } else {
                     VStack(spacing: 0) {
                         // Filter bar
@@ -66,6 +69,16 @@ struct DealsView: View {
         .sheet(isPresented: $showingCreateWatchlist) {
             if let viewModel = watchlistsViewModel {
                 CreateWatchlistView(viewModel: viewModel)
+            } else {
+                // Graceful fallback if ViewModel not ready (race condition or user logged out)
+                VStack(spacing: Spacing.md) {
+                    ProgressView()
+                    Text("Loading...")
+                        .bodyStyle()
+                        .foregroundColor(.textSecondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.backgroundPrimary)
             }
         }
         .task {
@@ -116,6 +129,7 @@ struct FilterBar: View {
 }
 
 struct EmptyDealsView: View {
+    let watchlistsViewModel: WatchlistsViewModel?
     let onCreateWatchlist: () -> Void
 
     var body: some View {
@@ -136,6 +150,8 @@ struct EmptyDealsView: View {
             }
 
             FLButton(title: "Create Watchlist", style: .secondary, action: onCreateWatchlist)
+                .disabled(watchlistsViewModel == nil)
+                .opacity(watchlistsViewModel == nil ? 0.5 : 1.0)
         }
         .padding(Spacing.screenHorizontal)
     }

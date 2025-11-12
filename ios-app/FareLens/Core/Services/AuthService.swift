@@ -116,15 +116,8 @@ actor AuthService: AuthServiceProtocol {
         } catch let error as AuthError {
             throw error
         } catch let error as Supabase.AuthError {
-            // Map Supabase AuthError to app errors for better UX
-            // TODO: Replace with error code checking when available in Supabase Swift SDK
-            // Current SDK doesn't expose structured error codes, so we use string matching
-            let errorMessage = error.localizedDescription.lowercased()
-            if errorMessage.contains("invalid") || errorMessage.contains("credentials") {
-                throw AuthError.invalidCredentials
-            }
             logger.error("Sign in failed: \(error.localizedDescription)")
-            throw AuthError.networkError
+            throw mapAuthError(error)
         } catch {
             logger.error("An unexpected error occurred during sign in: \(error.localizedDescription)")
             throw AuthError.networkError
@@ -171,13 +164,8 @@ actor AuthService: AuthServiceProtocol {
         } catch let error as AuthError {
             throw error
         } catch let error as Supabase.AuthError {
-            // Map Supabase AuthError to app errors for better UX
-            let errorMessage = error.localizedDescription.lowercased()
-            if errorMessage.contains("user already registered") || errorMessage.contains("already exists") {
-                throw AuthError.emailAlreadyExists
-            }
             logger.error("Supabase sign up failed: \(error.localizedDescription)")
-            throw AuthError.networkError
+            throw mapAuthError(error)
         } catch {
             logger.error("An unexpected error occurred during sign up: \(error.localizedDescription)")
             throw AuthError.networkError
@@ -266,10 +254,7 @@ actor AuthService: AuthServiceProtocol {
                 if errorMessage.contains("invalid") || errorMessage.contains("expired") || errorMessage
                     .contains("jwt")
                 {
-                    await tokenStore.clearTokens()
-                    await apiClient.setAuthToken(nil)
-                    await persistenceService.clearUser()
-                    currentUser = nil
+                    await clearAuthState()
                     logger.warning("Cleared invalid/expired session")
                 }
                 return nil
@@ -327,6 +312,45 @@ actor AuthService: AuthServiceProtocol {
     }
 
     // MARK: - Private Helpers
+
+    /// Clears all authentication state (tokens, user, API client)
+    /// Call this ONLY when auth failure is confirmed (invalid/expired tokens)
+    /// Do NOT call on network errors (tokens may still be valid)
+    private func clearAuthState() async {
+        await tokenStore.clearTokens()
+        await apiClient.setAuthToken(nil)
+        await persistenceService.clearUser()
+        currentUser = nil
+        logger.info("Auth state cleared")
+    }
+
+    /// Maps Supabase AuthError to app-specific AuthError for better UX
+    /// TODO: Migrate to structured error codes when Supabase Swift SDK v3.x stable
+    /// Current SDK: String matching required (PR #518 added codes but not in stable release)
+    /// Track: https://github.com/supabase/supabase-swift/issues/505
+    private func mapAuthError(_ error: Supabase.AuthError) -> AuthError {
+        let description = error.localizedDescription.lowercased()
+
+        // Check most specific patterns first
+        if description.contains("invalid login credentials") {
+            return .invalidCredentials
+        }
+        if description.contains("email not confirmed") {
+            return .emailNotConfirmed
+        }
+        if description.contains("user already registered") || description.contains("already exists") {
+            return .emailAlreadyExists
+        }
+        if description.contains("invalid") || description.contains("credentials") {
+            return .invalidCredentials
+        }
+        if description.contains("jwt") || description.contains("expired") {
+            return .invalidCredentials // Treat expired tokens as invalid
+        }
+
+        // Default to network error for unknown cases
+        return .networkError
+    }
 
     /// Convert Supabase user to app User model
     private func convertSupabaseUser(_ supabaseUser: Supabase.User) async throws -> User {

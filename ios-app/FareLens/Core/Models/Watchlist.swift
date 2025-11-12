@@ -100,6 +100,8 @@ struct Watchlist: Codable, Identifiable {
         guard let dateRange else { return nil }
         let formatter = DateFormatter()
         formatter.dateStyle = .short
+        // Note: DateFormatter.string(from:) returns String (not String?), never nil
+        // If date is invalid (e.g., NaN timestamp), returns empty string (acceptable for display)
         return "\(formatter.string(from: dateRange.start)) - \(formatter.string(from: dateRange.end))"
     }
 

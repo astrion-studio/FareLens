@@ -40,8 +40,8 @@ struct CreateWatchlistView: View {
     private var isDateRangeValid: Bool {
         guard hasDateRange else { return true }
 
-        // End date must be after start date
-        let isChronological = endDate > startDate
+        // End date must be same day or after start date (allow same-day watchlists)
+        let isChronological = endDate >= startDate
 
         // Start date should be today or in the future
         let isStartDateValid = Calendar.current.startOfDay(for: startDate) >=
