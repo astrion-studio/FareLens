@@ -81,12 +81,47 @@ async def root():
 
 @app.get("/health")
 async def health():
-    """Detailed health check"""
-    return {
+    """Detailed health check with database and Redis connectivity tests."""
+    import redis.asyncio as aioredis
+
+    from .core.config import settings
+    from .services.provider_factory import get_provider
+
+    health_status = {
         "status": "healthy",
-        "database": "not_configured",  # TODO: Add database health check
-        "cache": "not_configured",  # TODO: Add Redis health check
+        "database": "not_configured",
+        "cache": "not_configured",
     }
+
+    # Check database connectivity
+    provider = get_provider()
+    if hasattr(provider, "_ensure_pool"):
+        try:
+            pool = await provider._ensure_pool()
+            async with pool.acquire() as conn:
+                await conn.fetchval("SELECT 1")
+            health_status["database"] = "healthy"
+        except Exception as e:
+            health_status["database"] = f"unhealthy: {str(e)}"
+            health_status["status"] = "degraded"
+    elif settings.use_in_memory_store:
+        health_status["database"] = "in_memory"
+
+    # Check Redis connectivity
+    redis_url = os.getenv("REDIS_URL")
+    if redis_url and redis_url != "memory://":
+        try:
+            redis_client = aioredis.from_url(redis_url)
+            await redis_client.ping()
+            await redis_client.close()
+            health_status["cache"] = "healthy"
+        except Exception as e:
+            health_status["cache"] = f"unhealthy: {str(e)}"
+            health_status["status"] = "degraded"
+    elif redis_url == "memory://":
+        health_status["cache"] = "in_memory"
+
+    return health_status
 
 
 api_prefix = "/v1"

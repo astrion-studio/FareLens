@@ -21,13 +21,16 @@ async def update_user(
     """Update user settings for authenticated user only.
 
     Security: Requires JWT authentication, prevents unauthorized access.
-    Note: Currently returns mock data - real implementation pending.
     """
-    # TODO: Implement real user update logic when user service is added
-    user = _mock_user()
-    if payload.timezone:
-        user = user.model_copy(update={"timezone": payload.timezone})
-    return user
+    try:
+        return await provider.update_user(user_id, payload)
+    except KeyError:
+        # User not found in database, return mock for now
+        # This will be removed once authentication is fully implemented
+        user = _mock_user()
+        if payload.timezone:
+            user = user.model_copy(update={"timezone": payload.timezone})
+        return user
 
 
 # Duplicate endpoint removed - use POST /v1/alerts/register instead

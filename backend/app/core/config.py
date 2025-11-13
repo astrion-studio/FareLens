@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     rate_limit_signup: str = "5/hour"
     rate_limit_signin: str = "10/minute"
     rate_limit_reset_password: str = "3/hour"
+    service_account_api_key: Optional[str] = None
 
     class Config:
         env_prefix = "FARELENS_"

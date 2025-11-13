@@ -15,6 +15,8 @@ from ..models.schemas import (
     DealsResponse,
     FlightDeal,
     PreferredAirportsUpdate,
+    User,
+    UserUpdate,
     Watchlist,
     WatchlistCreate,
     WatchlistUpdate,
@@ -491,4 +493,53 @@ class SupabaseProvider(DataProvider):
             opened_at=row.get("opened_at"),
             clicked_through=row.get("clicked_through"),
             expires_at=row.get("alert_expires_at"),
+        )
+
+    # Users -----------------------------------------------------------------
+
+    async def get_user(self, user_id: UUID) -> User:
+        """Get user by ID from users table."""
+        pool = await self._ensure_pool()
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow("SELECT * FROM users WHERE id = $1", user_id)
+            if row is None:
+                raise KeyError(str(user_id))
+        return self._map_user(row)
+
+    async def update_user(self, user_id: UUID, payload: UserUpdate) -> User:
+        """Update user settings in users table."""
+        pool = await self._ensure_pool()
+        update_data = payload.model_dump(exclude_unset=True)
+
+        if not update_data:
+            # No fields to update, just return current user
+            return await self.get_user(user_id)
+
+        # Build dynamic UPDATE query
+        assignments = [
+            f"{key} = ${idx}" for idx, key in enumerate(update_data.keys(), start=2)
+        ]
+        set_clause = ", ".join(assignments)
+        query = (
+            f"UPDATE users SET {set_clause}, updated_at = NOW() "
+            f"WHERE id = $1 RETURNING *"
+        )
+        params = [user_id] + list(update_data.values())
+
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(query, *params)
+            if row is None:
+                raise KeyError(str(user_id))
+        return self._map_user(row)
+
+    def _map_user(self, row: asyncpg.Record) -> User:
+        """Map database row to User model."""
+        from datetime import datetime, timezone
+
+        return User(
+            id=row["id"],
+            email=row["email"],
+            subscription_tier=row.get("subscription_tier", "free"),
+            timezone=row.get("timezone", "America/Los_Angeles"),
+            created_at=row["created_at"],
         )

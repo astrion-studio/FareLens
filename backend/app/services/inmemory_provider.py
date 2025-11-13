@@ -12,6 +12,8 @@ from ..models.schemas import (
     DealsResponse,
     FlightDeal,
     PreferredAirportsUpdate,
+    User,
+    UserUpdate,
     Watchlist,
     WatchlistCreate,
     WatchlistUpdate,
@@ -35,6 +37,8 @@ class InMemoryProvider(DataProvider):
         self._preferred_airports: Dict[UUID, List[Dict[str, Any]]] = {}
         # Device tokens (keyed by user_id, then device_id)
         self.device_tokens: Dict[UUID, Dict[UUID, str]] = {}
+        # Users (keyed by user_id)
+        self._users: Dict[UUID, User] = {}
         self._seed()
 
     def _seed(self) -> None:
@@ -220,6 +224,30 @@ class InMemoryProvider(DataProvider):
         if user_id not in self.device_tokens:
             self.device_tokens[user_id] = {}
         self.device_tokens[user_id][device_id] = token
+
+    # Users -----------------------------------------------------------------
+
+    async def get_user(self, user_id: UUID) -> User:
+        """Get user by ID from in-memory store."""
+        user = self._users.get(user_id)
+        if user is None:
+            raise KeyError(str(user_id))
+        return user
+
+    async def update_user(self, user_id: UUID, payload: UserUpdate) -> User:
+        """Update user settings in in-memory store."""
+        user = self._users.get(user_id)
+        if user is None:
+            raise KeyError(str(user_id))
+
+        update_data = payload.model_dump(exclude_unset=True)
+        if not update_data:
+            return user
+
+        # Update user with new data
+        updated_user = user.model_copy(update=update_data)
+        self._users[user_id] = updated_user
+        return updated_user
 
 
 provider = InMemoryProvider()

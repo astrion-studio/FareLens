@@ -12,6 +12,8 @@ from ..models.schemas import (
     DealsResponse,
     FlightDeal,
     PreferredAirportsUpdate,
+    User,
+    UserUpdate,
     Watchlist,
     WatchlistCreate,
     WatchlistUpdate,
@@ -115,3 +117,34 @@ class DataProvider(ABC):
     async def register_device_token(
         self, user_id: UUID, device_id: UUID, token: str, platform: str
     ) -> None: ...
+
+    @abstractmethod
+    async def get_user(self, user_id: UUID) -> User:
+        """Get user by ID.
+
+        Args:
+            user_id: ID of the user to retrieve
+
+        Returns:
+            User object
+
+        Raises:
+            KeyError: If user not found
+        """
+        ...
+
+    @abstractmethod
+    async def update_user(self, user_id: UUID, payload: UserUpdate) -> User:
+        """Update user settings.
+
+        Args:
+            user_id: ID of the user to update
+            payload: User update data
+
+        Returns:
+            Updated user object
+
+        Raises:
+            KeyError: If user not found
+        """
+        ...
