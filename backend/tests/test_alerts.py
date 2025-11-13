@@ -25,14 +25,16 @@ client = TestClient(app)
 
 
 def test_register_device():
+    device_id = uuid4()
     payload = {
-        "device_id": str(uuid4()),
+        "device_id": str(device_id),
         "token": "mock-token",
         "platform": "ios",
     }
     resp = client.post("/v1/alerts/register", json=payload)
     assert resp.status_code == 201
-    assert resp.json()["status"] == "registered"
+    assert resp.json()["registered"] == True
+    assert resp.json()["device_id"] == str(device_id)
 
 
 def test_alert_history():

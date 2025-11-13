@@ -35,7 +35,8 @@ def test_reset_password():
     assert resp.status_code == 202
 
 
-def test_user_update_and_apns():
+def test_user_update():
+    """Test user profile update endpoint."""
     update = client.patch(
         "/v1/user",
         json={"timezone": "America/New_York"},
@@ -43,9 +44,6 @@ def test_user_update_and_apns():
     assert update.status_code == 200
     assert update.json()["timezone"] == "America/New_York"
 
-    apns = client.post(
-        "/v1/user/apns-token",
-        json={"token": "mock-apns"},
-    )
-    assert apns.status_code == 200
-    assert apns.json()["status"] == "registered"
+
+# APNS token registration test moved to test_alerts.py
+# Endpoint consolidated to POST /v1/alerts/register (canonical API endpoint)

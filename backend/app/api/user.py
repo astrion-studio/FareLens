@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from ..core.auth import get_current_user_id
-from ..models.schemas import DeviceRegistrationRequest, User, UserUpdate
+from ..models.schemas import User, UserUpdate
 from ..services.data_provider import DataProvider
 from ..services.provider_factory import get_data_provider
 
