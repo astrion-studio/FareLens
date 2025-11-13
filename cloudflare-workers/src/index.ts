@@ -16,12 +16,12 @@
  */
 
 import { z } from 'zod';
-import {
-  originValidation,
-  destinationValidation,
-  datetimeValidation,
-  priceValidation,
-} from './validation';
+
+// Validation schemas for input sanitization
+const originValidation = z.string().regex(/^[A-Z]{3}$/, 'Origin must be a 3-letter IATA code');
+const destinationValidation = z.string().regex(/^([A-Z]{3}|ANY)$/, 'Destination must be a 3-letter IATA code or "ANY"');
+const datetimeValidation = z.string().datetime();
+const priceValidation = z.number().positive().max(50000, 'Price must be between 0 and 50000');
 
 interface Env {
   // Secrets (set via `wrangler secret put`)

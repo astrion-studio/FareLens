@@ -38,7 +38,10 @@ app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 # Note: Native iOS apps don't require CORS (browser-only security feature)
 # CORS is disabled by default for security - only enable if web client needed
 import os
-cors_origins = os.getenv("CORS_ORIGINS", "").split(",") if os.getenv("CORS_ORIGINS") else []
+
+cors_origins = (
+    os.getenv("CORS_ORIGINS", "").split(",") if os.getenv("CORS_ORIGINS") else []
+)
 
 if cors_origins:
     app.add_middleware(

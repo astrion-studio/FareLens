@@ -32,8 +32,6 @@ if not redis_url:
 limiter = Limiter(key_func=get_remote_address, storage_uri=redis_url)
 
 
-
-
 def _mock_user(email: str) -> User:
     now = datetime.now(timezone.utc)
     return User(

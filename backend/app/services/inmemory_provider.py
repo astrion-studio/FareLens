@@ -27,7 +27,9 @@ class InMemoryProvider(DataProvider):
     def __init__(self) -> None:
         self._deals: Dict[UUID, FlightDeal] = {}
         self._watchlists: Dict[UUID, Watchlist] = {}
-        self._alerts: Dict[UUID, List[AlertHistory]] = {}  # Keyed by user_id for security
+        self._alerts: Dict[UUID, List[AlertHistory]] = (
+            {}
+        )  # Keyed by user_id for security
         # User-specific preferences (keyed by user_id)
         self._alert_preferences: Dict[UUID, AlertPreferences] = {}
         self._preferred_airports: Dict[UUID, List[Dict[str, Any]]] = {}
@@ -107,9 +109,7 @@ class InMemoryProvider(DataProvider):
 
     async def list_watchlists(self, user_id: UUID) -> List[Watchlist]:
         # Filter watchlists by user_id
-        user_watchlists = [
-            w for w in self._watchlists.values() if w.user_id == user_id
-        ]
+        user_watchlists = [w for w in self._watchlists.values() if w.user_id == user_id]
         return sorted(
             user_watchlists,
             key=lambda watchlist: watchlist.created_at,
