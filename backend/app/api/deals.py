@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from ..models.schemas import BackgroundRefreshResponse, FlightDeal
+from ..models.schemas import FlightDeal
 from ..services.data_provider import DataProvider
 from ..services.provider_factory import get_data_provider
 

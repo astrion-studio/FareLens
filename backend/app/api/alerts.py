@@ -41,8 +41,8 @@ async def register_device(
         platform=payload.platform,
     )
     return DeviceRegistrationResponse(
-        status="registered",
-        message="Device token saved",
+        registered=True,
+        device_id=str(payload.device_id),
     )
 
 

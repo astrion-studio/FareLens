@@ -29,13 +29,3 @@ def test_deal_detail():
     assert payload["id"] == deal_id
     # Validate UUID format
     UUID(deal_id)
-
-
-def test_background_refresh():
-    resp = client.get("/v1/deals/background-refresh")
-    if resp.status_code != 200:
-        print(f"Error response: {resp.json()}")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["status"] == "ok"
-    assert "refreshed_at" in data

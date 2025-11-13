@@ -30,27 +30,9 @@ async def update_user(
     return user
 
 
-@router.post("/apns-token")
-async def register_apns_token(
-    payload: DeviceRegistrationRequest,
-    user_id: UUID = Depends(get_current_user_id),
-    provider: DataProvider = Depends(get_data_provider),
-) -> dict:
-    """Register APNS device token for authenticated user.
-
-    Security: Associates device with authenticated user for push notifications.
-    Prevents unauthorized device registrations and ensures notifications go to correct user.
-    """
-    await provider.register_device_token(
-        user_id=user_id,
-        device_id=payload.device_id,
-        token=payload.token,
-        platform=payload.platform,
-    )
-    return {
-        "status": "registered",
-        "device_id": str(payload.device_id),
-    }
+# Duplicate endpoint removed - use POST /v1/alerts/register instead
+# The /apns-token endpoint was redundant with /alerts/register (same functionality)
+# Keeping only the canonical endpoint defined in API.md
 
 
 def _mock_user() -> User:

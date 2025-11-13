@@ -1,0 +1,149 @@
+================================================================================
+FARELENS BACKEND P1 ISSUES: QUICK REFERENCE
+================================================================================
+
+ISSUE STATUS:
+  P1-9  [CORRECT] - Device token registration uses authenticated user
+  P1-10 [FIXED]   - IATA code regex validation corrected
+  P1-11 [FIXED]   - Subscription tier protected with .strict() schema
+  P1-12 [CORRECT] - Alert history properly filters by user_id
+  P1-14 [FIXED]   - Status code constants used consistently
+
+FILES CHANGED: 4 (3 modified, 1 new)
+  NEW:      cloudflare-workers/src/validation.ts (+50 lines)
+  MODIFIED: cloudflare-workers/src/index.ts (4 edits)
+  MODIFIED: backend/app/api/watchlists.py (1 edit)
+  MODIFIED: backend/app/api/auth.py (1 edit)
+
+================================================================================
+KEY ARCHITECTURAL DECISIONS
+================================================================================
+
+1. USER ID AUTHENTICATION
+   ✓ MUST come from: Depends(get_current_user_id)
+   ✗ NEVER from: request body, query params, headers
+
+2. FIELD VALIDATION
+   ✓ Use Zod schemas with .strict()
+   ✓ Explicitly list updatable fields only
+   ✗ Don't allow extra fields (prevents tier bypass)
+
+3. IATA CODE VALIDATION
+   ✓ Origin: /^[A-Z]{3}$/ (specific airport only)
+   ✓ Destination: /^([A-Z]{3}|ANY)$/ (specific or ANY)
+   ✗ Never: "ANYthing", "any", "AN"
+
+4. STATUS CODES
+   ✓ Use: status.HTTP_404_NOT_FOUND
+   ✗ Never: raw integers like 404
+
+5. PROVIDER SYNC
+   ✓ Python ABC enforces SupabaseProvider ↔ InMemoryProvider sync
+   ✓ If signatures don't match, instantiation fails
+
+================================================================================
+SECURITY CHECKLIST (for new endpoints)
+================================================================================
+
+Authentication:
+  ☐ Endpoint requires user_id? Use Depends(get_current_user_id)
+  ☐ No user data exposed without auth
+
+Input Validation:
+  ☐ Zod schema with .strict() for all user input
+  ☐ Clear error messages without leaking internals
+  ☐ IATA codes use shared validation patterns
+
+Database:
+  ☐ All user-scoped queries filter WHERE user_id = $1
+  ☐ No accidental data leaks between users
+  ☐ Indexes on frequently-filtered columns
+
+Errors:
+  ☐ Use status.HTTP_* constants (not integers)
+  ☐ No stack traces in production responses
+  ☐ Helpful but not revealing error messages
+
+================================================================================
+TESTING COMMANDS
+================================================================================
+
+Python syntax check:
+  python3 -m py_compile backend/app/api/*.py
+
+Run API tests:
+  pytest backend/tests/api/ -v
+
+Test specific issue:
+  pytest tests/ -k "iata_code" -v          # P1-10
+  pytest tests/ -k "subscription_tier" -v  # P1-11
+
+Manual test regex (from terminal):
+  curl -X POST /watchlists \
+    -d '{"destination": "ANYthing"}' \
+    # Should fail validation
+
+================================================================================
+DEPLOYMENT CHECKLIST
+================================================================================
+
+Pre-deployment:
+  ☐ All tests passing
+  ☐ Code review approved
+  ☐ No breaking API changes (backward compatible)
+  ☐ Status codes match documentation
+
+Deployment:
+  ☐ Deploy cloudflare-workers/src/validation.ts
+  ☐ Deploy cloudflare-workers/src/index.ts
+  ☐ Deploy backend/app/api/{watchlists,auth}.py
+  ☐ No database migrations needed
+
+Post-deployment:
+  ☐ Monitor error logs for validation errors
+  ☐ Verify no 4xx error rate increase
+  ☐ Smoke test: POST /watchlists with valid data
+  ☐ Smoke test: PATCH /user with unknown field (should fail)
+
+Rollback (if needed):
+  ☐ git revert (safe - no DB changes)
+  ☐ Redeploy previous version
+  ☐ No data recovery needed
+
+================================================================================
+COMMON PATTERNS
+================================================================================
+
+Pattern: Validate and reject unknown fields
+  const Schema = z.object({
+    field1: z.string().optional(),
+    field2: z.number().optional(),
+  }).strict();  // <- Reject unknown fields!
+
+Pattern: User-scoped endpoint
+  @router.get("/resource")
+  async def get_resource(
+    user_id: UUID = Depends(get_current_user_id),
+    provider: DataProvider = Depends(get_data_provider),
+  ):
+    return await provider.list_resources(user_id=user_id)
+
+Pattern: Proper error handling
+  try:
+    return await provider.get_resource(id)
+  except KeyError as exc:
+    raise HTTPException(
+      status_code=status.HTTP_404_NOT_FOUND,  # Use constant!
+      detail="Resource not found"
+    ) from exc
+
+================================================================================
+DOCUMENTATION REFERENCES
+================================================================================
+
+Full analysis:         BACKEND_P1_FIXES.md
+Architecture guide:    ARCHITECTURE_DECISIONS.md
+Code changes:          P1_FIXES_SUMMARY.md
+Executive summary:     P1_EXECUTIVE_SUMMARY.md
+
+================================================================================

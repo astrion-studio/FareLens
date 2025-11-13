@@ -118,8 +118,8 @@ class DeviceRegistrationRequest(BaseModel):
 
 
 class DeviceRegistrationResponse(BaseModel):
-    status: str
-    message: str
+    registered: bool
+    device_id: str
 
 
 class AuthRequest(BaseModel):
@@ -163,12 +163,6 @@ class UserUpdate(BaseModel):
 
 class DealsResponse(BaseModel):
     deals: List[FlightDeal]
-
-
-class BackgroundRefreshResponse(BaseModel):
-    status: str
-    new_deals: int = 0
-    refreshed_at: datetime
 
 
 AuthResponse.model_rebuild()

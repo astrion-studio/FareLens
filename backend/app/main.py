@@ -34,14 +34,20 @@ async def rate_limit_handler(request: Request, exc: Exception) -> Response:
 app.state.limiter = auth.limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
-# CORS configuration for iOS app
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # TODO: Restrict to iOS app domain in production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS configuration
+# Note: Native iOS apps don't require CORS (browser-only security feature)
+# CORS is disabled by default for security - only enable if web client needed
+import os
+cors_origins = os.getenv("CORS_ORIGINS", "").split(",") if os.getenv("CORS_ORIGINS") else []
+
+if cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,  # Explicit origins only (never use "*")
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+        allow_headers=["Authorization", "Content-Type"],
+    )
 
 
 @app.get("/")

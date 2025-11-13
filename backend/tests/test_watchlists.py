@@ -95,13 +95,13 @@ def test_watchlist_user_isolation():
     watchlist_ids_b = [w["id"] for w in resp_b_list.json()]
     assert watchlist_a_id not in watchlist_ids_b
 
-    # User B cannot update User A's watchlist (idempotent - returns 200 but doesn't actually update)
+    # User B cannot update User A's watchlist (returns 404 to prevent IDOR)
     resp_b_update = client.put(
         f"/v1/watchlists/{watchlist_a_id}",
         json={"max_price": 999, "is_active": False},
     )
-    # Implementation is idempotent for update - returns 200 but doesn't modify watchlist
-    assert resp_b_update.status_code == 200
+    # Implementation correctly returns 404 to prevent information disclosure
+    assert resp_b_update.status_code == 404
 
     # User B cannot delete User A's watchlist (idempotent - returns 204 but doesn't actually delete)
     resp_b_delete = client.delete(f"/v1/watchlists/{watchlist_a_id}")

@@ -16,6 +16,12 @@
  */
 
 import { z } from 'zod';
+import {
+  originValidation,
+  destinationValidation,
+  datetimeValidation,
+  priceValidation,
+} from './validation';
 
 interface Env {
   // Secrets (set via `wrangler secret put`)
@@ -551,11 +557,11 @@ async function handleWatchlists(request: Request, env: Env): Promise<Response> {
  */
 const WatchlistSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  origin: z.string().regex(/^[A-Z]{3}$/, 'Origin must be 3-letter IATA code'),
-  destination: z.string().regex(/^[A-Z]{3}$|^ANY$/, 'Destination must be 3-letter IATA code or ANY'),
-  date_range_start: z.string().datetime().optional(),
-  date_range_end: z.string().datetime().optional(),
-  max_price: z.number().positive('Max price must be positive').optional(),
+  origin: originValidation,
+  destination: destinationValidation,
+  date_range_start: datetimeValidation.optional(),
+  date_range_end: datetimeValidation.optional(),
+  max_price: priceValidation.optional(),
   is_active: z.boolean().optional(),
 });
 
@@ -851,7 +857,7 @@ async function getUser(token: string, env: Env, userId: string): Promise<Respons
  * Matches actual users table schema from supabase_schema_FINAL.sql
  */
 const PreferredAirportSchema = z.object({
-  iata: z.string().regex(/^[A-Z]{3}$/, 'Airport code must be 3-letter IATA code'),
+  iata: originValidation,  // Use shared IATA validation
   weight: z.number().min(0).max(1, 'Weight must be between 0 and 1'),
 });
 
@@ -868,7 +874,7 @@ const UserUpdateSchema = z.object({
 
   // Preferred airports (JSONB array in users table)
   preferred_airports: z.array(PreferredAirportSchema).max(10, 'Maximum 10 preferred airports').optional(),
-});
+}).strict();  // Reject any unknown fields (e.g., subscription_tier, id, created_at)
 
 type UserUpdateInput = z.infer<typeof UserUpdateSchema>;
 

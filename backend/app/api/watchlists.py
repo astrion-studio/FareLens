@@ -59,7 +59,7 @@ async def update_watchlist(
         )
     except KeyError as exc:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Watchlist not found",
         ) from exc
 
