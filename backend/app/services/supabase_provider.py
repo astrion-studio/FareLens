@@ -543,3 +543,32 @@ class SupabaseProvider(DataProvider):
             timezone=row.get("timezone", "America/Los_Angeles"),
             created_at=row["created_at"],
         )
+
+    async def health_check(self) -> dict:
+        """Check database connectivity using existing connection pool.
+
+        Returns:
+            dict with health status and connection pool information
+        """
+        try:
+            pool = await self._ensure_pool()
+            async with pool.acquire() as conn:
+                await conn.fetchval("SELECT 1")
+
+            # Get pool stats for observability
+            pool_size = pool.get_size()
+            pool_free = pool.get_idle_size()
+
+            return {
+                "status": "healthy",
+                "type": "postgresql",
+                "pool_size": pool_size,
+                "pool_free": pool_free,
+                "pool_in_use": pool_size - pool_free,
+            }
+        except Exception as e:
+            return {
+                "status": "unhealthy",
+                "type": "postgresql",
+                "error": str(e),
+            }

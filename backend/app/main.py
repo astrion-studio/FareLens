@@ -4,8 +4,10 @@ FareLens Backend API
 FastAPI application entry point.
 """
 
+import os
 from contextlib import asynccontextmanager
 
+import redis.asyncio as aioredis
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
@@ -14,16 +16,30 @@ from slowapi.errors import RateLimitExceeded
 from .api import alerts, auth, deals, user, watchlists
 from .services.provider_factory import get_provider
 
+# Global Redis connection pool for health checks (reused across requests)
+_redis_pool: aioredis.ConnectionPool | None = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan event handler for startup and shutdown."""
-    # Startup
+    global _redis_pool
+
+    # Startup: Initialize Redis connection pool if configured
+    redis_url = os.getenv("REDIS_URL")
+    if redis_url and redis_url != "memory://":
+        _redis_pool = aioredis.ConnectionPool.from_url(redis_url)
+
     yield
+
     # Shutdown: Clean up resources
     provider = get_provider()
     if hasattr(provider, "close"):
         await provider.close()
+
+    # Close Redis connection pool
+    if _redis_pool:
+        await _redis_pool.disconnect()
 
 
 app = FastAPI(
@@ -53,8 +69,6 @@ app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 # CORS configuration
 # Note: Native iOS apps don't require CORS (browser-only security feature)
 # CORS is disabled by default for security - only enable if web client needed
-import os
-
 cors_origins = (
     os.getenv("CORS_ORIGINS", "").split(",") if os.getenv("CORS_ORIGINS") else []
 )
@@ -81,45 +95,52 @@ async def root():
 
 @app.get("/health")
 async def health():
-    """Detailed health check with database and Redis connectivity tests."""
-    import redis.asyncio as aioredis
+    """Detailed health check with database and Redis connectivity tests.
 
-    from .core.config import settings
-    from .services.provider_factory import get_provider
-
+    Uses connection pools to avoid creating new connections on every request.
+    Provides detailed status and metrics for observability.
+    """
     health_status = {
         "status": "healthy",
-        "database": "not_configured",
-        "cache": "not_configured",
+        "database": {"status": "not_configured"},
+        "cache": {"status": "not_configured"},
     }
 
-    # Check database connectivity
+    # Check database connectivity using provider's health check
     provider = get_provider()
-    if hasattr(provider, "_ensure_pool"):
-        try:
-            pool = await provider._ensure_pool()
-            async with pool.acquire() as conn:
-                await conn.fetchval("SELECT 1")
-            health_status["database"] = "healthy"
-        except Exception as e:
-            health_status["database"] = f"unhealthy: {str(e)}"
-            health_status["status"] = "degraded"
-    elif settings.use_in_memory_store:
-        health_status["database"] = "in_memory"
+    db_health = await provider.health_check()
+    health_status["database"] = db_health
 
-    # Check Redis connectivity
+    if db_health["status"] == "unhealthy":
+        health_status["status"] = "degraded"
+
+    # Check Redis connectivity using connection pool
     redis_url = os.getenv("REDIS_URL")
     if redis_url and redis_url != "memory://":
         try:
-            redis_client = aioredis.from_url(redis_url)
-            await redis_client.ping()
-            await redis_client.close()
-            health_status["cache"] = "healthy"
+            if _redis_pool:
+                # Use existing connection pool
+                redis_client = aioredis.Redis(connection_pool=_redis_pool)
+                await redis_client.ping()
+                health_status["cache"] = {
+                    "status": "healthy",
+                    "type": "redis",
+                }
+            else:
+                health_status["cache"] = {
+                    "status": "unhealthy",
+                    "error": "Redis pool not initialized",
+                }
+                health_status["status"] = "degraded"
         except Exception as e:
-            health_status["cache"] = f"unhealthy: {str(e)}"
+            health_status["cache"] = {
+                "status": "unhealthy",
+                "type": "redis",
+                "error": str(e),
+            }
             health_status["status"] = "degraded"
     elif redis_url == "memory://":
-        health_status["cache"] = "in_memory"
+        health_status["cache"] = {"status": "healthy", "type": "in_memory"}
 
     return health_status
 

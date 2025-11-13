@@ -148,3 +148,16 @@ class DataProvider(ABC):
             KeyError: If user not found
         """
         ...
+
+    async def health_check(self) -> dict:
+        """Check provider health and connectivity.
+
+        Returns:
+            dict with status information:
+            - status: "healthy" | "unhealthy"
+            - details: Additional information about the health check
+
+        Default implementation for in-memory providers.
+        Override in database providers to check actual connectivity.
+        """
+        return {"status": "healthy", "type": "in_memory"}
