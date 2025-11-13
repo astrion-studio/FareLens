@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from ..core.auth import get_current_user_id
-from ..models.schemas import APNsRegistration, User, UserUpdate
+from ..models.schemas import DeviceRegistrationRequest, User, UserUpdate
 from ..services.data_provider import DataProvider
 from ..services.provider_factory import get_data_provider
 
@@ -32,7 +32,7 @@ async def update_user(
 
 @router.post("/apns-token")
 async def register_apns_token(
-    payload: APNsRegistration,
+    payload: DeviceRegistrationRequest,
     user_id: UUID = Depends(get_current_user_id),
     provider: DataProvider = Depends(get_data_provider),
 ) -> dict:

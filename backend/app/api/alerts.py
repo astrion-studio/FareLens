@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 
 from ..core.auth import get_current_user_id
 from ..models.schemas import (
@@ -48,8 +48,8 @@ async def register_device(
 
 @alerts_router.get("/history", response_model=AlertHistoryResponse)
 async def get_history(
-    page: int = 1,
-    per_page: int = 20,
+    page: int = Query(1, ge=1, description="Page number (1-indexed)"),
+    per_page: int = Query(20, ge=1, le=100, description="Results per page"),
     user_id: UUID = Depends(get_current_user_id),
     provider: DataProvider = Depends(get_data_provider),
 ) -> AlertHistoryResponse:
@@ -57,6 +57,11 @@ async def get_history(
 
     Security: Only returns alerts for the authenticated user.
     Prevents users from viewing each other's alert history.
+
+    Args:
+        page: Page number (minimum 1)
+        per_page: Results per page (1-100, prevents DoS via excessive pagination)
+        user_id: Authenticated user ID from JWT token
     """
     alerts, total = await provider.list_alert_history(
         user_id=user_id,

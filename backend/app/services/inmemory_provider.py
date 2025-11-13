@@ -203,7 +203,7 @@ class InMemoryProvider(DataProvider):
 
     async def update_preferred_airports(
         self, user_id: UUID, payload: PreferredAirportsUpdate
-    ) -> dict:
+    ) -> Dict[str, Any]:
         airports_list = [
             {"iata": item.iata.upper(), "weight": item.weight}
             for item in payload.preferred_airports

@@ -74,12 +74,12 @@ class DataProvider(ABC):
     async def delete_watchlist(self, user_id: UUID, watchlist_id: UUID) -> None:
         """Delete a watchlist owned by the authenticated user.
 
+        Idempotent: Silently succeeds if watchlist not found or not owned by user.
+        This follows HTTP DELETE semantics (204 No Content for both existing and non-existing resources).
+
         Args:
             user_id: ID of the authenticated user (from JWT token)
             watchlist_id: ID of watchlist to delete
-
-        Raises:
-            KeyError: If watchlist not found or not owned by user
         """
         ...
 

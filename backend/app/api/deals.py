@@ -23,21 +23,9 @@ async def list_deals(
     return response
 
 
-@router.get(
-    "/background-refresh",
-    response_model=BackgroundRefreshResponse,
-    summary="Background refresh task",
-)
-async def background_refresh() -> BackgroundRefreshResponse:
-    """Placeholder background refresh endpoint.
-
-    References API.md `GET /v1/background-refresh`.
-    """
-    return BackgroundRefreshResponse(
-        status="ok",
-        new_deals=0,
-        refreshed_at=_utcnow(),
-    )
+# TODO: Implement background-refresh endpoint with proper authentication
+# The endpoint is currently removed due to security concerns (no auth, DoS vector)
+# When implementing, use service account JWT or internal-only deployment
 
 
 @router.get("/{deal_id}", response_model=FlightDeal, summary="Deal detail")

@@ -161,12 +161,6 @@ class UserUpdate(BaseModel):
     timezone: Optional[str] = None
 
 
-class APNsRegistration(BaseModel):
-    device_id: UUID
-    token: str
-    platform: str = "ios"
-
-
 class DealsResponse(BaseModel):
     deals: List[FlightDeal]
 

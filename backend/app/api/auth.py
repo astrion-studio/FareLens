@@ -19,10 +19,16 @@ from ..models.schemas import (
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # Rate limiter to prevent brute force attacks and spam
-# Production: Uses Redis for shared state across multiple instances (horizontal scaling)
-# Development: Falls back to in-memory storage (REDIS_URL=memory://)
-# This ensures rate limits work correctly in distributed deployments
-redis_url = os.getenv("REDIS_URL", "memory://")
+# Production: Requires REDIS_URL environment variable for distributed deployments
+# Development: Use REDIS_URL=memory:// for local testing (single instance only)
+# WARNING: memory:// storage is NOT shared across instances - use Redis in production
+redis_url = os.getenv("REDIS_URL")
+if not redis_url:
+    raise RuntimeError(
+        "REDIS_URL environment variable is required for rate limiting. "
+        "Set REDIS_URL=memory:// for development (single instance) or "
+        "REDIS_URL=redis://host:port for production (distributed)."
+    )
 limiter = Limiter(key_func=get_remote_address, storage_uri=redis_url)
 
 
@@ -81,9 +87,8 @@ async def reset_password(request: Request, payload: ResetPasswordRequest) -> dic
     """Send password reset email (mock).
 
     Rate limit: 3 requests per hour to prevent email bombing and abuse.
+    Note: Email validation handled by Pydantic (EmailStr type) - no manual check needed.
     """
-    if not payload.email:
-        raise HTTPException(status_code=400, detail="Email required")
     return {
         "status": "accepted",
         "message": "Password reset instructions sent",
