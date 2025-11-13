@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException, Request, status
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
+from ..core.config import settings
 from ..models.schemas import (
     AuthRequest,
     AuthResponse,
@@ -52,11 +53,11 @@ def _mock_user(email: str) -> User:
 @router.post(
     "/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED
 )
-@limiter.limit("5/hour")  # Prevent spam account creation
+@limiter.limit(settings.rate_limit_signup)  # Prevent spam account creation
 async def signup(request: Request, payload: AuthRequest) -> AuthResponse:
     """Create a new account and return JWT (placeholder implementation).
 
-    Rate limit: 5 requests per hour to prevent spam account creation.
+    Rate limit: Configurable via FARELENS_RATE_LIMIT_SIGNUP (default: 5/hour).
     """
     user = _mock_user(payload.email)
     token = f"mock-signup-token-{user.id}"
@@ -64,11 +65,11 @@ async def signup(request: Request, payload: AuthRequest) -> AuthResponse:
 
 
 @router.post("/signin", response_model=AuthResponse)
-@limiter.limit("10/minute")  # Prevent brute force attacks
+@limiter.limit(settings.rate_limit_signin)  # Prevent brute force attacks
 async def signin(request: Request, payload: AuthRequest) -> AuthResponse:
     """Authenticate user and return JWT (placeholder implementation).
 
-    Rate limit: 10 requests/minute per IP to prevent brute force attacks.
+    Rate limit: Configurable via FARELENS_RATE_LIMIT_SIGNIN (default: 10/minute).
 
     Note: Per-email rate limiting would provide additional protection against
     distributed attacks but requires middleware to cache request body.
@@ -80,11 +81,11 @@ async def signin(request: Request, payload: AuthRequest) -> AuthResponse:
 
 
 @router.post("/reset-password", status_code=status.HTTP_202_ACCEPTED)
-@limiter.limit("3/hour")  # Prevent email bombing
+@limiter.limit(settings.rate_limit_reset_password)  # Prevent email bombing
 async def reset_password(request: Request, payload: ResetPasswordRequest) -> dict:
     """Send password reset email (mock).
 
-    Rate limit: 3 requests per hour to prevent email bombing and abuse.
+    Rate limit: Configurable via FARELENS_RATE_LIMIT_RESET_PASSWORD (default: 3/hour).
     Note: Email validation handled by Pydantic (EmailStr type) - no manual check needed.
     """
     return {

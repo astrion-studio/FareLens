@@ -10,7 +10,7 @@ from app.main import app  # noqa: E402
 client = TestClient(app)
 
 
-def test_signup_signin_flow():
+def test_signup_signin_flow() -> None:
     signup = client.post(
         "/v1/auth/signup",
         json={"email": "tester@example.com", "password": "Secret123"},
@@ -27,7 +27,7 @@ def test_signup_signin_flow():
     assert "token" in signin.json()
 
 
-def test_reset_password():
+def test_reset_password() -> None:
     resp = client.post(
         "/v1/auth/reset-password",
         json={"email": "tester@example.com"},
@@ -35,7 +35,7 @@ def test_reset_password():
     assert resp.status_code == 202
 
 
-def test_user_update():
+def test_user_update() -> None:
     """Test user profile update endpoint."""
     update = client.patch(
         "/v1/user",

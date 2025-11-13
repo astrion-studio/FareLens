@@ -4,17 +4,33 @@ FareLens Backend API
 FastAPI application entry point.
 """
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from .api import alerts, auth, deals, user, watchlists
+from .services.provider_factory import get_provider
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan event handler for startup and shutdown."""
+    # Startup
+    yield
+    # Shutdown: Clean up resources
+    provider = get_provider()
+    if hasattr(provider, "close"):
+        await provider.close()
+
 
 app = FastAPI(
     title="FareLens API",
     description="Flight deal tracking and alerts API",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 

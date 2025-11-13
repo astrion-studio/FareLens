@@ -24,7 +24,7 @@ app.dependency_overrides[get_current_user_id] = override_get_current_user_id
 client = TestClient(app)
 
 
-def test_watchlist_crud_flow():
+def test_watchlist_crud_flow() -> None:
     # List existing
     initial = client.get("/v1/watchlists")
     assert initial.status_code == 200
@@ -61,7 +61,7 @@ def test_watchlist_crud_flow():
     assert len(final.json()) == count
 
 
-def test_watchlist_user_isolation():
+def test_watchlist_user_isolation() -> None:
     """Verify users can only access their own watchlists (IDOR prevention)."""
     # Create two separate user IDs
     USER_A = uuid4()

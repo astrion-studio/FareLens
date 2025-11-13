@@ -32,10 +32,16 @@ class SupabaseProvider(DataProvider):
         if self._pool is None:
             self._pool = await asyncpg.create_pool(
                 dsn=settings.database_url,
-                min_size=1,
-                max_size=5,
+                min_size=settings.database_pool_min_size,
+                max_size=settings.database_pool_max_size,
             )
         return self._pool
+
+    async def close(self) -> None:
+        """Close the connection pool and release all connections."""
+        if self._pool is not None:
+            await self._pool.close()
+            self._pool = None
 
     # Deals -----------------------------------------------------------------
 

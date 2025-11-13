@@ -23,7 +23,7 @@ async def list_deals(
     return response
 
 
-# TODO: Implement background-refresh endpoint with proper authentication
+# TODO(#154): Implement background-refresh endpoint with proper authentication
 # The endpoint is currently removed due to security concerns (no auth, DoS vector)
 # When implementing, use service account JWT or internal-only deployment
 

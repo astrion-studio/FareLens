@@ -24,7 +24,7 @@ app.dependency_overrides[get_current_user_id] = override_get_current_user_id
 client = TestClient(app)
 
 
-def test_register_device():
+def test_register_device() -> None:
     device_id = uuid4()
     payload = {
         "device_id": str(device_id),
@@ -33,11 +33,11 @@ def test_register_device():
     }
     resp = client.post("/v1/alerts/register", json=payload)
     assert resp.status_code == 201
-    assert resp.json()["registered"] == True
+    assert resp.json()["registered"] is True
     assert resp.json()["device_id"] == str(device_id)
 
 
-def test_alert_history():
+def test_alert_history() -> None:
     resp = client.get("/v1/alerts/history")
     assert resp.status_code == 200
     data = resp.json()
@@ -45,7 +45,7 @@ def test_alert_history():
     assert "total" in data
 
 
-def test_update_alert_preferences():
+def test_update_alert_preferences() -> None:
     payload = {
         "enabled": True,
         "quiet_hours_enabled": False,
@@ -58,7 +58,7 @@ def test_update_alert_preferences():
     assert resp.json()["watchlist_only_mode"] is True
 
 
-def test_update_preferred_airports():
+def test_update_preferred_airports() -> None:
     payload = {
         "preferred_airports": [
             {"iata": "LAX", "weight": 0.6},
@@ -70,7 +70,7 @@ def test_update_preferred_airports():
     assert resp.json()["status"] == "updated"
 
 
-def test_alert_history_user_isolation():
+def test_alert_history_user_isolation() -> None:
     """Verify users can only access their own alert history (IDOR prevention)."""
     # Create two separate user IDs
     USER_A = uuid4()
@@ -115,7 +115,7 @@ def test_alert_history_user_isolation():
     app.dependency_overrides[get_current_user_id] = override_get_current_user_id
 
 
-def test_device_registration_user_isolation():
+def test_device_registration_user_isolation() -> None:
     """Verify device tokens are associated with correct user."""
     # Create two separate user IDs
     USER_A = uuid4()

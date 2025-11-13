@@ -11,7 +11,7 @@ from app.main import app  # noqa: E402
 client = TestClient(app)
 
 
-def test_list_deals():
+def test_list_deals() -> None:
     resp = client.get("/v1/deals")
     assert resp.status_code == 200
     data = resp.json()
@@ -19,7 +19,7 @@ def test_list_deals():
     assert isinstance(data["deals"], list)
 
 
-def test_deal_detail():
+def test_deal_detail() -> None:
     listing = client.get("/v1/deals").json()
     first = listing["deals"][0]
     deal_id = first["id"]
