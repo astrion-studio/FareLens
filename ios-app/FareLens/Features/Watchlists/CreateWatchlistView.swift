@@ -8,6 +8,10 @@ struct CreateWatchlistView: View {
     @Bindable var viewModel: WatchlistsViewModel
     @Environment(\.dismiss) var dismiss
 
+    // Price range constants for slider (aligned with ISSUES_ANALYSIS.md recommendation)
+    private static let minPriceRange: Double = 100
+    private static let maxPriceRange: Double = 10000
+
     @State private var name = ""
     @State private var origin = ""
     @State private var destination = ""
@@ -19,7 +23,35 @@ struct CreateWatchlistView: View {
     @State private var maxPrice: Double = 500
 
     var isFormValid: Bool {
-        !name.isEmpty && !origin.isEmpty && (!destination.isEmpty || isFlexibleDestination)
+        !name.isEmpty &&
+            isValidAirportCode(origin) &&
+            (isFlexibleDestination || isValidAirportCode(destination)) &&
+            (!hasDateRange || isDateRangeValid)
+    }
+
+    private func isValidAirportCode(_ code: String) -> Bool {
+        let trimmed = code.trimmingCharacters(in: .whitespaces)
+        // Only allow 3-letter IATA codes (matches Amadeus API and backend validation)
+        let isIATA = trimmed.count == 3
+        let isLettersOnly = trimmed.allSatisfy(\.isLetter)
+        return isIATA && isLettersOnly
+    }
+
+    private var isDateRangeValid: Bool {
+        guard hasDateRange else { return true }
+
+        // End date must be same day or after start date (allow same-day watchlists)
+        let isChronological = endDate >= startDate
+
+        // Start date should be today or in the future
+        let isStartDateValid = Calendar.current.startOfDay(for: startDate) >=
+            Calendar.current.startOfDay(for: Date())
+
+        // Reasonable max range (e.g., 1 year)
+        let daysBetween = Calendar.current.dateComponents([.day], from: startDate, to: endDate).day ?? 0
+        let isReasonableRange = daysBetween <= 365
+
+        return isChronological && isStartDateValid && isReasonableRange
     }
 
     var body: some View {
@@ -100,11 +132,27 @@ struct CreateWatchlistView: View {
 
                                 if hasDateRange {
                                     VStack(alignment: .leading, spacing: Spacing.sm) {
-                                        DatePicker("Start date", selection: $startDate, displayedComponents: .date)
-                                            .datePickerStyle(.compact)
+                                        DatePicker(
+                                            "Start date",
+                                            selection: $startDate,
+                                            in: Date()...,
+                                            displayedComponents: .date
+                                        )
+                                        .datePickerStyle(.compact)
 
-                                        DatePicker("End date", selection: $endDate, displayedComponents: .date)
-                                            .datePickerStyle(.compact)
+                                        DatePicker(
+                                            "End date",
+                                            selection: $endDate,
+                                            in: startDate...,
+                                            displayedComponents: .date
+                                        )
+                                        .datePickerStyle(.compact)
+
+                                        if !isDateRangeValid {
+                                            Text("End date must be after start date and within 1 year")
+                                                .captionStyle()
+                                                .foregroundColor(.error)
+                                        }
                                     }
                                     .padding(.leading, Spacing.lg)
                                 }
@@ -124,14 +172,20 @@ struct CreateWatchlistView: View {
                                             Spacer()
                                         }
 
-                                        Slider(value: $maxPrice, in: 100...2000, step: 50)
-                                            .tint(.brandBlue)
+                                        Slider(
+                                            value: $maxPrice,
+                                            in: Self.minPriceRange...Self.maxPriceRange,
+                                            step: 50
+                                        )
+                                        .tint(.brandBlue)
+                                        .accessibilityLabel("Maximum Price")
+                                        .accessibilityValue(maxPrice.formatted(.currency(code: "USD")))
 
                                         HStack {
-                                            Text("$100")
+                                            Text("$\(Int(Self.minPriceRange))")
                                                 .captionStyle()
                                             Spacer()
-                                            Text("$2,000")
+                                            Text("$\(Int(Self.maxPriceRange).formatted())")
                                                 .captionStyle()
                                         }
                                     }
@@ -163,8 +217,18 @@ struct CreateWatchlistView: View {
                     Button("Save") {
                         saveWatchlist()
                     }
-                    .foregroundColor(isFormValid ? .brandBlue : .textTertiary)
-                    .disabled(!isFormValid)
+                    .foregroundColor(isFormValid && !viewModel.isCreating ? .brandBlue : .textTertiary)
+                    .disabled(!isFormValid || viewModel.isCreating)
+                }
+            }
+            .alert("Couldn't Save Watchlist", isPresented: Binding(
+                get: { viewModel.errorMessage != nil },
+                set: { if !$0 { viewModel.errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage)
                 }
             }
         }
@@ -174,15 +238,18 @@ struct CreateWatchlistView: View {
         let watchlist = Watchlist(
             userId: viewModel.userId,
             name: name,
-            origin: origin.uppercased(),
-            destination: isFlexibleDestination ? "ANY" : destination.uppercased(),
+            origin: origin.trimmingCharacters(in: .whitespaces).uppercased(),
+            destination: isFlexibleDestination ? "ANY" : destination.trimmingCharacters(in: .whitespaces).uppercased(),
             dateRange: hasDateRange ? DateRange(start: startDate, end: endDate) : nil,
             maxPrice: hasMaxPrice ? maxPrice : nil
         )
 
         Task {
-            await viewModel.createWatchlist(watchlist)
-            dismiss()
+            let success = await viewModel.createWatchlist(watchlist)
+            if success {
+                dismiss()
+            }
+            // If failure, errorMessage is set and alert shows automatically
         }
     }
 }

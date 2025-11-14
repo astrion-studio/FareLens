@@ -15,9 +15,9 @@ struct AlertPreferencesView: View {
             List {
                 // Master Toggle
                 Section {
-                    Toggle("Enable Alerts", isOn: $viewModel.alertPreferences.enabled)
+                    Toggle("Enable Alerts", isOn: $viewModel.alertPreferences.alertEnabled)
                         .tint(.brandBlue)
-                        .onChange(of: viewModel.alertPreferences.enabled) { _, _ in
+                        .onChange(of: viewModel.alertPreferences.alertEnabled) { _, _ in
                             Task {
                                 await viewModel.updateAlertPreferences()
                             }

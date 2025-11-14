@@ -17,13 +17,15 @@ enum Config {
 
     // MARK: - Private Helpers
 
-    /// Retrieves and validates a configuration value from Info.plist
+    /// Retrieves a configuration value from Info.plist
     /// - Parameter key: The configuration key to retrieve
-    /// - Returns: The configuration value
-    /// - Note: Crashes with a descriptive error if the key is missing or empty
+    /// - Returns: The configuration value, or empty string if not found
+    /// - Note: Configuration is validated at app startup by ConfigValidator
+    ///         which will show an error UI if any values are invalid
     private static func value(for key: String) -> String {
-        guard let value = Bundle.main.infoDictionary?[key] as? String, !value.isEmpty else {
-            fatalError("\(key) not found in Info.plist. Check Secrets.xcconfig configuration.")
+        // Return empty string if not found - ConfigValidator will catch this
+        guard let value = Bundle.main.infoDictionary?[key] as? String else {
+            return ""
         }
         return value
     }

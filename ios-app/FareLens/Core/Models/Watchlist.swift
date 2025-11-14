@@ -14,6 +14,21 @@ struct Watchlist: Codable, Identifiable {
     let createdAt: Date
     var isActive: Bool
 
+    // Custom CodingKeys to map database fields (snake_case) to Swift properties (camelCase)
+    // Raw values match actual JSON keys from API (not converted by convertFromSnakeCase)
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case name
+        case origin
+        case destination
+        case dateRangeStart = "date_range_start"
+        case dateRangeEnd = "date_range_end"
+        case maxPrice = "max_price"
+        case createdAt = "created_at"
+        case isActive = "is_active"
+    }
+
     init(
         id: UUID = UUID(),
         userId: UUID,
@@ -36,6 +51,47 @@ struct Watchlist: Codable, Identifiable {
         self.isActive = isActive
     }
 
+    // Custom decoder to convert date_range_start/end into DateRange
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        userId = try container.decode(UUID.self, forKey: .userId)
+        name = try container.decode(String.self, forKey: .name)
+        origin = try container.decode(String.self, forKey: .origin)
+        destination = try container.decode(String.self, forKey: .destination)
+        maxPrice = try container.decodeIfPresent(Double.self, forKey: .maxPrice)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        isActive = try container.decode(Bool.self, forKey: .isActive)
+
+        // Combine dateRangeStart and dateRangeEnd into DateRange
+        if let start = try container.decodeIfPresent(Date.self, forKey: .dateRangeStart),
+           let end = try container.decodeIfPresent(Date.self, forKey: .dateRangeEnd)
+        {
+            dateRange = DateRange(start: start, end: end)
+        } else {
+            dateRange = nil
+        }
+    }
+
+    // Custom encoder to split DateRange into date_range_start/end
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(userId, forKey: .userId)
+        try container.encode(name, forKey: .name)
+        try container.encode(origin, forKey: .origin)
+        try container.encode(destination, forKey: .destination)
+        try container.encodeIfPresent(maxPrice, forKey: .maxPrice)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(isActive, forKey: .isActive)
+
+        // Split DateRange into dateRangeStart and dateRangeEnd
+        if let dateRange {
+            try container.encode(dateRange.start, forKey: .dateRangeStart)
+            try container.encode(dateRange.end, forKey: .dateRangeEnd)
+        }
+    }
+
     var displayDestination: String {
         destination == "ANY" ? "Anywhere" : destination
     }
@@ -44,6 +100,8 @@ struct Watchlist: Codable, Identifiable {
         guard let dateRange else { return nil }
         let formatter = DateFormatter()
         formatter.dateStyle = .short
+        // Note: DateFormatter.string(from:) returns String (not String?), never nil
+        // If date is invalid (e.g., NaN timestamp), returns empty string (acceptable for display)
         return "\(formatter.string(from: dateRange.start)) - \(formatter.string(from: dateRange.end))"
     }
 

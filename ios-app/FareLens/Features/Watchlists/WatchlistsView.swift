@@ -9,6 +9,8 @@ struct WatchlistsView: View {
     @State private var showingCreateSheet = false
 
     var body: some View {
+        @Bindable var viewModel = viewModel
+
         NavigationView {
             ZStack {
                 Color.backgroundPrimary.ignoresSafeArea()

@@ -43,14 +43,14 @@ enum SubscriptionTier: String, Codable {
 }
 
 struct AlertPreferences: Codable {
-    var enabled: Bool
-    var quietHoursEnabled: Bool
-    var quietHoursStart: Int // Hour (0-23)
-    var quietHoursEnd: Int // Hour (0-23)
-    var watchlistOnlyMode: Bool // Pro only
+    var alertEnabled: Bool // Matches database: alert_enabled → alertEnabled via snake_case conversion
+    var quietHoursEnabled: Bool // Matches database: quiet_hours_enabled
+    var quietHoursStart: Int // Hour (0-23) - Matches database: quiet_hours_start
+    var quietHoursEnd: Int // Hour (0-23) - Matches database: quiet_hours_end
+    var watchlistOnlyMode: Bool // Pro only - Matches database: watchlist_only_mode
 
     static let `default` = AlertPreferences(
-        enabled: true,
+        alertEnabled: true,
         quietHoursEnabled: true,
         quietHoursStart: 22, // 10pm
         quietHoursEnd: 7, // 7am

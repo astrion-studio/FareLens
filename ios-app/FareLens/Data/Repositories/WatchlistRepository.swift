@@ -20,13 +20,9 @@ actor WatchlistRepository: WatchlistRepositoryProtocol {
     }
 
     func fetchWatchlists() async throws -> [Watchlist] {
-        struct WatchlistsResponse: Codable {
-            let watchlists: [Watchlist]
-        }
-
         let endpoint = APIEndpoint.getWatchlists()
-        let response: WatchlistsResponse = try await apiClient.request(endpoint)
-        return response.watchlists
+        // API returns bare array (not wrapped) to match single-item endpoint pattern
+        return try await apiClient.request(endpoint)
     }
 
     func createWatchlist(_ watchlist: Watchlist) async throws -> Watchlist {

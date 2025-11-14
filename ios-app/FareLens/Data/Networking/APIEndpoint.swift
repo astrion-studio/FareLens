@@ -58,18 +58,18 @@ extension APIEndpoint {
     }
 
     static func createWatchlist(_ watchlist: Watchlist) -> APIEndpoint {
+        let iso8601 = ISO8601DateFormatter()
+
         var body: [String: Any] = [
             "name": watchlist.name,
             "origin": watchlist.origin,
             "destination": watchlist.destination,
         ]
 
+        // Flatten date range to match Supabase schema
         if let dateRange = watchlist.dateRange {
-            let iso8601 = ISO8601DateFormatter()
-            body["date_range"] = [
-                "start": iso8601.string(from: dateRange.start),
-                "end": iso8601.string(from: dateRange.end),
-            ]
+            body["date_range_start"] = iso8601.string(from: dateRange.start)
+            body["date_range_end"] = iso8601.string(from: dateRange.end)
         }
 
         if let maxPrice = watchlist.maxPrice {
@@ -84,6 +84,8 @@ extension APIEndpoint {
     }
 
     static func updateWatchlist(id: UUID, watchlist: Watchlist) -> APIEndpoint {
+        let iso8601 = ISO8601DateFormatter()
+
         var body: [String: Any] = [
             "name": watchlist.name,
             "origin": watchlist.origin,
@@ -91,12 +93,10 @@ extension APIEndpoint {
             "is_active": watchlist.isActive,
         ]
 
+        // Flatten date range to match Supabase schema
         if let dateRange = watchlist.dateRange {
-            let iso8601 = ISO8601DateFormatter()
-            body["date_range"] = [
-                "start": iso8601.string(from: dateRange.start),
-                "end": iso8601.string(from: dateRange.end),
-            ]
+            body["date_range_start"] = iso8601.string(from: dateRange.start)
+            body["date_range_end"] = iso8601.string(from: dateRange.end)
         }
 
         if let maxPrice = watchlist.maxPrice {
@@ -117,41 +117,50 @@ extension APIEndpoint {
         )
     }
 
-    // MARK: - Alert Preferences
+    // MARK: - User Settings (consolidated endpoint)
 
-    static func getAlertPreferences() -> APIEndpoint {
+    static func getUser() -> APIEndpoint {
         APIEndpoint(
-            path: "/alert-preferences",
+            path: "/user",
             method: .get
         )
     }
 
-    static func updateAlertPreferences(_ preferences: AlertPreferences) -> APIEndpoint {
-        APIEndpoint(
-            path: "/alert-preferences",
-            method: .put,
-            body: [
-                "enabled": preferences.enabled,
-                "quiet_hours_enabled": preferences.quietHoursEnabled,
-                "quiet_hours_start": preferences.quietHoursStart,
-                "quiet_hours_end": preferences.quietHoursEnd,
-                "watchlist_only_mode": preferences.watchlistOnlyMode,
-            ]
-        )
-    }
+    static func updateUser(
+        alertEnabled: Bool? = nil,
+        quietHoursEnabled: Bool? = nil,
+        quietHoursStart: Int? = nil,
+        quietHoursEnd: Int? = nil,
+        watchlistOnlyMode: Bool? = nil,
+        preferredAirports: [PreferredAirport]? = nil,
+        timezone: String? = nil
+    ) -> APIEndpoint {
+        var body: [String: Any] = [:]
 
-    static func updatePreferredAirports(_ airports: [PreferredAirport]) -> APIEndpoint {
-        APIEndpoint(
-            path: "/alert-preferences/airports",
-            method: .put,
-            body: [
-                "preferred_airports": airports.map { airport in
-                    [
-                        "iata": airport.iata,
-                        "weight": airport.weight,
-                    ]
-                },
-            ]
+        // Alert preferences (match Worker schema with snake_case keys)
+        if let alertEnabled { body["alert_enabled"] = alertEnabled }
+        if let quietHoursEnabled { body["quiet_hours_enabled"] = quietHoursEnabled }
+        if let quietHoursStart { body["quiet_hours_start"] = quietHoursStart }
+        if let quietHoursEnd { body["quiet_hours_end"] = quietHoursEnd }
+        if let watchlistOnlyMode { body["watchlist_only_mode"] = watchlistOnlyMode }
+
+        // Preferred airports (JSONB array in users table)
+        if let airports = preferredAirports {
+            body["preferred_airports"] = airports.map { airport in
+                [
+                    "iata": airport.iata,
+                    "weight": airport.weight,
+                ]
+            }
+        }
+
+        // User profile
+        if let timezone { body["timezone"] = timezone }
+
+        return APIEndpoint(
+            path: "/user",
+            method: .patch,
+            body: body
         )
     }
 
@@ -162,18 +171,6 @@ extension APIEndpoint {
             queryItems: [
                 URLQueryItem(name: "page", value: "\(page)"),
                 URLQueryItem(name: "per_page", value: "\(perPage)"),
-            ]
-        )
-    }
-
-    // MARK: - User
-
-    static func updateUser(_ user: User) -> APIEndpoint {
-        APIEndpoint(
-            path: "/user",
-            method: .patch,
-            body: [
-                "timezone": user.timezone,
             ]
         )
     }

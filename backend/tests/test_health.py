@@ -15,7 +15,7 @@ from app.main import app  # noqa: E402
 client = TestClient(app)
 
 
-def test_root_endpoint():
+def test_root_endpoint() -> None:
     """Test the root endpoint returns 200 OK."""
     response = client.get("/")
     assert response.status_code == 200
@@ -25,7 +25,7 @@ def test_root_endpoint():
     assert "version" in data
 
 
-def test_health_endpoint():
+def test_health_endpoint() -> None:
     """Test the health endpoint returns 200 OK."""
     response = client.get("/health")
     assert response.status_code == 200
@@ -35,7 +35,7 @@ def test_health_endpoint():
     assert "cache" in data
 
 
-def test_root_fields():
+def test_root_fields() -> None:
     """Test root endpoint has required fields."""
     response = client.get("/")
     data = response.json()
@@ -44,7 +44,7 @@ def test_root_fields():
     assert "version" in data
 
 
-def test_health_fields():
+def test_health_fields() -> None:
     """Test health endpoint has required fields."""
     response = client.get("/health")
     data = response.json()
