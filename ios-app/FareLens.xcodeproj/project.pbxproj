@@ -71,6 +71,8 @@
 		F54580AEBB16D589563DCDE2 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3D28A0911B8B475ECE33D1E /* OnboardingView.swift */; };
 		FC5838FEA7CE5D9BCD89CA31 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 1B75C10E76277C86A0CAFF3F /* PrivacyInfo.xcprivacy */; };
 		FD1F1535649C2C94FB9F79CA /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEFC4819FE3883BCDC0E3A7E /* AuthService.swift */; };
+		A1B2C3D4E5F607890A1B2C3D /* ConfigErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F607890A1B2C3D4E /* ConfigErrorView.swift */; };
+		C3D4E5F607890A1B2C3D4E5F /* ConfigValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F607890A1B2C3D4E5F60 /* ConfigValidator.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -128,12 +130,14 @@
 		AE33560253DD4CE30E8A45FF /* DealsRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DealsRepositoryTests.swift; sourceTree = "<group>"; };
 		AF22B75715CF87372B3677EA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B0718AAC7D0BA66103025FD2 /* PreferredAirportsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferredAirportsView.swift; sourceTree = "<group>"; };
+		B2C3D4E5F607890A1B2C3D4E /* ConfigErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigErrorView.swift; sourceTree = "<group>"; };
 		B98EE21EE4676692AA8EE93B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		BEE6BFEEE1781D83F54D0278 /* AlertsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsView.swift; sourceTree = "<group>"; };
 		C440E8EA067F98F7B6DC2DCC /* Airport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Airport.swift; sourceTree = "<group>"; };
 		C8BEE19675754DE7A6590C08 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		D08C59F322A14AF1541CD65D /* SavedDealsRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedDealsRepositoryTests.swift; sourceTree = "<group>"; };
 		D3D8DE91236DD2DEA6D129BC /* AlertsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsRepository.swift; sourceTree = "<group>"; };
+		D4E5F607890A1B2C3D4E5F60 /* ConfigValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigValidator.swift; sourceTree = "<group>"; };
 		D73D474FBB6B92B641F6368B /* FLBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FLBadge.swift; sourceTree = "<group>"; };
 		D91C7942C4D065426AD88F5E /* AlertHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertHistory.swift; sourceTree = "<group>"; };
 		DDE481D92ADF17E64D08990E /* AlertServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertServiceTests.swift; sourceTree = "<group>"; };
@@ -225,9 +229,19 @@
 			path = Theme;
 			sourceTree = "<group>";
 		};
+		1F2E3D4C5B6A798089ABCDEF /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				B2C3D4E5F607890A1B2C3D4E /* ConfigErrorView.swift */,
+				D4E5F607890A1B2C3D4E5F60 /* ConfigValidator.swift */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
 		205DC6DF121E151DD7057460 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				1F2E3D4C5B6A798089ABCDEF /* Config */,
 				6EC7B75BD6EC673E8E2C7A37 /* Models */,
 				087061A9A598FC236C96AB3A /* Services */,
 			);
@@ -535,6 +549,8 @@
 				5CB9232AC0845FF963D4FC5C /* AuthTokenStore.swift in Sources */,
 				AEE1BFDD786901B7516EB977 /* Colors.swift in Sources */,
 				5A1F475B6AC8D53897E3215F /* Config.swift in Sources */,
+				A1B2C3D4E5F607890A1B2C3D /* ConfigErrorView.swift in Sources */,
+				C3D4E5F607890A1B2C3D4E5F /* ConfigValidator.swift in Sources */,
 				DB1F018DC75FC0F23F12300B /* ContentView.swift in Sources */,
 				59073B5D34F347C6525922CE /* CreateWatchlistView.swift in Sources */,
 				9021A8050CC06CA3A22BAE08 /* DealDetailView.swift in Sources */,
