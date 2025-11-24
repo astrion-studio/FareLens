@@ -17,11 +17,12 @@ struct FareLensApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                // Show config error view if validation failed
-                if let validation = configValidation, !validation.isValid {
+                // Show config error view if validation failed (but not in test environment)
+                // Tests use mocks and don't need real config, so we skip the error UI
+                if let validation = configValidation, !validation.isValid, !isRunningTests {
                     ConfigErrorView(errors: validation.errors)
                 } else {
-                    // Config is valid - proceed with normal app flow
+                    // Config is valid OR running tests - proceed with normal app flow
                     ContentView()
                         .environment(appState)
                         .onAppear {
