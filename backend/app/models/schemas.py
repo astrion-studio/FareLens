@@ -9,6 +9,10 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
+# IATA code validation patterns
+IATA_CODE_PATTERN = re.compile(r"^[A-Z]{3}$")
+IATA_CODE_OR_ANY_PATTERN = re.compile(r"^([A-Z]{3}|ANY)$")
+
 
 class Route(BaseModel):
     origin: str = Field(..., description="IATA origin code")
@@ -72,7 +76,7 @@ class WatchlistCreate(BaseModel):
     @classmethod
     def validate_origin(cls, v: str) -> str:
         """Validate origin is exactly 3 uppercase letters."""
-        if not re.match(r"^[A-Z]{3}$", v.upper()):
+        if not IATA_CODE_PATTERN.match(v.upper()):
             raise ValueError("Origin must be exactly 3 letters (e.g., LAX, JFK, SFO)")
         return v.upper()
 
@@ -80,7 +84,7 @@ class WatchlistCreate(BaseModel):
     @classmethod
     def validate_destination(cls, v: str) -> str:
         """Validate destination is exactly 3 uppercase letters or ANY."""
-        if not re.match(r"^([A-Z]{3}|ANY)$", v.upper()):
+        if not IATA_CODE_OR_ANY_PATTERN.match(v.upper()):
             raise ValueError(
                 "Destination must be exactly 3 letters (e.g., LAX, JFK, SFO) or ANY"
             )
@@ -104,7 +108,7 @@ class WatchlistUpdate(BaseModel):
         """Validate origin is exactly 3 uppercase letters."""
         if v is None:
             return v
-        if not re.match(r"^[A-Z]{3}$", v.upper()):
+        if not IATA_CODE_PATTERN.match(v.upper()):
             raise ValueError("Origin must be exactly 3 letters (e.g., LAX, JFK, SFO)")
         return v.upper()
 
@@ -114,7 +118,7 @@ class WatchlistUpdate(BaseModel):
         """Validate destination is exactly 3 uppercase letters or ANY."""
         if v is None:
             return v
-        if not re.match(r"^([A-Z]{3}|ANY)$", v.upper()):
+        if not IATA_CODE_OR_ANY_PATTERN.match(v.upper()):
             raise ValueError(
                 "Destination must be exactly 3 letters (e.g., LAX, JFK, SFO) or ANY"
             )
@@ -137,7 +141,7 @@ class PreferredAirport(BaseModel):
     @classmethod
     def validate_iata(cls, v: str) -> str:
         """Validate IATA code is exactly 3 uppercase letters."""
-        if not re.match(r"^[A-Z]{3}$", v.upper()):
+        if not IATA_CODE_PATTERN.match(v.upper()):
             raise ValueError(
                 "IATA code must be exactly 3 letters (e.g., LAX, JFK, SFO)"
             )
