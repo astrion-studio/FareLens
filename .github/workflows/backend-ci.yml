@@ -1,5 +1,10 @@
 name: Backend CI
 
+# ⚠️  DEPRECATED: FastAPI backend is deprecated as of 2025-11-13
+# Use Cloudflare Workers instead: cloudflare-workers/src/index.ts
+# This workflow is disabled to avoid failing CI on deprecated code.
+# See: ARCHITECTURE_ENFORCEMENT.md
+
 on:
   pull_request:
     branches: [main]
@@ -13,9 +18,25 @@ on:
       - '.github/workflows/backend-ci.yml'
 
 jobs:
-  lint-and-type-check:
-    name: Lint and Type Check
+  deprecated-notice:
+    name: FastAPI Backend Deprecated
     runs-on: ubuntu-latest
+    steps:
+      - name: Show deprecation notice
+        run: |
+          echo "⚠️  FastAPI backend is DEPRECATED"
+          echo ""
+          echo "Canonical backend: cloudflare-workers/src/index.ts"
+          echo "Deployed at: https://farelens-api.woodcut-rabbles5e.workers.dev"
+          echo ""
+          echo "See: ARCHITECTURE_ENFORCEMENT.md"
+          echo ""
+          echo "CI checks skipped for deprecated code."
+
+  lint-and-type-check:
+    name: Lint and Type Check (SKIPPED - Deprecated)
+    runs-on: ubuntu-latest
+    if: false  # Skip - FastAPI backend is deprecated
 
     steps:
       - name: Checkout code
@@ -54,8 +75,9 @@ jobs:
           mypy app --ignore-missing-imports
 
   security-scan:
-    name: Security Scan
+    name: Security Scan (SKIPPED - Deprecated)
     runs-on: ubuntu-latest
+    if: false  # Skip - FastAPI backend is deprecated
 
     steps:
       - name: Checkout code
@@ -83,8 +105,9 @@ jobs:
           path: backend/bandit-report.json
 
   test:
-    name: Run Tests
+    name: Run Tests (SKIPPED - Deprecated)
     runs-on: ubuntu-latest
+    if: false  # Skip - FastAPI backend is deprecated
     needs: lint-and-type-check
 
     services:
