@@ -115,8 +115,11 @@ enum ConfigValidator {
             return .placeholderValue(key: key, value: value)
         }
 
-        // Validate URL format
-        guard URL(string: value) != nil else {
+        // Validate URL format, ensure it has a host component, and uses https://
+        guard let url = URL(string: value),
+              let host = url.host,
+              !host.isEmpty,
+              url.scheme == "https" else {
             return .invalidURL(key: key, value: value)
         }
 

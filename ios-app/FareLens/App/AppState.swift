@@ -19,6 +19,9 @@ final class AppState {
     var deepLinkDeal: FlightDeal?
     var isPresentingDeepLink = false
 
+    // Note: nonisolated(unsafe) is required to allow deinit to remove the observer
+    // Compiler warning about "no effect" is misleading - removing it causes build error
+    // This is safe because NotificationCenter removeObserver is thread-safe
     private nonisolated(unsafe) var notificationObserver: NSObjectProtocol?
     private let logger = Logger(subsystem: "com.astrionstudio.farelens", category: "AppState")
     @MainActor

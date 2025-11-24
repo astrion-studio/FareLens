@@ -472,9 +472,10 @@ function handleCORS(env: Env): Response {
  * Helper to create JSON responses with CORS headers
  * env parameter is required to ensure CORS origin is always properly configured
  *
- * Note: We use wildcard CORS (Access-Control-Allow-Origin: *) without credentials
- * to comply with CORS spec. The spec forbids using wildcard with credentials=true.
- * Security is enforced via JWT authentication, not CORS credentials.
+ * Note: CORS credentials header is conditionally included based on origin:
+ * - Wildcard origin (*): No credentials header (CORS spec forbids credentials=true with wildcard)
+ * - Specific domain: Includes credentials=true to support future cookie-based auth if needed
+ * Current security is enforced via JWT authentication, not CORS credentials.
  */
 function jsonResponse(
   data: any,
@@ -482,13 +483,21 @@ function jsonResponse(
   extraHeaders: Record<string, string>,
   env: Env
 ): Response {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': env.CORS_ALLOW_ORIGIN,
+    ...extraHeaders,
+  };
+
+  // Only include credentials header if origin is NOT a wildcard
+  // (CORS spec forbids 'Access-Control-Allow-Credentials: true' with wildcard origin)
+  if (env.CORS_ALLOW_ORIGIN !== '*') {
+    headers['Access-Control-Allow-Credentials'] = 'true';
+  }
+
   return new Response(JSON.stringify(data), {
     status,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': env.CORS_ALLOW_ORIGIN,
-      ...extraHeaders,
-    },
+    headers,
   });
 }
 
