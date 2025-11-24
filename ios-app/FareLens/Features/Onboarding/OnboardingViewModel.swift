@@ -8,6 +8,11 @@ import UIKit
 @Observable
 @MainActor
 final class OnboardingViewModel {
+    // W3C HTML5 email validation regex (matches user expectations from web forms)
+    // Server does authoritative validation - this is just client-side UX
+    // Anchors (^$) ensure entire string matches (prevents partial matches like "valid@test.com invalid")
+    private static let emailValidationRegex = "^[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}$"
+
     var email = ""
     var password = ""
     var isLoading = false
@@ -98,11 +103,7 @@ final class OnboardingViewModel {
     }
 
     private func isValidEmail(_ email: String) -> Bool {
-        // W3C HTML5 email validation (matches user expectations from web forms)
-        // Server does authoritative validation - this is just client-side UX
-        // Anchors (^$) ensure entire string matches (prevents partial matches like "valid@test.com invalid")
-        let emailRegex = "^[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}$"
-        let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
+        let emailPredicate = NSPredicate(format: "SELF MATCHES %@", Self.emailValidationRegex)
         return emailPredicate.evaluate(with: email)
     }
 
