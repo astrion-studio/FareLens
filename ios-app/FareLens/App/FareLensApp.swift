@@ -3,6 +3,7 @@
 
 import SwiftUI
 
+
 @main
 struct FareLensApp: App {
     @State private var appState = AppState()
