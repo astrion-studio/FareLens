@@ -16,7 +16,6 @@
 		0C14405E85BFB6F72726C046 /* AlertsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3D8DE91236DD2DEA6D129BC /* AlertsRepository.swift */; };
 		148F81E1375A561D040C8D29 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67F9E4C11CADA404400FCED1 /* SettingsView.swift */; };
 		1620C7D7CC2D331DAE7FB6A4 /* OnboardingViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C598CCAA0FFDDBACB7F8A14 /* OnboardingViewModelTests.swift */; };
-		19778419C61BE0BB319F2D67 /* Secrets.xcconfig.local in Resources */ = {isa = PBXBuildFile; fileRef = 97C966EA1FD07E16BD36DD8F /* Secrets.xcconfig.local */; };
 		1D2B073B8B5FD20F672A2506 /* FLBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = D73D474FBB6B92B641F6368B /* FLBadge.swift */; };
 		1F1F65F17C0E8CE98471C8B9 /* DealDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 753E73E6FF94861A986E57BB /* DealDetailViewModel.swift */; };
 		20D23A0D6F76C72D0B0F1B89 /* SavedDealsRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D08C59F322A14AF1541CD65D /* SavedDealsRepositoryTests.swift */; };
@@ -120,7 +119,6 @@
 		88087F75DA8A84E6C01147D2 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		8DA3969D738954B97706F183 /* WatchlistRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchlistRepository.swift; sourceTree = "<group>"; };
 		912442EDFA73A60E5BACADBC /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
-		97C966EA1FD07E16BD36DD8F /* Secrets.xcconfig.local */ = {isa = PBXFileReference; lastKnownFileType = text; path = Secrets.xcconfig.local; sourceTree = "<group>"; };
 		A5FC6C79B3216189BA4E7733 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		ABE70352116288814E2C56FD /* Spacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Spacing.swift; sourceTree = "<group>"; };
 		ACCA7D3EE71693299485D505 /* AlertService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertService.swift; sourceTree = "<group>"; };
@@ -364,7 +362,6 @@
 			children = (
 				88087F75DA8A84E6C01147D2 /* Config.swift */,
 				C8BEE19675754DE7A6590C08 /* Secrets.xcconfig */,
-				97C966EA1FD07E16BD36DD8F /* Secrets.xcconfig.local */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -523,7 +520,6 @@
 			files = (
 				EE20F503D77D08B64F130525 /* Assets.xcassets in Resources */,
 				FC5838FEA7CE5D9BCD89CA31 /* PrivacyInfo.xcprivacy in Resources */,
-				19778419C61BE0BB319F2D67 /* Secrets.xcconfig.local in Resources */,
 				F165BC9ADBA76E31732CEA2D /* airports.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -727,7 +723,7 @@
 		};
 		98DD2499D1DFEEB66E515AB9 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 97C966EA1FD07E16BD36DD8F /* Secrets.xcconfig.local */;
+			baseConfigurationReference = 88B56F1116C1BB8C817CA0F4 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
