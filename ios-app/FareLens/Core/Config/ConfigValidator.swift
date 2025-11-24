@@ -31,7 +31,7 @@ enum ConfigValidator {
     /// Configuration error types
     enum ConfigError: LocalizedError {
         case missingValue(key: String)
-        case invalidURL(key: String, value: String)
+        case invalidURL(key: String, value: String, reason: String)
         case emptyValue(key: String)
         case placeholderValue(key: String, value: String)
 
@@ -39,8 +39,8 @@ enum ConfigValidator {
             switch self {
             case let .missingValue(key):
                 "\(key) is missing from configuration"
-            case let .invalidURL(key, value):
-                "\(key) has invalid URL format: '\(value)'"
+            case let .invalidURL(key, value, reason):
+                "\(key) has invalid URL: '\(value)' - \(reason)"
             case let .emptyValue(key):
                 "\(key) is empty"
             case let .placeholderValue(key, value):
@@ -52,6 +52,8 @@ enum ConfigValidator {
             switch self {
             case .placeholderValue:
                 "Replace placeholder with actual value in ios-app/FareLens/Config/Secrets.xcconfig.local"
+            case let .invalidURL(key, _, _):
+                "Set \(key) to a complete https:// URL (e.g., https://yourproject.supabase.co) in ios-app/FareLens/Config/Secrets.xcconfig.local"
             default:
                 "Check ios-app/FareLens/Config/Secrets.xcconfig.local file"
             }
@@ -115,12 +117,32 @@ enum ConfigValidator {
             return .placeholderValue(key: key, value: value)
         }
 
-        // Validate URL format, ensure it has a host component, and uses https://
-        guard let url = URL(string: value),
-              let host = url.host,
-              !host.isEmpty,
-              url.scheme == "https" else {
-            return .invalidURL(key: key, value: value)
+        // Validate URL can be parsed
+        guard let url = URL(string: value) else {
+            return .invalidURL(
+                key: key,
+                value: value,
+                reason: "Cannot parse as URL. Must be complete URL like https://example.com"
+            )
+        }
+
+        // Validate scheme is https
+        guard url.scheme == "https" else {
+            let scheme = url.scheme ?? "none"
+            return .invalidURL(
+                key: key,
+                value: value,
+                reason: "Must use https:// scheme (found: \(scheme)://)"
+            )
+        }
+
+        // Validate URL has a non-empty host
+        guard let host = url.host, !host.isEmpty else {
+            return .invalidURL(
+                key: key,
+                value: value,
+                reason: "URL is incomplete or missing host. Must be like https://example.com"
+            )
         }
 
         return nil
