@@ -234,7 +234,7 @@ final class OnboardingViewModelTests: XCTestCase {
         User(
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000000")!,
             email: "test@example.com",
-            createdAt: Date(timeIntervalSince1970: 1672531200), // 2023-01-01 00:00:00 UTC
+            createdAt: Date(timeIntervalSince1970: 1_672_531_200), // 2023-01-01 00:00:00 UTC
             timezone: "UTC",
             subscriptionTier: .free,
             alertPreferences: .default,
@@ -257,7 +257,7 @@ final class MockAuthService: AuthServiceProtocol {
         User(
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000000")!,
             email: "test@example.com",
-            createdAt: Date(timeIntervalSince1970: 1672531200),
+            createdAt: Date(timeIntervalSince1970: 1_672_531_200),
             timezone: "UTC",
             subscriptionTier: .free,
             alertPreferences: .default,
@@ -269,7 +269,7 @@ final class MockAuthService: AuthServiceProtocol {
         User(
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000000")!,
             email: "test@example.com",
-            createdAt: Date(timeIntervalSince1970: 1672531200),
+            createdAt: Date(timeIntervalSince1970: 1_672_531_200),
             timezone: "UTC",
             subscriptionTier: .free,
             alertPreferences: .default,
