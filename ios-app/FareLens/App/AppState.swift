@@ -6,6 +6,36 @@ import Observation
 import OSLog
 import UIKit
 
+// MARK: - Notification Observation Helper
+
+/// Wrapper object that manages a NotificationCenter observation and removes it when deallocated.
+///
+/// We use this helper so that `AppState` doesn't need to access its observer token from `deinit`,
+/// which is a nonisolated context. Accessing `@MainActor` isolated state from `deinit` triggers
+/// Swift 6 actor-isolation diagnostics (the original cause of build failures for this file).
+/// By encapsulating the observer cleanup inside this helper class, the removal happens safely on
+/// deallocation without violating isolation rules.
+private final class NotificationObservation {
+    private weak var center: NotificationCenter?
+    private var token: NSObjectProtocol?
+
+    init(
+        center: NotificationCenter = .default,
+        name: NSNotification.Name,
+        queue: OperationQueue? = .main,
+        handler: @escaping (Notification) -> Void
+    ) {
+        self.center = center
+        token = center.addObserver(forName: name, object: nil, queue: queue, using: handler)
+    }
+
+    deinit {
+        if let token, let center {
+            center.removeObserver(token)
+        }
+    }
+}
+
 /// Error thrown when an async operation exceeds its timeout
 private struct TimeoutError: Error {}
 
@@ -19,29 +49,22 @@ final class AppState {
     var deepLinkDeal: FlightDeal?
     var isPresentingDeepLink = false
 
-    private nonisolated(unsafe) var notificationObserver: NSObjectProtocol?
+    private let notificationObserver: NotificationObservation
     private let logger = Logger(subsystem: "com.astrionstudio.farelens", category: "AppState")
     @MainActor
     private var isInitializing = false
 
     init() {
-        notificationObserver = NotificationCenter.default.addObserver(
-            forName: NSNotification.Name("OpenDealDetail"),
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            guard
-                let dealId = notification.userInfo?["dealId"] as? String
-            else { return }
-            let deepLink = notification.userInfo?["deepLink"] as? String
-            Task { await self?.handleDealDeepLink(dealId: dealId, deepLink: deepLink) }
-        }
-    }
-
-    deinit {
-        if let notificationObserver {
-            NotificationCenter.default.removeObserver(notificationObserver)
-        }
+        notificationObserver = NotificationObservation(
+            name: NSNotification.Name("OpenDealDetail"),
+            handler: { [weak self] notification in
+                guard
+                    let dealId = notification.userInfo?["dealId"] as? String
+                else { return }
+                let deepLink = notification.userInfo?["deepLink"] as? String
+                Task { await self?.handleDealDeepLink(dealId: dealId, deepLink: deepLink) }
+            }
+        )
     }
 
     // Note: Services accessed directly via .shared to avoid actor isolation issues
