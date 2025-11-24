@@ -61,6 +61,13 @@ enum ConfigValidator {
     /// Validates all required configuration values
     /// Call this before initializing any services that depend on config
     static func validate() -> ValidationResult {
+        // Skip validation when running tests - tests use mocks and don't need real config
+        // This matches the pattern in FareLensApp where we skip appState.initialize() during tests
+        if isRunningTests {
+            logger.info("⚠️ Skipping config validation (test environment detected)")
+            return .valid
+        }
+
         var errors: [ConfigError] = []
 
         // Validate Supabase URL
@@ -131,5 +138,10 @@ enum ConfigValidator {
         }
 
         return nil
+    }
+
+    /// Detects if the app is running in a test environment
+    private static var isRunningTests: Bool {
+        NSClassFromString("XCTestCase") != nil
     }
 }
