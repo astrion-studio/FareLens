@@ -103,7 +103,11 @@ struct ConfigErrorView: View {
 #Preview("Single Error") {
     ConfigErrorView(
         errors: [
-            .invalidURL(key: "SUPABASE_URL", value: "not-a-url"),
+            .invalidURL(
+                key: "SUPABASE_URL",
+                value: "not-a-url",
+                reason: "Cannot parse as URL. Must be complete URL like https://example.com"
+            ),
         ]
     )
 }
@@ -111,9 +115,17 @@ struct ConfigErrorView: View {
 #Preview("Multiple Errors") {
     ConfigErrorView(
         errors: [
-            .invalidURL(key: "SUPABASE_URL", value: "https://example.supabase.co"),
+            .invalidURL(
+                key: "SUPABASE_URL",
+                value: "https://example.supabase.co",
+                reason: "Contains placeholder value"
+            ),
             .emptyValue(key: "SUPABASE_PUBLISHABLE_KEY"),
-            .invalidURL(key: "CLOUDFLARE_WORKER_URL", value: "invalid"),
+            .invalidURL(
+                key: "CLOUDFLARE_WORKER_URL",
+                value: "invalid",
+                reason: "URL is incomplete or missing host. Must be like https://example.com"
+            ),
         ]
     )
 }
