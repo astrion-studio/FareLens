@@ -9,6 +9,7 @@ import Observation
 final class WatchlistsViewModel {
     var watchlists: [Watchlist] = []
     var isLoading = false
+    var isCreating = false
     var errorMessage: String?
     var showingCreateSheet = false
     var showingUpgradeAlert = false
@@ -44,19 +45,27 @@ final class WatchlistsViewModel {
         }
     }
 
-    func createWatchlist(_ watchlist: Watchlist) async {
+    func createWatchlist(_ watchlist: Watchlist) async -> Bool {
+        // Prevent concurrent calls
+        guard !isCreating else { return false }
+
         // Check tier limit
         guard canAddWatchlist else {
             showingUpgradeAlert = true
-            return
+            return false
         }
+
+        isCreating = true
+        defer { isCreating = false }
 
         do {
             let created = try await WatchlistRepository.shared.createWatchlist(watchlist)
             watchlists.append(created)
             showingCreateSheet = false
+            return true
         } catch {
             errorMessage = error.localizedDescription
+            return false
         }
     }
 

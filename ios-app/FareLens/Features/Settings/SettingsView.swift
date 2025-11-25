@@ -8,6 +8,8 @@ struct SettingsView: View {
     @Environment(AppState.self) var appState: AppState
 
     var body: some View {
+        @Bindable var viewModel = viewModel
+
         NavigationView {
             ZStack {
                 Color.backgroundPrimary.ignoresSafeArea()
@@ -15,26 +17,37 @@ struct SettingsView: View {
                 List {
                     // Account Section
                     Section {
-                        HStack {
-                            VStack(alignment: .leading, spacing: Spacing.xs) {
-                                Text(viewModel.user.email)
-                                    .bodyStyle()
-                                    .foregroundColor(.textPrimary)
+                        Button(action: {
+                            viewModel.showingUpgradeSheet = true
+                        }) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: Spacing.xs) {
+                                    Text(viewModel.user.email)
+                                        .bodyStyle()
+                                        .foregroundColor(.textPrimary)
 
-                                Text(viewModel.user.subscriptionTier.displayName)
-                                    .footnoteStyle()
+                                    Text(viewModel.user.subscriptionTier.displayName)
+                                        .footnoteStyle()
+                                }
+
+                                Spacer()
+
+                                if !viewModel.user.isProUser {
+                                    FLBadge(text: "Upgrade", style: .custom(
+                                        backgroundColor: Color.brandBlue.opacity(0.15),
+                                        foregroundColor: .brandBlue
+                                    ))
+
+                                    Image(systemName: "chevron.right")
+                                        .font(.footnote)
+                                        .foregroundColor(.textTertiary)
+                                }
                             }
-
-                            Spacer()
-
-                            if !viewModel.user.isProUser {
-                                FLBadge(text: "Upgrade", style: .custom(
-                                    backgroundColor: Color.brandBlue.opacity(0.15),
-                                    foregroundColor: .brandBlue
-                                ))
-                            }
+                            .padding(.vertical, Spacing.xs)
                         }
-                        .padding(.vertical, Spacing.xs)
+                        .buttonStyle(.plain)
+                        .disabled(viewModel.user.isProUser)
+                        .opacity(viewModel.user.isProUser ? 0.6 : 1.0)
                     } header: {
                         Text("Account")
                             .headlineStyle()
@@ -47,7 +60,7 @@ struct SettingsView: View {
                                 icon: "bell.fill",
                                 iconColor: .brandBlue,
                                 title: "Alert Preferences",
-                                subtitle: viewModel.alertPreferences.enabled ? "Enabled" : "Disabled"
+                                subtitle: viewModel.alertPreferences.alertEnabled ? "Enabled" : "Disabled"
                             )
                         }
 

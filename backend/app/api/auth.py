@@ -1,10 +1,14 @@
 """Authentication endpoints (see API.md section 1)."""
 
+import os
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
+from ..core.config import settings
 from ..models.schemas import (
     AuthRequest,
     AuthResponse,
@@ -14,6 +18,19 @@ from ..models.schemas import (
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+# Rate limiter to prevent brute force attacks and spam
+# Production: Requires REDIS_URL environment variable for distributed deployments
+# Development: Use REDIS_URL=memory:// for local testing (single instance only)
+# WARNING: memory:// storage is NOT shared across instances - use Redis in production
+redis_url = os.getenv("REDIS_URL")
+if not redis_url:
+    raise RuntimeError(
+        "REDIS_URL environment variable is required for rate limiting. "
+        "Set REDIS_URL=memory:// for development (single instance) or "
+        "REDIS_URL=redis://host:port for production (distributed)."
+    )
+limiter = Limiter(key_func=get_remote_address, storage_uri=redis_url)
 
 
 def _mock_user(email: str) -> User:
@@ -36,24 +53,42 @@ def _mock_user(email: str) -> User:
 @router.post(
     "/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED
 )
-async def signup(payload: AuthRequest) -> AuthResponse:
-    """Create a new account and return JWT (placeholder implementation)."""
+@limiter.limit(settings.rate_limit_signup)  # Prevent spam account creation
+async def signup(request: Request, payload: AuthRequest) -> AuthResponse:
+    """Create a new account and return JWT (placeholder implementation).
+
+    Rate limit: Configurable via FARELENS_RATE_LIMIT_SIGNUP (default: 5/hour).
+    """
     user = _mock_user(payload.email)
     token = f"mock-signup-token-{user.id}"
     return AuthResponse(user=user, token=token)
 
 
 @router.post("/signin", response_model=AuthResponse)
-async def signin(payload: AuthRequest) -> AuthResponse:
-    """Authenticate user and return JWT (placeholder implementation)."""
+@limiter.limit(settings.rate_limit_signin)  # Prevent brute force attacks
+async def signin(request: Request, payload: AuthRequest) -> AuthResponse:
+    """Authenticate user and return JWT (placeholder implementation).
+
+    Rate limit: Configurable via FARELENS_RATE_LIMIT_SIGNIN (default: 10/minute).
+
+    Note: Per-email rate limiting would provide additional protection against
+    distributed attacks but requires middleware to cache request body.
+    TODO: Add per-email rate limiting when implementing request body caching middleware.
+    """
     user = _mock_user(payload.email)
     token = f"mock-signin-token-{user.id}"
     return AuthResponse(user=user, token=token)
 
 
 @router.post("/reset-password", status_code=status.HTTP_202_ACCEPTED)
-async def reset_password(payload: ResetPasswordRequest) -> dict:
-    """Send password reset email (mock)."""
-    if not payload.email:
-        raise HTTPException(status_code=400, detail="Email required")
-    return {"status": "accepted", "message": "Password reset instructions sent"}
+@limiter.limit(settings.rate_limit_reset_password)  # Prevent email bombing
+async def reset_password(request: Request, payload: ResetPasswordRequest) -> dict:
+    """Send password reset email (mock).
+
+    Rate limit: Configurable via FARELENS_RATE_LIMIT_RESET_PASSWORD (default: 3/hour).
+    Note: Email validation handled by Pydantic (EmailStr type) - no manual check needed.
+    """
+    return {
+        "status": "accepted",
+        "message": "Password reset instructions sent",
+    }

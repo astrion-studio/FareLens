@@ -6,24 +6,53 @@ import SwiftUI
 @main
 struct FareLensApp: App {
     @State private var appState = AppState()
+    @State private var configValidation: ConfigValidator.ValidationResult?
 
     init() {
         configureAppearance()
+        // Validate configuration at app startup (before any services initialize)
+        _configValidation = State(initialValue: ConfigValidator.validate())
     }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environment(appState)
-                .onAppear {
-                    // Skip initialization when running unit tests to avoid crashes
-                    // Tests should mock/inject their own dependencies
-                    guard !isRunningTests else { return }
+            Group {
+                // Show config error view if validation failed (but not in test environment)
+                // Tests use mocks and don't need real config, so we skip the error UI
+                if let validation = configValidation, !validation.isValid, !isRunningTests {
+                    ConfigErrorView(errors: validation.errors)
+                } else {
+                    // Config is valid OR running tests - proceed with normal app flow
+                    ContentView()
+                        .environment(appState)
+                        .onAppear {
+                            // Skip initialization when running unit tests to avoid crashes
+                            // Tests should mock/inject their own dependencies
+                            guard !isRunningTests else { return }
 
-                    Task {
-                        await appState.initialize()
-                    }
+                            Task {
+                                await appState.initialize()
+                            }
+                        }
+                        .onOpenURL { url in
+                            Task {
+                                await handleDeepLink(url)
+                            }
+                        }
                 }
+            }
+        }
+    }
+
+    /// Handles incoming deep links from Supabase authentication
+    private func handleDeepLink(_ url: URL) async {
+        // Handle Supabase authentication callback/confirmation
+        if url.scheme == "farelens" {
+            // Extract session from URL and pass to Supabase client
+            await AuthService.shared.handleAuthCallback(url: url)
+
+            // Reinitialize app state to reflect the new auth status
+            await appState.initialize()
         }
     }
 

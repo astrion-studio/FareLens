@@ -29,7 +29,8 @@ struct PreferredAirportsView: View {
                             )
                         }
                         .onDelete { indexSet in
-                            indexSet.forEach { viewModel.removePreferredAirport(at: $0) }
+                            // Remove in reverse order to prevent index shifting crashes
+                            indexSet.sorted().reversed().forEach { viewModel.removePreferredAirport(at: $0) }
                         }
 
                         // Weight Sum Validation
@@ -210,31 +211,82 @@ struct AddAirportSheet: View {
     @Binding var airportCode: String
     let onAdd: () -> Void
 
+    @State private var searchQuery = ""
+    @State private var searchResults: [Airport] = []
+    @State private var isSearching = false
+
     var body: some View {
         NavigationView {
             ZStack {
                 Color.backgroundPrimary.ignoresSafeArea()
 
-                VStack(spacing: Spacing.xl) {
+                VStack(spacing: 0) {
+                    // Search field
                     VStack(alignment: .leading, spacing: Spacing.md) {
-                        Text("Airport Code")
+                        Text("Search Airports")
                             .title3Style()
                             .foregroundColor(.textPrimary)
 
-                        TextField("e.g., LAX, JFK, ORD", text: $airportCode)
+                        TextField("Search by city or code (e.g., Los Angeles, LAX)", text: $searchQuery)
                             .textFieldStyle(.roundedBorder)
-                            .autocapitalization(.allCharacters)
+                            .autocapitalization(.none)
+                            .autocorrectionDisabled()
                             .font(.body)
+                            .onChange(of: searchQuery) { _, newValue in
+                                Task {
+                                    await performSearch(newValue)
+                                }
+                            }
                     }
+                    .padding(.horizontal, Spacing.screenHorizontal)
+                    .padding(.vertical, Spacing.md)
 
-                    InfoBox(
-                        icon: "lightbulb.fill",
-                        text: "Enter the 3-letter IATA code for your preferred departure airport"
-                    )
+                    Divider()
 
-                    Spacer()
+                    // Search results list
+                    if isSearching {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if searchResults.isEmpty, !searchQuery.isEmpty {
+                        EmptySearchView()
+                    } else {
+                        List {
+                            ForEach(searchResults) { airport in
+                                Button(action: {
+                                    airportCode = airport.iata
+                                    onAdd()
+                                    dismiss()
+                                }) {
+                                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                                        HStack {
+                                            Text(airport.iata)
+                                                .headlineStyle()
+                                                .foregroundColor(.textPrimary)
+
+                                            Spacer()
+
+                                            Image(systemName: "plus.circle.fill")
+                                                .foregroundColor(.brandBlue)
+                                        }
+
+                                        Text(airport.cityDisplay)
+                                            .bodyStyle()
+                                            .foregroundColor(.textSecondary)
+
+                                        Text(airport.name)
+                                            .footnoteStyle()
+                                            .foregroundColor(.textTertiary)
+                                            .lineLimit(1)
+                                    }
+                                    .padding(.vertical, Spacing.xs)
+                                }
+                                .listRowBackground(Color.cardBackground)
+                            }
+                        }
+                        .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
+                    }
                 }
-                .padding(Spacing.screenHorizontal)
             }
             .navigationTitle("Add Airport")
             .navigationBarTitleDisplayMode(.inline)
@@ -245,16 +297,45 @@ struct AddAirportSheet: View {
                     }
                     .foregroundColor(.textSecondary)
                 }
-
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Add") {
-                        onAdd()
-                        dismiss()
-                    }
-                    .foregroundColor(airportCode.count == 3 ? .brandBlue : .textTertiary)
-                    .disabled(airportCode.count != 3)
-                }
             }
         }
+        .task {
+            await loadInitialAirports()
+        }
+    }
+
+    private func loadInitialAirports() async {
+        isSearching = true
+        searchResults = await AirportService.shared.search(query: "")
+        isSearching = false
+    }
+
+    private func performSearch(_ query: String) async {
+        isSearching = true
+        searchResults = await AirportService.shared.search(query: query)
+        isSearching = false
+    }
+}
+
+// MARK: - Empty Search View
+
+struct EmptySearchView: View {
+    var body: some View {
+        VStack(spacing: Spacing.lg) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 48))
+                .foregroundColor(.textTertiary)
+
+            VStack(spacing: Spacing.xs) {
+                Text("No airports found")
+                    .title3Style()
+                    .foregroundColor(.textPrimary)
+
+                Text("Try searching by city or airport code")
+                    .bodyStyle()
+                    .foregroundColor(.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

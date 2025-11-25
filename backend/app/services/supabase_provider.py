@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from textwrap import dedent
 from typing import List, Optional, Tuple
 from uuid import UUID
 
@@ -14,6 +15,8 @@ from ..models.schemas import (
     DealsResponse,
     FlightDeal,
     PreferredAirportsUpdate,
+    User,
+    UserUpdate,
     Watchlist,
     WatchlistCreate,
     WatchlistUpdate,
@@ -30,20 +33,41 @@ class SupabaseProvider(DataProvider):
     async def _ensure_pool(self) -> asyncpg.Pool:
         if self._pool is None:
             self._pool = await asyncpg.create_pool(
-                dsn=settings.database_url, min_size=1, max_size=5
+                dsn=settings.database_url,
+                min_size=settings.database_pool_min_size,
+                max_size=settings.database_pool_max_size,
             )
         return self._pool
 
+    async def close(self) -> None:
+        """Close the connection pool and release all connections."""
+        if self._pool is not None:
+            await self._pool.close()
+            self._pool = None
+
     # Deals -----------------------------------------------------------------
 
-    async def list_deals(self, origin: Optional[str], limit: int) -> DealsResponse:
+    async def list_deals(
+        self,
+        origin: Optional[str],
+        limit: int,
+    ) -> DealsResponse:
         pool = await self._ensure_pool()
-        query = (
-            "SELECT * FROM flight_deals WHERE ($1::text IS NULL OR origin = $1) "
-            "ORDER BY deal_score DESC LIMIT $2"
+        query = dedent(
+            """
+            SELECT *
+            FROM flight_deals
+            WHERE ($1::text IS NULL OR origin = $1)
+            ORDER BY deal_score DESC
+            LIMIT $2
+            """
         )
         async with pool.acquire() as conn:
-            rows = await conn.fetch(query, origin.upper() if origin else None, limit)
+            rows = await conn.fetch(
+                query,
+                origin.upper() if origin else None,
+                limit,
+            )
         deals = [self._map_deal(row) for row in rows]
         return DealsResponse(deals=deals)
 
@@ -59,23 +83,54 @@ class SupabaseProvider(DataProvider):
 
     # Watchlists ------------------------------------------------------------
 
-    async def list_watchlists(self) -> List[Watchlist]:
+    async def list_watchlists(self, user_id: UUID) -> List[Watchlist]:
+        """List watchlists for a specific user only.
+
+        Security: Filters by user_id to prevent users from seeing each other's watchlists.
+        """
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
-            rows = await conn.fetch("SELECT * FROM watchlists ORDER BY created_at DESC")
+            rows = await conn.fetch(
+                dedent(
+                    """
+                    SELECT *
+                    FROM watchlists
+                    WHERE user_id = $1
+                    ORDER BY created_at DESC
+                    """
+                ),
+                user_id,
+            )
         return [self._map_watchlist(row) for row in rows]
 
-    async def create_watchlist(self, payload: WatchlistCreate) -> Watchlist:
-        pool = await self._ensure_pool()
-        query = """
-            INSERT INTO watchlists (name, origin, destination, date_range_start,
-                                   date_range_end, max_price, is_active)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING *
+    async def create_watchlist(
+        self, user_id: UUID, payload: WatchlistCreate
+    ) -> Watchlist:
+        """Create a new watchlist for the authenticated user.
+
+        Security: Associates watchlist with authenticated user_id from JWT token.
         """
+        pool = await self._ensure_pool()
+        query = dedent(
+            """
+            INSERT INTO watchlists (
+                user_id,
+                name,
+                origin,
+                destination,
+                date_range_start,
+                date_range_end,
+                max_price,
+                is_active
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING *
+            """
+        )
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
                 query,
+                user_id,
                 payload.name,
                 payload.origin.upper(),
                 payload.destination.upper(),
@@ -87,66 +142,152 @@ class SupabaseProvider(DataProvider):
         return self._map_watchlist(row)
 
     async def update_watchlist(
-        self, watchlist_id: UUID, payload: WatchlistUpdate
+        self, user_id: UUID, watchlist_id: UUID, payload: WatchlistUpdate
     ) -> Watchlist:
+        """Update a watchlist owned by the authenticated user.
+
+        Security: Only allows updating watchlists owned by the authenticated user.
+        Raises KeyError if watchlist not found OR not owned by user (prevents IDOR).
+        """
         pool = await self._ensure_pool()
         update_data = payload.model_dump(exclude_unset=True)
-        set_clause = ", ".join(
-            f"{key} = ${idx}" for idx, key in enumerate(update_data.keys(), start=2)
-        )
-        # Column names from Pydantic model fields (not user input)
+
+        # Whitelist of allowed column names to prevent SQL injection
+        ALLOWED_COLUMNS = {
+            "name",
+            "origin",
+            "destination",
+            "date_range_start",
+            "date_range_end",
+            "max_price",
+            "is_active",
+        }
+
+        # Filter update_data to only include whitelisted columns
+        filtered_data = {k: v for k, v in update_data.items() if k in ALLOWED_COLUMNS}
+
+        if not filtered_data:
+            # No valid fields to update - just return current watchlist if owned by user
+            async with pool.acquire() as conn:
+                row = await conn.fetchrow(
+                    "SELECT * FROM watchlists WHERE id = $1 AND user_id = $2",
+                    watchlist_id,
+                    user_id,
+                )
+                if row is None:
+                    raise KeyError(str(watchlist_id))
+            return self._map_watchlist(row)
+
+        assignments = [
+            f"{key} = ${idx}" for idx, key in enumerate(filtered_data.keys(), start=2)
+        ]
+        set_clause = ", ".join(assignments)
+        # Add user_id check to prevent IDOR attacks
         query = (
-            f"UPDATE watchlists SET {set_clause}, updated_at = NOW() "  # nosec
-            f"WHERE id = $1 RETURNING *"
+            f"UPDATE watchlists SET {set_clause}, updated_at = NOW() "
+            f"WHERE id = $1 AND user_id = ${len(filtered_data) + 2} RETURNING *"
         )
-        params = [watchlist_id] + list(update_data.values())
+        params = [watchlist_id] + list(filtered_data.values()) + [user_id]
         async with pool.acquire() as conn:
             row = await conn.fetchrow(query, *params)
             if row is None:
                 raise KeyError(str(watchlist_id))
         return self._map_watchlist(row)
 
-    async def delete_watchlist(self, watchlist_id: UUID) -> None:
+    async def delete_watchlist(self, user_id: UUID, watchlist_id: UUID) -> None:
+        """Delete a watchlist owned by the authenticated user.
+
+        Security: Only allows deleting watchlists owned by the authenticated user.
+        Silently succeeds if watchlist not found (idempotent) or not owned by user.
+        """
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
-            await conn.execute("DELETE FROM watchlists WHERE id = $1", watchlist_id)
+            await conn.execute(
+                "DELETE FROM watchlists WHERE id = $1 AND user_id = $2",
+                watchlist_id,
+                user_id,
+            )
 
     # Alerts ----------------------------------------------------------------
 
     async def list_alert_history(
-        self, page: int, per_page: int
+        self, user_id: UUID, page: int, per_page: int
     ) -> Tuple[List[AlertHistory], int]:
+        """List alert history for a specific user only.
+
+        Security: Filters by user_id to prevent users from seeing each other's alerts.
+        """
         pool = await self._ensure_pool()
         offset = (page - 1) * per_page
         async with pool.acquire() as conn:
             rows = await conn.fetch(
-                "SELECT "
-                "a.id AS alert_id, a.sent_at, a.opened_at, "
-                "a.clicked_through, a.expires_at AS alert_expires_at, "
-                "fd.id AS deal_id, fd.origin, fd.destination, fd.departure_date, "
-                "fd.return_date, fd.total_price, fd.currency, fd.deal_score, "
-                "fd.discount_percent, fd.normal_price, fd.created_at, "
-                "fd.expires_at AS deal_expires_at, fd.airline, fd.stops, "
-                "fd.return_stops, fd.deep_link "
-                "FROM alert_history a JOIN flight_deals fd ON a.deal_id = fd.id "
-                "ORDER BY a.sent_at DESC LIMIT $1 OFFSET $2",
+                dedent(
+                    """
+                    SELECT
+                        a.id AS alert_id,
+                        a.sent_at,
+                        a.opened_at,
+                        a.clicked_through,
+                        a.expires_at AS alert_expires_at,
+                        fd.id AS deal_id,
+                        fd.origin,
+                        fd.destination,
+                        fd.departure_date,
+                        fd.return_date,
+                        fd.total_price,
+                        fd.currency,
+                        fd.deal_score,
+                        fd.discount_percent,
+                        fd.normal_price,
+                        fd.created_at,
+                        fd.expires_at AS deal_expires_at,
+                        fd.airline,
+                        fd.stops,
+                        fd.return_stops,
+                        fd.deep_link
+                    FROM alert_history a
+                    JOIN flight_deals fd ON a.deal_id = fd.id
+                    WHERE a.user_id = $1
+                    ORDER BY a.sent_at DESC
+                    LIMIT $2 OFFSET $3
+                    """
+                ),
+                user_id,
                 per_page,
                 offset,
             )
             total_row = await conn.fetchrow(
-                "SELECT COUNT(*) AS total FROM alert_history"
+                "SELECT COUNT(*) AS total FROM alert_history WHERE user_id = $1",
+                user_id,
             )
         alerts = [self._map_alert(row) for row in rows]
         total = total_row["total"] if total_row else 0
         return alerts, total
 
-    async def append_alert(self, alert: AlertHistory) -> None:
+    async def append_alert(self, user_id: UUID, alert: AlertHistory) -> None:
+        """Append alert to history for specific user.
+
+        Security: Associates alert with authenticated user_id to prevent data leakage.
+        """
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
             await conn.execute(
-                "INSERT INTO alert_history (id, deal_id, sent_at, opened_at, "
-                "clicked_through, expires_at) VALUES ($1, $2, $3, $4, $5, $6)",
+                dedent(
+                    """
+                    INSERT INTO alert_history (
+                        id,
+                        user_id,
+                        deal_id,
+                        sent_at,
+                        opened_at,
+                        clicked_through,
+                        expires_at
+                    )
+                    VALUES ($1, $2, $3, $4, $5, $6, $7)
+                    """
+                ),
                 alert.id,
+                user_id,
                 alert.deal.id,
                 alert.sent_at,
                 alert.opened_at,
@@ -154,14 +295,32 @@ class SupabaseProvider(DataProvider):
                 alert.expires_at,
             )
 
-    async def get_alert_preferences(self) -> AlertPreferences:
+    async def get_alert_preferences(self, user_id: UUID) -> AlertPreferences:
+        """Get alert preferences from users table columns.
+
+        Security: Fetches preferences for specific user only.
+        Schema: Reads from users table columns (alert_enabled, quiet_hours_*, watchlist_only_mode).
+        """
         pool = await self._ensure_pool()
+        query = dedent(
+            """
+            SELECT
+                alert_enabled,
+                quiet_hours_enabled,
+                quiet_hours_start,
+                quiet_hours_end,
+                watchlist_only_mode
+            FROM users
+            WHERE id = $1
+            """
+        )
         async with pool.acquire() as conn:
-            row = await conn.fetchrow("SELECT * FROM alert_preferences LIMIT 1")
+            row = await conn.fetchrow(query, user_id)
         if row is None:
+            # User not found - return defaults
             return AlertPreferences()
         return AlertPreferences(
-            enabled=row["enabled"],
+            enabled=row["alert_enabled"],
             quiet_hours_enabled=row["quiet_hours_enabled"],
             quiet_hours_start=row["quiet_hours_start"],
             quiet_hours_end=row["quiet_hours_end"],
@@ -169,15 +328,30 @@ class SupabaseProvider(DataProvider):
         )
 
     async def update_alert_preferences(
-        self, prefs: AlertPreferences
+        self, user_id: UUID, prefs: AlertPreferences
     ) -> AlertPreferences:
+        """Update alert preferences in users table columns.
+
+        Security: Updates preferences for specific user only.
+        Schema: Updates users table columns (alert_enabled, quiet_hours_*, watchlist_only_mode).
+        """
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
-            await conn.execute("DELETE FROM alert_preferences")  # ensure single row
             await conn.execute(
-                "INSERT INTO alert_preferences (enabled, quiet_hours_enabled, "
-                "quiet_hours_start, quiet_hours_end, watchlist_only_mode)"
-                " VALUES ($1, $2, $3, $4, $5)",
+                dedent(
+                    """
+                    UPDATE users
+                    SET
+                        alert_enabled = $2,
+                        quiet_hours_enabled = $3,
+                        quiet_hours_start = $4,
+                        quiet_hours_end = $5,
+                        watchlist_only_mode = $6,
+                        updated_at = NOW()
+                    WHERE id = $1
+                    """
+                ),
+                user_id,
                 prefs.enabled,
                 prefs.quiet_hours_enabled,
                 prefs.quiet_hours_start,
@@ -186,28 +360,70 @@ class SupabaseProvider(DataProvider):
             )
         return prefs
 
-    async def update_preferred_airports(self, payload: PreferredAirportsUpdate) -> dict:
+    async def update_preferred_airports(
+        self, user_id: UUID, payload: PreferredAirportsUpdate
+    ) -> dict:
+        """Update preferred airports in users.preferred_airports JSONB column.
+
+        Security: Updates airports for specific user only.
+        Schema: Updates users.preferred_airports JSONB column (array of {iata, weight} objects).
+        """
         pool = await self._ensure_pool()
+
+        # Convert PreferredAirport objects to JSONB-compatible dicts
+        airports_json = [
+            {"iata": airport.iata.upper(), "weight": airport.weight}
+            for airport in payload.preferred_airports
+        ]
+
         async with pool.acquire() as conn:
-            await conn.execute("DELETE FROM preferred_airports")
-            for airport in payload.preferred_airports:
-                await conn.execute(
-                    "INSERT INTO preferred_airports (iata, weight) VALUES ($1, $2)",
-                    airport.iata.upper(),
-                    airport.weight,
-                )
+            await conn.execute(
+                dedent(
+                    """
+                    UPDATE users
+                    SET
+                        preferred_airports = $2::jsonb,
+                        updated_at = NOW()
+                    WHERE id = $1
+                    """
+                ),
+                user_id,
+                airports_json,  # asyncpg handles list->jsonb conversion
+            )
         return {"status": "updated"}
 
     async def register_device_token(
-        self, device_id: UUID, token: str, platform: str
+        self, user_id: UUID, device_id: UUID, token: str, platform: str
     ) -> None:
+        """Register device token in device_registrations table.
+
+        Security: Associates device with authenticated user_id.
+        Schema: Uses device_registrations table with user_id, device_id, apns_token columns.
+        UPSERT: Updates token if device already registered for this user.
+        """
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
             await conn.execute(
-                "INSERT INTO device_tokens (id, token, platform, created_at)"
-                " VALUES ($1, $2, $3, NOW())"
-                " ON CONFLICT (id) DO UPDATE SET token = EXCLUDED.token, "
-                "platform = EXCLUDED.platform, last_used_at = NOW()",
+                dedent(
+                    """
+                    INSERT INTO device_registrations (
+                        user_id,
+                        device_id,
+                        apns_token,
+                        platform,
+                        created_at,
+                        updated_at,
+                        last_active_at
+                    )
+                    VALUES ($1, $2, $3, $4, NOW(), NOW(), NOW())
+                    ON CONFLICT (user_id, device_id) DO UPDATE SET
+                        apns_token = EXCLUDED.apns_token,
+                        platform = EXCLUDED.platform,
+                        updated_at = NOW(),
+                        last_active_at = NOW()
+                    """
+                ),
+                user_id,
                 device_id,
                 token,
                 platform,
@@ -278,3 +494,81 @@ class SupabaseProvider(DataProvider):
             clicked_through=row.get("clicked_through"),
             expires_at=row.get("alert_expires_at"),
         )
+
+    # Users -----------------------------------------------------------------
+
+    async def get_user(self, user_id: UUID) -> User:
+        """Get user by ID from users table."""
+        pool = await self._ensure_pool()
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow("SELECT * FROM users WHERE id = $1", user_id)
+            if row is None:
+                raise KeyError(str(user_id))
+        return self._map_user(row)
+
+    async def update_user(self, user_id: UUID, payload: UserUpdate) -> User:
+        """Update user settings in users table."""
+        pool = await self._ensure_pool()
+        update_data = payload.model_dump(exclude_unset=True)
+
+        if not update_data:
+            # No fields to update, just return current user
+            return await self.get_user(user_id)
+
+        # Build dynamic UPDATE query
+        assignments = [
+            f"{key} = ${idx}" for idx, key in enumerate(update_data.keys(), start=2)
+        ]
+        set_clause = ", ".join(assignments)
+        query = (
+            f"UPDATE users SET {set_clause}, updated_at = NOW() "
+            f"WHERE id = $1 RETURNING *"
+        )
+        params = [user_id] + list(update_data.values())
+
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(query, *params)
+            if row is None:
+                raise KeyError(str(user_id))
+        return self._map_user(row)
+
+    def _map_user(self, row: asyncpg.Record) -> User:
+        """Map database row to User model."""
+        from datetime import datetime, timezone
+
+        return User(
+            id=row["id"],
+            email=row["email"],
+            subscription_tier=row.get("subscription_tier", "free"),
+            timezone=row.get("timezone", "America/Los_Angeles"),
+            created_at=row["created_at"],
+        )
+
+    async def health_check(self) -> dict:
+        """Check database connectivity using existing connection pool.
+
+        Returns:
+            dict with health status and connection pool information
+        """
+        try:
+            pool = await self._ensure_pool()
+            async with pool.acquire() as conn:
+                await conn.fetchval("SELECT 1")
+
+            # Get pool stats for observability
+            pool_size = pool.get_size()
+            pool_free = pool.get_idle_size()
+
+            return {
+                "status": "healthy",
+                "type": "postgresql",
+                "pool_size": pool_size,
+                "pool_free": pool_free,
+                "pool_in_use": pool_size - pool_free,
+            }
+        except Exception as e:
+            return {
+                "status": "unhealthy",
+                "type": "postgresql",
+                "error": str(e),
+            }

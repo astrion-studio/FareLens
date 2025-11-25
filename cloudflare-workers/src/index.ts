@@ -17,6 +17,12 @@
 
 import { z } from 'zod';
 
+// Validation schemas for input sanitization
+const originValidation = z.string().regex(/^[A-Z]{3}$/, 'Origin must be a 3-letter IATA code');
+const destinationValidation = z.string().regex(/^([A-Z]{3}|ANY)$/, 'Destination must be a 3-letter IATA code or "ANY"');
+const datetimeValidation = z.string().datetime();
+const priceValidation = z.number().positive().max(50000, 'Price must be between 0 and 50000');
+
 interface Env {
   // Secrets (set via `wrangler secret put`)
   SUPABASE_URL: string;
@@ -67,6 +73,23 @@ export default {
       // Support both /api/deals and /deals for backwards compatibility
       if (path.startsWith('/api/deals') || path.startsWith('/deals')) {
         return await handleDeals(request, env);
+      }
+
+      // Alerts history endpoint
+      // Support both /api/alerts/history and /alerts/history
+      if (path === '/api/alerts/history' || path === '/alerts/history') {
+        return await handleAlertHistory(request, env);
+      }
+
+      // Watchlist endpoints
+      // Support both /api/watchlists and /watchlists for backwards compatibility
+      if (path.startsWith('/api/watchlists') || path.startsWith('/watchlists')) {
+        return await handleWatchlists(request, env);
+      }
+
+      // User endpoint (consolidated alert preferences and airports)
+      if (path === '/api/user' || path === '/user') {
+        return await handleUser(request, env);
       }
 
       // 404 for unknown routes
@@ -236,8 +259,50 @@ async function verifyAuth(request: Request, env: Env): Promise<AuthResult> {
 }
 
 /**
+ * Helper function to fetch data from Supabase table with authentication
+ * Reduces code duplication for list queries
+ * @param token - JWT token for authentication
+ * @param env - Environment variables
+ * @param table - Supabase table name
+ * @param query - Query parameters (e.g., "order=created_at.desc&limit=50")
+ * @param dataKey - Key name for the response data array
+ * @param userId - User ID to include in response
+ */
+async function fetchSupabaseListQuery(
+  token: string,
+  env: Env,
+  table: string,
+  query: string,
+  dataKey: string,
+  userId: string
+): Promise<Response> {
+  const response = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/${table}?${query}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`Failed to fetch ${table} from Supabase:`, errorText);
+    return jsonResponse({ error: `Failed to fetch ${dataKey}` }, response.status, {}, env);
+  }
+
+  const data = await response.json();
+  return jsonResponse({ [dataKey]: data, user_id: userId }, 200, {}, env);
+}
+
+/**
  * Handle deals endpoint (queries Supabase)
  * Uses ANON_KEY to respect Row-Level Security policies
+ * Supports:
+ * - GET /deals - List all deals
+ * - GET /deals/{id} - Get single deal by ID
  */
 async function handleDeals(request: Request, env: Env): Promise<Response> {
   // Verify authentication
@@ -247,29 +312,83 @@ async function handleDeals(request: Request, env: Env): Promise<Response> {
   }
 
   const token = authResult.token;
+  const url = new URL(request.url);
+  const path = url.pathname;
 
-  // Query flight deals from Supabase using anon key
-  // RLS policies will automatically filter results based on the user's JWT
-  const dealsResponse = await fetch(
-    `${env.SUPABASE_URL}/rest/v1/flight_deals?order=deal_score.desc&limit=20`,
-    {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'apikey': env.SUPABASE_ANON_KEY,  // Use anon key to respect RLS
-        'Content-Type': 'application/json',
-      },
+  // Extract deal ID if present
+  // Match patterns: /deals/{id}, /api/deals/{id}
+  const dealIdMatch = path.match(/\/(?:api\/)?deals\/([a-f0-9-]+)$/i);
+
+  if (dealIdMatch) {
+    // GET /deals/{id} - Fetch single deal
+    const dealId = dealIdMatch[1];
+
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(dealId)) {
+      return jsonResponse({ error: 'Invalid deal ID format' }, 400, {}, env);
     }
-  );
 
-  if (!dealsResponse.ok) {
-    const errorText = await dealsResponse.text();
-    console.error('Failed to fetch deals from Supabase:', errorText);
-    return jsonResponse({ error: 'Failed to fetch deals' }, dealsResponse.status, {}, env);
+    const dealResponse = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/flight_deals?id=eq.${dealId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'apikey': env.SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!dealResponse.ok) {
+      const errorText = await dealResponse.text();
+      console.error('Failed to fetch deal from Supabase:', errorText);
+      return jsonResponse({ error: 'Failed to fetch deal' }, dealResponse.status, {}, env);
+    }
+
+    const deals = await dealResponse.json();
+
+    // Check if deal exists
+    if (!Array.isArray(deals) || deals.length === 0) {
+      return jsonResponse({ error: 'Deal not found' }, 404, {}, env);
+    }
+
+    // Return single deal wrapped in object for API consistency
+    return jsonResponse({ deal: deals[0], user_id: authResult.userId }, 200, {}, env);
+  } else {
+    // GET /deals - List all deals
+    return fetchSupabaseListQuery(
+      token,
+      env,
+      'flight_deals',
+      'order=deal_score.desc&limit=20',
+      'deals',
+      authResult.userId
+    );
+  }
+}
+
+/**
+ * Handle alerts history endpoint (queries Supabase)
+ * Uses ANON_KEY to respect Row-Level Security policies
+ * GET /alerts/history - Get alert history for authenticated user
+ */
+async function handleAlertHistory(request: Request, env: Env): Promise<Response> {
+  // Verify authentication
+  const authResult = await verifyAuth(request, env);
+  if (!authResult.authenticated) {
+    return authResult.response;
   }
 
-  const deals = await dealsResponse.json();
-
-  return jsonResponse({ deals, user_id: authResult.userId }, 200, {}, env);
+  // Use helper function to reduce code duplication
+  return fetchSupabaseListQuery(
+    authResult.token,
+    env,
+    'alert_history',
+    'order=created_at.desc&limit=50',
+    'alerts',
+    authResult.userId
+  );
 }
 
 /**
@@ -352,6 +471,11 @@ function handleCORS(env: Env): Response {
 /**
  * Helper to create JSON responses with CORS headers
  * env parameter is required to ensure CORS origin is always properly configured
+ *
+ * Note: CORS credentials header is conditionally included based on origin:
+ * - Wildcard origin (*): No credentials header (CORS spec forbids credentials=true with wildcard)
+ * - Specific domain: Includes credentials=true to support future cookie-based auth if needed
+ * Current security is enforced via JWT authentication, not CORS credentials.
  */
 function jsonResponse(
   data: any,
@@ -359,13 +483,485 @@ function jsonResponse(
   extraHeaders: Record<string, string>,
   env: Env
 ): Response {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': env.CORS_ALLOW_ORIGIN,
+    ...extraHeaders,
+  };
+
+  // Only include credentials header if origin is NOT a wildcard
+  // (CORS spec forbids 'Access-Control-Allow-Credentials: true' with wildcard origin)
+  if (env.CORS_ALLOW_ORIGIN !== '*') {
+    headers['Access-Control-Allow-Credentials'] = 'true';
+  }
+
   return new Response(JSON.stringify(data), {
     status,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': env.CORS_ALLOW_ORIGIN,
-      'Access-Control-Allow-Credentials': 'true',
-      ...extraHeaders,
-    },
+    headers,
   });
+}
+
+/**
+ * Handle watchlist endpoints (CRUD operations)
+ * Supports:
+ * - POST /watchlists - Create new watchlist
+ * - GET /watchlists - List all watchlists for authenticated user
+ * - GET /watchlists/{id} - Get single watchlist by ID
+ * - PUT /watchlists/{id} - Update watchlist
+ * - DELETE /watchlists/{id} - Delete watchlist
+ */
+async function handleWatchlists(request: Request, env: Env): Promise<Response> {
+  // Verify authentication
+  const authResult = await verifyAuth(request, env);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
+  const token = authResult.token;
+  const userId = authResult.userId;
+  const url = new URL(request.url);
+  const path = url.pathname;
+  const method = request.method;
+
+  // Extract watchlist ID if present
+  // Match patterns: /watchlists/{id}, /api/watchlists/{id}
+  const watchlistIdMatch = path.match(/\/(?:api\/)?watchlists\/([a-f0-9-]+)$/i);
+
+  if (watchlistIdMatch) {
+    const watchlistId = watchlistIdMatch[1];
+
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(watchlistId)) {
+      return jsonResponse({ error: 'Invalid watchlist ID format' }, 400, {}, env);
+    }
+
+    // Route to appropriate handler based on method
+    switch (method) {
+      case 'GET':
+        return await getWatchlist(token, env, watchlistId, userId);
+      case 'PUT':
+        return await updateWatchlist(request, token, env, watchlistId, userId);
+      case 'DELETE':
+        return await deleteWatchlist(token, env, watchlistId, userId);
+      default:
+        return jsonResponse({ error: 'Method not allowed' }, 405, {}, env);
+    }
+  } else {
+    // No ID in path - collection operations
+    switch (method) {
+      case 'GET':
+        return await listWatchlists(token, env, userId);
+      case 'POST':
+        return await createWatchlist(request, token, env, userId);
+      default:
+        return jsonResponse({ error: 'Method not allowed' }, 405, {}, env);
+    }
+  }
+}
+
+/**
+ * Zod schema for watchlist creation/update
+ * Matches Supabase watchlists table schema
+ */
+const WatchlistSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  origin: originValidation,
+  destination: destinationValidation,
+  date_range_start: datetimeValidation.optional(),
+  date_range_end: datetimeValidation.optional(),
+  max_price: priceValidation.optional(),
+  is_active: z.boolean().optional(),
+});
+
+type WatchlistInput = z.infer<typeof WatchlistSchema>;
+
+/**
+ * POST /watchlists - Create new watchlist
+ */
+async function createWatchlist(
+  request: Request,
+  token: string,
+  env: Env,
+  userId: string
+): Promise<Response> {
+  // Parse and validate request body
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: 'Invalid JSON body' }, 400, {}, env);
+  }
+
+  const parseResult = WatchlistSchema.safeParse(body);
+  if (!parseResult.success) {
+    return jsonResponse(
+      { error: 'Invalid watchlist data', details: parseResult.error.issues },
+      400,
+      {},
+      env
+    );
+  }
+
+  const watchlistData: WatchlistInput = parseResult.data;
+
+  // Create watchlist in Supabase
+  // Explicitly include user_id to satisfy RLS INSERT policy (user_id must match auth.uid())
+  const response = await fetch(`${env.SUPABASE_URL}/rest/v1/watchlists`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'apikey': env.SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation', // Return created record
+    },
+    body: JSON.stringify({
+      ...watchlistData,
+      user_id: userId,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to create watchlist:', errorText);
+    return jsonResponse({ error: 'Failed to create watchlist' }, response.status, {}, env);
+  }
+
+  const data = await response.json();
+
+  // Return first item if array, otherwise return as-is
+  const watchlist = Array.isArray(data) ? data[0] : data;
+
+  // Return bare watchlist object (not wrapped) to match iOS expectations
+  return jsonResponse(watchlist, 201, {}, env);
+}
+
+/**
+ * GET /watchlists - List all watchlists for authenticated user
+ * Returns bare array (not wrapped) to match single-item endpoint pattern
+ */
+async function listWatchlists(token: string, env: Env, userId: string): Promise<Response> {
+  const response = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/watchlists?order=created_at.desc`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to fetch watchlists:', errorText);
+    return jsonResponse({ error: 'Failed to fetch watchlists' }, response.status, {}, env);
+  }
+
+  const watchlists = await response.json();
+
+  // Return bare array to match other endpoints (create/get/update return bare objects)
+  return jsonResponse(watchlists, 200, {}, env);
+}
+
+/**
+ * GET /watchlists/{id} - Get single watchlist by ID
+ */
+async function getWatchlist(
+  token: string,
+  env: Env,
+  watchlistId: string,
+  userId: string
+): Promise<Response> {
+  const response = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/watchlists?id=eq.${watchlistId}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to fetch watchlist:', errorText);
+    return jsonResponse({ error: 'Failed to fetch watchlist' }, response.status, {}, env);
+  }
+
+  const watchlists = await response.json();
+
+  // Check if watchlist exists
+  if (!Array.isArray(watchlists) || watchlists.length === 0) {
+    return jsonResponse({ error: 'Watchlist not found' }, 404, {}, env);
+  }
+
+  // Return bare watchlist object (not wrapped) to match iOS expectations
+  return jsonResponse(watchlists[0], 200, {}, env);
+}
+
+/**
+ * PUT /watchlists/{id} - Update watchlist
+ */
+async function updateWatchlist(
+  request: Request,
+  token: string,
+  env: Env,
+  watchlistId: string,
+  userId: string
+): Promise<Response> {
+  // Parse and validate request body
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: 'Invalid JSON body' }, 400, {}, env);
+  }
+
+  const parseResult = WatchlistSchema.safeParse(body);
+  if (!parseResult.success) {
+    return jsonResponse(
+      { error: 'Invalid watchlist data', details: parseResult.error.issues },
+      400,
+      {},
+      env
+    );
+  }
+
+  const watchlistData: WatchlistInput = parseResult.data;
+
+  // Update watchlist in Supabase
+  // RLS policy will ensure user can only update their own watchlists
+  const response = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/watchlists?id=eq.${watchlistId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+      },
+      body: JSON.stringify(watchlistData),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to update watchlist:', errorText);
+    return jsonResponse({ error: 'Failed to update watchlist' }, response.status, {}, env);
+  }
+
+  const data = await response.json();
+
+  // Check if any rows were updated
+  if (!Array.isArray(data) || data.length === 0) {
+    return jsonResponse({ error: 'Watchlist not found or access denied' }, 404, {}, env);
+  }
+
+  // Return bare watchlist object (not wrapped) to match iOS expectations
+  return jsonResponse(data[0], 200, {}, env);
+}
+
+/**
+ * DELETE /watchlists/{id} - Delete watchlist
+ */
+async function deleteWatchlist(
+  token: string,
+  env: Env,
+  watchlistId: string,
+  userId: string
+): Promise<Response> {
+  // Delete watchlist from Supabase
+  // RLS policy will ensure user can only delete their own watchlists
+  const response = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/watchlists?id=eq.${watchlistId}`,
+    {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to delete watchlist:', errorText);
+    return jsonResponse({ error: 'Failed to delete watchlist' }, response.status, {}, env);
+  }
+
+  const data = await response.json();
+
+  // Check if any rows were deleted
+  if (!Array.isArray(data) || data.length === 0) {
+    return jsonResponse({ error: 'Watchlist not found or access denied' }, 404, {}, env);
+  }
+
+  return jsonResponse({ success: true, user_id: userId }, 200, {}, env);
+}
+
+// Alert preferences and preferred airports handlers removed - consolidated into /user endpoint
+
+/**
+ * Handle user endpoint
+ * GET /user - Fetch user profile with all fields from users table
+ * PATCH /user - Update user profile (timezone, alert settings, preferred_airports)
+ */
+async function handleUser(request: Request, env: Env): Promise<Response> {
+  // Verify authentication
+  const authResult = await verifyAuth(request, env);
+  if (!authResult.authenticated) {
+    return authResult.response;
+  }
+
+  const method = request.method;
+
+  switch (method) {
+    case 'GET':
+      return await getUser(authResult.token, env, authResult.userId);
+    case 'PATCH':
+      return await updateUser(request, authResult.token, env, authResult.userId);
+    default:
+      return jsonResponse({ error: 'Method not allowed' }, 405, {}, env);
+  }
+}
+
+/**
+ * GET /user - Fetch user profile
+ * Returns all user data from users table (no joins needed - all fields are in users table)
+ */
+async function getUser(token: string, env: Env, userId: string): Promise<Response> {
+  const userResponse = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=*`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  if (!userResponse.ok) {
+    const errorText = await userResponse.text();
+    console.error('Failed to fetch user from Supabase:', errorText);
+    return jsonResponse({ error: 'Failed to fetch user' }, userResponse.status, {}, env);
+  }
+
+  const users = await userResponse.json();
+
+  if (!Array.isArray(users) || users.length === 0) {
+    return jsonResponse({ error: 'User not found' }, 404, {}, env);
+  }
+
+  return jsonResponse({ user: users[0], user_id: userId }, 200, {}, env);
+}
+
+/**
+ * Zod schemas for user update validation
+ * Matches actual users table schema from supabase_schema_FINAL.sql
+ */
+const PreferredAirportSchema = z.object({
+  iata: originValidation,  // Use shared IATA validation
+  weight: z.number().min(0).max(1, 'Weight must be between 0 and 1'),
+});
+
+const UserUpdateSchema = z.object({
+  // User profile fields
+  timezone: z.string().optional(),
+
+  // Alert preference fields (stored in users table)
+  alert_enabled: z.boolean().optional(),
+  quiet_hours_enabled: z.boolean().optional(),
+  quiet_hours_start: z.number().int().min(0).max(23).optional(),
+  quiet_hours_end: z.number().int().min(0).max(23).optional(),
+  watchlist_only_mode: z.boolean().optional(),
+
+  // Preferred airports (JSONB array in users table)
+  preferred_airports: z.array(PreferredAirportSchema).max(10, 'Maximum 10 preferred airports').optional(),
+}).strict();  // Reject any unknown fields (e.g., subscription_tier, id, created_at)
+
+type UserUpdateInput = z.infer<typeof UserUpdateSchema>;
+
+/**
+ * PATCH /user - Update user profile
+ * All fields are in the users table - single update operation
+ */
+async function updateUser(
+  request: Request,
+  token: string,
+  env: Env,
+  userId: string
+): Promise<Response> {
+  // Parse and validate request body
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: 'Invalid JSON body' }, 400, {}, env);
+  }
+
+  const parseResult = UserUpdateSchema.safeParse(body);
+  if (!parseResult.success) {
+    return jsonResponse(
+      { error: 'Invalid user data', details: parseResult.error.issues },
+      400,
+      {},
+      env
+    );
+  }
+
+  const userData: UserUpdateInput = parseResult.data;
+
+  // Validate preferred airports weights sum to 1.0 if provided
+  if (userData.preferred_airports && userData.preferred_airports.length > 0) {
+    const weightSum = userData.preferred_airports.reduce((sum, airport) => sum + airport.weight, 0);
+    const WEIGHT_TOLERANCE = 0.001;
+
+    if (Math.abs(weightSum - 1.0) > WEIGHT_TOLERANCE) {
+      return jsonResponse(
+        {
+          error: `Preferred airports weights must sum to 1.0 (got ${weightSum.toFixed(4)})`,
+          actual_sum: weightSum,
+          tolerance: WEIGHT_TOLERANCE
+        },
+        400,
+        {},
+        env
+      );
+    }
+  }
+
+  // Update users table (single operation, all fields in same table)
+  const response = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/users?id=eq.${userId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+      },
+      body: JSON.stringify(userData),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to update user:', errorText);
+    return jsonResponse({ error: 'Failed to update user' }, response.status, {}, env);
+  }
+
+  const data = await response.json();
+
+  if (!Array.isArray(data) || data.length === 0) {
+    return jsonResponse({ error: 'User not found or access denied' }, 404, {}, env);
+  }
+
+  return jsonResponse({ user: data[0], user_id: userId }, 200, {}, env);
 }

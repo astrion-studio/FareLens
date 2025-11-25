@@ -1,0 +1,44 @@
+name: Architecture Enforcement
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  enforce-architecture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for FastAPI endpoint additions
+        run: |
+          # Get the base branch to compare against
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_REF="${{ github.base_ref }}"
+          else
+            BASE_REF="origin/main"
+          fi
+
+          # Check for new Python API files
+          NEW_FILES=$(git diff --name-only --diff-filter=A $BASE_REF...HEAD | grep "^backend/app/api/.*\.py$" || true)
+
+          if [ -n "$NEW_FILES" ]; then
+            echo "❌ ARCHITECTURE VIOLATION: New FastAPI endpoints detected"
+            echo ""
+            echo "FastAPI backend is DEPRECATED. Use Cloudflare Workers instead."
+            echo ""
+            echo "Blocked files:"
+            echo "$NEW_FILES"
+            echo ""
+            echo "Canonical backend: cloudflare-workers/src/index.ts"
+            echo "Live deployment: https://farelens-api.woodcut-rabbles5e.workers.dev"
+            echo ""
+            echo "See: ARCHITECTURE_ENFORCEMENT.md"
+            exit 1
+          fi
+
+          echo "✅ No architecture violations detected"

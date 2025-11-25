@@ -8,6 +8,8 @@ struct DealsView: View {
     @Environment(AppState.self) var appState: AppState
     @State private var showingFilters = false
     @State private var selectedDeal: FlightDeal?
+    @State private var showingCreateWatchlist = false
+    @State private var watchlistsViewModel: WatchlistsViewModel?
 
     var body: some View {
         NavigationStack {
@@ -24,7 +26,12 @@ struct DealsView: View {
                         }
                     }
                 } else if viewModel.deals.isEmpty {
-                    EmptyDealsView()
+                    EmptyDealsView(
+                        watchlistsViewModel: watchlistsViewModel,
+                        onCreateWatchlist: {
+                            showingCreateWatchlist = true
+                        }
+                    )
                 } else {
                     VStack(spacing: 0) {
                         // Filter bar
@@ -59,8 +66,40 @@ struct DealsView: View {
         .sheet(item: $selectedDeal) { deal in
             DealDetailView(deal: deal)
         }
+        .sheet(isPresented: $showingCreateWatchlist) {
+            if let viewModel = watchlistsViewModel {
+                CreateWatchlistView(viewModel: viewModel)
+            } else {
+                // Graceful fallback if ViewModel not ready (race condition or user logged out)
+                VStack(spacing: Spacing.md) {
+                    ProgressView()
+                    Text("Loading...")
+                        .bodyStyle()
+                        .foregroundColor(.textSecondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.backgroundPrimary)
+            }
+        }
         .task {
             await viewModel.loadDeals()
+        }
+        .onAppear {
+            // Initialize WatchlistsViewModel once on appear (not in .task to avoid race)
+            if watchlistsViewModel == nil, let user = appState.currentUser {
+                watchlistsViewModel = WatchlistsViewModel(user: user)
+            }
+        }
+        .onChange(of: appState.currentUser?.id) { _, newUserId in
+            // Only recreate if user ID actually changed (UUID? is Equatable)
+            if let newUserId,
+               let current = appState.currentUser,
+               watchlistsViewModel?.user.id != newUserId
+            {
+                watchlistsViewModel = WatchlistsViewModel(user: current)
+            } else if newUserId == nil {
+                watchlistsViewModel = nil
+            }
         }
     }
 }
@@ -90,6 +129,9 @@ struct FilterBar: View {
 }
 
 struct EmptyDealsView: View {
+    let watchlistsViewModel: WatchlistsViewModel?
+    let onCreateWatchlist: () -> Void
+
     var body: some View {
         VStack(spacing: Spacing.xl) {
             Image(systemName: "airplane.departure")
@@ -107,9 +149,9 @@ struct EmptyDealsView: View {
                     .multilineTextAlignment(.center)
             }
 
-            FLButton(title: "Create Watchlist", style: .secondary) {
-                // Navigate to watchlists
-            }
+            FLButton(title: "Create Watchlist", style: .secondary, action: onCreateWatchlist)
+                .disabled(watchlistsViewModel == nil)
+                .opacity(watchlistsViewModel == nil ? 0.5 : 1.0)
         }
         .padding(Spacing.screenHorizontal)
     }

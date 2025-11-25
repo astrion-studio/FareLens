@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+# IATA code validation patterns
+IATA_CODE_PATTERN = re.compile(r"^[A-Z]{3}$")
+IATA_CODE_OR_ANY_PATTERN = re.compile(r"^([A-Z]{3}|ANY)$")
 
 
 class Route(BaseModel):
@@ -60,22 +65,64 @@ class Watchlist(BaseModel):
 
 class WatchlistCreate(BaseModel):
     name: str
-    origin: str
-    destination: str
+    origin: str = Field(..., description="3-letter IATA airport code")
+    destination: str = Field(..., description="3-letter IATA airport code or ANY")
     date_range_start: Optional[datetime] = None
     date_range_end: Optional[datetime] = None
     max_price: Optional[float] = None
     is_active: bool = True
 
+    @field_validator("origin")
+    @classmethod
+    def validate_origin(cls, v: str) -> str:
+        """Validate origin is exactly 3 uppercase letters."""
+        if not IATA_CODE_PATTERN.match(v.upper()):
+            raise ValueError("Origin must be exactly 3 letters (e.g., LAX, JFK, SFO)")
+        return v.upper()
+
+    @field_validator("destination")
+    @classmethod
+    def validate_destination(cls, v: str) -> str:
+        """Validate destination is exactly 3 uppercase letters or ANY."""
+        if not IATA_CODE_OR_ANY_PATTERN.match(v.upper()):
+            raise ValueError(
+                "Destination must be exactly 3 letters (e.g., LAX, JFK, SFO) or ANY"
+            )
+        return v.upper()
+
 
 class WatchlistUpdate(BaseModel):
     name: Optional[str] = None
-    origin: Optional[str] = None
-    destination: Optional[str] = None
+    origin: Optional[str] = Field(None, description="3-letter IATA airport code")
+    destination: Optional[str] = Field(
+        None, description="3-letter IATA airport code or ANY"
+    )
     date_range_start: Optional[datetime] = None
     date_range_end: Optional[datetime] = None
     max_price: Optional[float] = None
     is_active: Optional[bool] = None
+
+    @field_validator("origin")
+    @classmethod
+    def validate_origin(cls, v: Optional[str]) -> Optional[str]:
+        """Validate origin is exactly 3 uppercase letters."""
+        if v is None:
+            return v
+        if not IATA_CODE_PATTERN.match(v.upper()):
+            raise ValueError("Origin must be exactly 3 letters (e.g., LAX, JFK, SFO)")
+        return v.upper()
+
+    @field_validator("destination")
+    @classmethod
+    def validate_destination(cls, v: Optional[str]) -> Optional[str]:
+        """Validate destination is exactly 3 uppercase letters or ANY."""
+        if v is None:
+            return v
+        if not IATA_CODE_OR_ANY_PATTERN.match(v.upper()):
+            raise ValueError(
+                "Destination must be exactly 3 letters (e.g., LAX, JFK, SFO) or ANY"
+            )
+        return v.upper()
 
 
 class AlertPreferences(BaseModel):
@@ -87,8 +134,18 @@ class AlertPreferences(BaseModel):
 
 
 class PreferredAirport(BaseModel):
-    iata: str
+    iata: str = Field(..., description="3-letter IATA airport code")
     weight: float
+
+    @field_validator("iata")
+    @classmethod
+    def validate_iata(cls, v: str) -> str:
+        """Validate IATA code is exactly 3 uppercase letters."""
+        if not IATA_CODE_PATTERN.match(v.upper()):
+            raise ValueError(
+                "IATA code must be exactly 3 letters (e.g., LAX, JFK, SFO)"
+            )
+        return v.upper()
 
 
 class PreferredAirportsUpdate(BaseModel):
@@ -118,8 +175,8 @@ class DeviceRegistrationRequest(BaseModel):
 
 
 class DeviceRegistrationResponse(BaseModel):
-    status: str
-    message: str
+    registered: bool
+    device_id: str
 
 
 class AuthRequest(BaseModel):
@@ -137,7 +194,10 @@ class ResetPasswordRequest(BaseModel):
 
 
 class SubscriptionInfo(BaseModel):
-    tier: str = Field(default="free", description="Subscription tier (free|pro)")
+    tier: str = Field(
+        default="free",
+        description="Subscription tier (free|pro)",
+    )
     max_watchlists: Optional[int] = 5
     max_alerts_per_day: int = 3
     trial_ends_at: Optional[datetime] = None
@@ -149,26 +209,17 @@ class User(BaseModel):
     subscription_tier: str = "free"
     timezone: str = "America/Los_Angeles"
     created_at: datetime
-    subscription: SubscriptionInfo = Field(default_factory=lambda: SubscriptionInfo())
+    subscription: SubscriptionInfo = Field(
+        default_factory=SubscriptionInfo,
+    )
 
 
 class UserUpdate(BaseModel):
     timezone: Optional[str] = None
 
 
-class APNsRegistration(BaseModel):
-    token: str
-    platform: str = "ios"
-
-
 class DealsResponse(BaseModel):
     deals: List[FlightDeal]
-
-
-class BackgroundRefreshResponse(BaseModel):
-    status: str
-    new_deals: int = 0
-    refreshed_at: datetime
 
 
 AuthResponse.model_rebuild()

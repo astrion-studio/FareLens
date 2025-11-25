@@ -14,7 +14,7 @@ packages:
 
 settings:
   base:
-    DEVELOPMENT_TEAM: "A6G25B58D4"  # Personal Team for kaujla25@gmail.com
+    # DEVELOPMENT_TEAM: Set automatically by Xcode based on your Apple ID
     IPHONEOS_DEPLOYMENT_TARGET: "26.0"
     SWIFT_VERSION: "5.0"
     TARGETED_DEVICE_FAMILY: 1
@@ -56,6 +56,9 @@ targets:
         # NOTE: Push notifications temporarily disabled until paid Apple Developer account is set up
         # See issue #121 to re-enable
         # NSUserNotificationsUsageDescription: "FareLens sends you alerts when great flight deals match your preferences."
+        CFBundleURLTypes:
+          - CFBundleURLSchemes:
+              - farelens
         SUPABASE_URL: $(SUPABASE_URL)
         SUPABASE_PUBLISHABLE_KEY: $(SUPABASE_PUBLISHABLE_KEY)
         CLOUDFLARE_WORKER_URL: $(CLOUDFLARE_WORKER_URL)
@@ -71,13 +74,12 @@ targets:
         excludes:
           - "Resources/Info.plist"
           - "**/*.md"
-          - "Config/Secrets.xcconfig.local"  # Local-only secrets file (gitignored)
+    resources:
+      - FareLens/Resources/Assets.xcassets
+    configFiles:
+      Debug: FareLens/Config/Secrets.xcconfig
+      Release: FareLens/Config/Secrets.xcconfig
     settings:
-      configs:
-        Debug:
-          xcconfig: FareLens/Config/Secrets.xcconfig.local
-        Release:
-          xcconfig: FareLens/Config/Secrets.xcconfig
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.astrionstudio.farelens
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

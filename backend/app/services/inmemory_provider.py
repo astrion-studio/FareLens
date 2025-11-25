@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID, uuid4
 
 from ..models.schemas import (
@@ -12,6 +12,8 @@ from ..models.schemas import (
     DealsResponse,
     FlightDeal,
     PreferredAirportsUpdate,
+    User,
+    UserUpdate,
     Watchlist,
     WatchlistCreate,
     WatchlistUpdate,
@@ -27,10 +29,16 @@ class InMemoryProvider(DataProvider):
     def __init__(self) -> None:
         self._deals: Dict[UUID, FlightDeal] = {}
         self._watchlists: Dict[UUID, Watchlist] = {}
-        self._alerts: List[AlertHistory] = []
-        self._alert_preferences = AlertPreferences()
-        self._preferred_airports: Dict[str, float] = {"LAX": 1.0}
-        self.device_tokens: Dict[UUID, str] = {}
+        self._alerts: Dict[UUID, List[AlertHistory]] = (
+            {}
+        )  # Keyed by user_id for security
+        # User-specific preferences (keyed by user_id)
+        self._alert_preferences: Dict[UUID, AlertPreferences] = {}
+        self._preferred_airports: Dict[UUID, List[Dict[str, Any]]] = {}
+        # Device tokens (keyed by user_id, then device_id)
+        self.device_tokens: Dict[UUID, Dict[UUID, str]] = {}
+        # Users (keyed by user_id)
+        self._users: Dict[UUID, User] = {}
         self._seed()
 
     def _seed(self) -> None:
@@ -77,11 +85,21 @@ class InMemoryProvider(DataProvider):
             clicked_through=True,
             expires_at=demo_deal.expires_at,
         )
-        self._alerts.append(alert)
+        # Associate alert with demo watchlist's user_id
+        # Note: _alerts structure changed from List[AlertHistory] to Dict[UUID, List[AlertHistory]]
+        # in commit 0c113ed to properly scope alerts per user and prevent IDOR vulnerabilities.
+        # This dictionary check ensures alerts are keyed by user_id, not stored globally.
+        if watchlist.user_id not in self._alerts:
+            self._alerts[watchlist.user_id] = []
+        self._alerts[watchlist.user_id].append(alert)
 
     # Deals -----------------------------------------------------------------
 
-    async def list_deals(self, origin: Optional[str], limit: int) -> DealsResponse:
+    async def list_deals(
+        self,
+        origin: Optional[str],
+        limit: int,
+    ) -> DealsResponse:
         deals = list(self._deals.values())
         if origin:
             deals = [d for d in deals if d.origin == origin.upper()]
@@ -93,15 +111,25 @@ class InMemoryProvider(DataProvider):
 
     # Watchlists ------------------------------------------------------------
 
-    async def list_watchlists(self) -> List[Watchlist]:
+    async def list_watchlists(self, user_id: UUID) -> List[Watchlist]:
+        # Filter watchlists by user_id
+        user_watchlists = [w for w in self._watchlists.values() if w.user_id == user_id]
         return sorted(
-            self._watchlists.values(), key=lambda w: w.created_at, reverse=True
+            user_watchlists,
+            key=lambda watchlist: watchlist.created_at,
+            reverse=True,
         )
 
-    async def create_watchlist(self, payload: WatchlistCreate) -> Watchlist:
+    async def create_watchlist(
+        self, user_id: UUID, payload: WatchlistCreate
+    ) -> Watchlist:
+        """Create watchlist for authenticated user.
+
+        Security: Uses authenticated user_id from JWT token, not random UUID.
+        """
         watchlist = Watchlist(
             id=uuid4(),
-            user_id=uuid4(),
+            user_id=user_id,  # Use authenticated user_id, not random!
             name=payload.name,
             origin=payload.origin.upper(),
             destination=payload.destination.upper(),
@@ -116,49 +144,110 @@ class InMemoryProvider(DataProvider):
         return watchlist
 
     async def update_watchlist(
-        self, watchlist_id: UUID, payload: WatchlistUpdate
+        self, user_id: UUID, watchlist_id: UUID, payload: WatchlistUpdate
     ) -> Watchlist:
-        watchlist = self._watchlists[watchlist_id]
+        """Update watchlist owned by authenticated user.
+
+        Security: Validates ownership before updating to prevent IDOR attacks.
+        Raises KeyError if watchlist not found or not owned by user.
+        """
+        watchlist = self._watchlists.get(watchlist_id)
+        if watchlist is None or watchlist.user_id != user_id:
+            raise KeyError(str(watchlist_id))
         update_data = payload.model_dump(exclude_unset=True)
-        updated = watchlist.model_copy(update=update_data | {"updated_at": _now()})
+        updated = watchlist.model_copy(
+            update=update_data | {"updated_at": _now()},
+        )
         self._watchlists[watchlist_id] = updated
         return updated
 
-    async def delete_watchlist(self, watchlist_id: UUID) -> None:
-        self._watchlists.pop(watchlist_id, None)
+    async def delete_watchlist(self, user_id: UUID, watchlist_id: UUID) -> None:
+        """Delete watchlist owned by authenticated user.
+
+        Security: Validates ownership before deleting to prevent IDOR attacks.
+        Silently succeeds if watchlist not found or not owned by user (idempotent).
+        """
+        watchlist = self._watchlists.get(watchlist_id)
+        if watchlist is not None and watchlist.user_id == user_id:
+            self._watchlists.pop(watchlist_id)
 
     # Alerts ----------------------------------------------------------------
 
     async def list_alert_history(
-        self, page: int, per_page: int
+        self, user_id: UUID, page: int, per_page: int
     ) -> Tuple[List[AlertHistory], int]:
-        alerts = sorted(self._alerts, key=lambda a: a.sent_at, reverse=True)
+        """List alert history for specific user only.
+
+        Security: Filters alerts by user_id to prevent users from seeing each other's alerts.
+        """
+        user_alerts = self._alerts.get(user_id, [])
+        alerts = sorted(user_alerts, key=lambda a: a.sent_at, reverse=True)
         start = (page - 1) * per_page
         end = start + per_page
-        return alerts[start:end], len(alerts)
+        return alerts[start:end], len(user_alerts)
 
-    async def append_alert(self, alert: AlertHistory) -> None:
-        self._alerts.append(alert)
+    async def append_alert(self, user_id: UUID, alert: AlertHistory) -> None:
+        """Append alert to history for specific user.
 
-    async def get_alert_preferences(self) -> AlertPreferences:
-        return self._alert_preferences
+        Security: Associates alert with authenticated user_id to prevent data leakage.
+        """
+        if user_id not in self._alerts:
+            self._alerts[user_id] = []
+        self._alerts[user_id].append(alert)
+
+    async def get_alert_preferences(self, user_id: UUID) -> AlertPreferences:
+        # Return user-specific preferences or defaults
+        return self._alert_preferences.get(user_id, AlertPreferences())
 
     async def update_alert_preferences(
-        self, prefs: AlertPreferences
+        self, user_id: UUID, prefs: AlertPreferences
     ) -> AlertPreferences:
-        self._alert_preferences = prefs
+        self._alert_preferences[user_id] = prefs
         return prefs
 
-    async def update_preferred_airports(self, payload: PreferredAirportsUpdate) -> dict:
-        self._preferred_airports = {
-            item.iata.upper(): item.weight for item in payload.preferred_airports
+    async def update_preferred_airports(
+        self, user_id: UUID, payload: PreferredAirportsUpdate
+    ) -> Dict[str, Any]:
+        airports_list = [
+            {"iata": item.iata.upper(), "weight": item.weight}
+            for item in payload.preferred_airports
+        ]
+        self._preferred_airports[user_id] = airports_list
+        return {
+            "status": "updated",
+            "preferred_airports": airports_list,
         }
-        return {"status": "updated", "preferred_airports": self._preferred_airports}
 
     async def register_device_token(
-        self, device_id: UUID, token: str, platform: str
+        self, user_id: UUID, device_id: UUID, token: str, platform: str
     ) -> None:
-        self.device_tokens[device_id] = token
+        if user_id not in self.device_tokens:
+            self.device_tokens[user_id] = {}
+        self.device_tokens[user_id][device_id] = token
+
+    # Users -----------------------------------------------------------------
+
+    async def get_user(self, user_id: UUID) -> User:
+        """Get user by ID from in-memory store."""
+        user = self._users.get(user_id)
+        if user is None:
+            raise KeyError(str(user_id))
+        return user
+
+    async def update_user(self, user_id: UUID, payload: UserUpdate) -> User:
+        """Update user settings in in-memory store."""
+        user = self._users.get(user_id)
+        if user is None:
+            raise KeyError(str(user_id))
+
+        update_data = payload.model_dump(exclude_unset=True)
+        if not update_data:
+            return user
+
+        # Update user with new data
+        updated_user = user.model_copy(update=update_data)
+        self._users[user_id] = updated_user
+        return updated_user
 
 
 provider = InMemoryProvider()

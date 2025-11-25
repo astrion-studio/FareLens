@@ -14,6 +14,8 @@ struct OnboardingView: View {
     }
 
     var body: some View {
+        @Bindable var viewModel = viewModel
+
         NavigationView {
             ZStack {
                 switch viewModel.currentStep {
@@ -184,6 +186,12 @@ struct BenefitRow: View {
 struct AuthScreen: View {
     @Bindable var viewModel: OnboardingViewModel
     @State private var isSignUp = false
+    @FocusState private var focusedField: Field?
+
+    enum Field: Hashable {
+        case email
+        case password
+    }
 
     var body: some View {
         ZStack {
@@ -203,8 +211,20 @@ struct AuthScreen: View {
                     }
                     .padding(.top, Spacing.xl * 2)
 
+                    // Server error banner
+                    if let error = viewModel.serverError {
+                        ErrorBanner(
+                            message: error.message,
+                            actionTitle: error.actionTitle
+                        ) {
+                            handleErrorAction(error)
+                        }
+                        .animation(.spring(response: 0.3), value: viewModel.serverError)
+                    }
+
                     // Form
                     VStack(spacing: Spacing.md) {
+                        // Email field
                         VStack(alignment: .leading, spacing: Spacing.xs) {
                             Text("Email")
                                 .bodyStyle()
@@ -215,9 +235,27 @@ struct AuthScreen: View {
                                 .textContentType(.emailAddress)
                                 .autocapitalization(.none)
                                 .keyboardType(.emailAddress)
-                                .padding(.vertical, Spacing.xs)
+                                .submitLabel(.next)
+                                .focused($focusedField, equals: .email)
+                                .onSubmit {
+                                    focusedField = .password
+                                }
+                                .onChange(of: focusedField) { oldValue, newValue in
+                                    // Validate email format on blur
+                                    if oldValue == .email, newValue != .email {
+                                        viewModel.validateEmailFormat()
+                                    }
+                                }
+                                .accessibilityLabel("Email")
+                                .accessibilityHint("Enter your email address")
+
+                            // Inline error
+                            if let error = viewModel.emailError {
+                                ErrorText(message: error.message)
+                            }
                         }
 
+                        // Password field
                         VStack(alignment: .leading, spacing: Spacing.xs) {
                             Text("Password")
                                 .bodyStyle()
@@ -226,19 +264,28 @@ struct AuthScreen: View {
                             SecureField("••••••••", text: $viewModel.password)
                                 .textFieldStyle(.roundedBorder)
                                 .textContentType(isSignUp ? .newPassword : .password)
-                                .padding(.vertical, Spacing.xs)
+                                .submitLabel(.go)
+                                .focused($focusedField, equals: .password)
+                                .onSubmit {
+                                    Task {
+                                        await viewModel.validateAndSubmit(isSignUp: isSignUp)
+                                    }
+                                }
+                                .accessibilityLabel("Password")
+                                .accessibilityHint("Enter your password")
+
+                            // Password requirements (sign up only)
+                            if isSignUp {
+                                PasswordRequirements(password: viewModel.password)
+                            }
+
+                            // Inline error
+                            if let error = viewModel.passwordError {
+                                ErrorText(message: error.message)
+                            }
                         }
                     }
                     .padding(.horizontal, Spacing.screenHorizontal)
-
-                    // Error Message
-                    if let error = viewModel.errorMessage {
-                        Text(error)
-                            .footnoteStyle()
-                            .foregroundColor(.error)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, Spacing.screenHorizontal)
-                    }
 
                     // Submit Button
                     Group {
@@ -250,24 +297,25 @@ struct AuthScreen: View {
                         } else {
                             FLButton(
                                 title: isSignUp ? "Sign Up" : "Sign In",
-                                style: viewModel.isFormValid ? .primary : .secondary
+                                style: .primary // Always primary, never disabled
                             ) {
                                 Task {
-                                    if isSignUp {
-                                        await viewModel.signUp()
-                                    } else {
-                                        await viewModel.signIn()
-                                    }
+                                    await viewModel.validateAndSubmit(isSignUp: isSignUp)
                                 }
                             }
-                            .disabled(!viewModel.isFormValid)
+                            .accessibilityHint(viewModel
+                                .isFormValid ? "Activate to \(isSignUp ? "sign up" : "sign in")" :
+                                "Complete all fields to continue")
                         }
                     }
                     .padding(.horizontal, Spacing.screenHorizontal)
 
                     // Toggle Auth Mode
                     Button(action: {
-                        isSignUp.toggle()
+                        withAnimation(.spring(response: 0.3)) {
+                            isSignUp.toggle()
+                            viewModel.clearErrors()
+                        }
                     }) {
                         Text(isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up")
                             .bodyStyle()
@@ -287,6 +335,39 @@ struct AuthScreen: View {
                     .padding(.bottom, Spacing.xl)
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
+            .onAppear {
+                // Pre-warm keyboard by focusing email field
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    focusedField = .email
+                }
+            }
+        }
+        .onTapGesture {
+            focusedField = nil // Dismiss keyboard on tap outside
+        }
+        .accessibilityAction(.escape) {
+            focusedField = nil // VoiceOver: two-finger double-tap dismisses keyboard
+        }
+    }
+
+    private func handleErrorAction(_ error: ServerError) {
+        switch error {
+        case .emailNotConfirmed:
+            // TODO: Implement resend confirmation
+            break
+        case .emailAlreadyExists:
+            isSignUp = false // Switch to sign in
+            viewModel.clearErrors()
+        case .network:
+            Task {
+                await viewModel.validateAndSubmit(isSignUp: isSignUp)
+            }
+        case .weakPassword:
+            focusedField = .password
+            viewModel.passwordError = .tooShort
+        default:
+            break
         }
     }
 }

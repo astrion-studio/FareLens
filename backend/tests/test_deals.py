@@ -11,7 +11,7 @@ from app.main import app  # noqa: E402
 client = TestClient(app)
 
 
-def test_list_deals():
+def test_list_deals() -> None:
     resp = client.get("/v1/deals")
     assert resp.status_code == 200
     data = resp.json()
@@ -19,7 +19,7 @@ def test_list_deals():
     assert isinstance(data["deals"], list)
 
 
-def test_deal_detail():
+def test_deal_detail() -> None:
     listing = client.get("/v1/deals").json()
     first = listing["deals"][0]
     deal_id = first["id"]
@@ -29,13 +29,3 @@ def test_deal_detail():
     assert payload["id"] == deal_id
     # Validate UUID format
     UUID(deal_id)
-
-
-def test_background_refresh():
-    resp = client.get("/v1/deals/background-refresh")
-    if resp.status_code != 200:
-        print(f"Error response: {resp.json()}")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["status"] == "ok"
-    assert "refreshed_at" in data

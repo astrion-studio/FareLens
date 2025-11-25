@@ -66,8 +66,18 @@ actor AuthService: AuthServiceProtocol {
         tokenStore: AuthTokenStore = .shared
     ) {
         // Initialize Supabase client with configuration
+        // Configuration is validated at app startup by ConfigValidator
+        // If we reach here, config is guaranteed to be valid
         guard let url = URL(string: Config.supabaseURL) else {
-            fatalError("Invalid SUPABASE_URL configuration: \(Config.supabaseURL)")
+            // Log critical error before crash for production debugging
+            // logger.fault() persists to system logs even in Release builds
+            logger
+                .fault(
+                    "CRITICAL: Invalid SUPABASE_URL despite config validation: '\(Config.supabaseURL)'. This indicates a bug in ConfigValidator. URL validation should prevent this."
+                )
+            preconditionFailure(
+                "Invalid SUPABASE_URL despite config validation: '\(Config.supabaseURL)'. This indicates a bug in ConfigValidator. URL validation should prevent this."
+            )
         }
 
         self.supabaseClient = SupabaseClient(
@@ -106,15 +116,8 @@ actor AuthService: AuthServiceProtocol {
         } catch let error as AuthError {
             throw error
         } catch let error as Supabase.AuthError {
-            // Map Supabase AuthError to app errors for better UX
-            // TODO: Replace with error code checking when available in Supabase Swift SDK
-            // Current SDK doesn't expose structured error codes, so we use string matching
-            let errorMessage = error.localizedDescription.lowercased()
-            if errorMessage.contains("invalid") || errorMessage.contains("credentials") {
-                throw AuthError.invalidCredentials
-            }
             logger.error("Sign in failed: \(error.localizedDescription)")
-            throw AuthError.networkError
+            throw mapAuthError(error)
         } catch {
             logger.error("An unexpected error occurred during sign in: \(error.localizedDescription)")
             throw AuthError.networkError
@@ -161,13 +164,8 @@ actor AuthService: AuthServiceProtocol {
         } catch let error as AuthError {
             throw error
         } catch let error as Supabase.AuthError {
-            // Map Supabase AuthError to app errors for better UX
-            let errorMessage = error.localizedDescription.lowercased()
-            if errorMessage.contains("user already registered") || errorMessage.contains("already exists") {
-                throw AuthError.emailAlreadyExists
-            }
             logger.error("Supabase sign up failed: \(error.localizedDescription)")
-            throw AuthError.networkError
+            throw mapAuthError(error)
         } catch {
             logger.error("An unexpected error occurred during sign up: \(error.localizedDescription)")
             throw AuthError.networkError
@@ -189,12 +187,34 @@ actor AuthService: AuthServiceProtocol {
         await persistenceService.clearUser()
     }
 
+    /// Check if we have valid tokens stored (doesn't validate them)
+    func hasValidTokens() async -> Bool {
+        await tokenStore.loadTokens() != nil
+    }
+
+    /// Preloads cached auth state so API requests include the JWT immediately after launch.
+    /// - Parameter user: The cached user that will be shown while validation runs in the background.
+    /// - Returns: `true` if cached tokens were restored and the API client primed; `false` if no tokens exist.
+    func primeSessionFromCache(using user: User) async -> Bool {
+        guard let tokens = await tokenStore.loadTokens() else {
+            logger.warning("Cached user found without corresponding auth tokens - clearing cached session")
+            currentUser = nil
+            await apiClient.setAuthToken(nil)
+            await persistenceService.clearUser()
+            await tokenStore.clearTokens()
+            return false
+        }
+
+        await apiClient.setAuthToken(tokens.accessToken)
+        currentUser = user
+        return true
+    }
+
     /// Get current authenticated user
     func getCurrentUser() async -> User? {
-        // Return cached user if available
-        if let user = currentUser {
-            return user
-        }
+        // IMPORTANT: Always validate tokens before returning user to prevent
+        // expired/revoked sessions from appearing authenticated
+        // Even if we have a cached user, we must verify the session is still valid
 
         // Try to restore session from stored tokens
         if let tokens = await tokenStore.loadTokens() {
@@ -222,6 +242,7 @@ actor AuthService: AuthServiceProtocol {
                 // Restore access token to API client
                 await apiClient.setAuthToken(session.accessToken)
 
+                logger.info("Session restored successfully")
                 return user
             } catch let error as Supabase.AuthError {
                 // Only clear tokens if it's an authentication error (invalid/expired tokens)
@@ -233,10 +254,8 @@ actor AuthService: AuthServiceProtocol {
                 if errorMessage.contains("invalid") || errorMessage.contains("expired") || errorMessage
                     .contains("jwt")
                 {
-                    await tokenStore.clearTokens()
-                    await apiClient.setAuthToken(nil)
-                    await persistenceService.clearUser()
-                    currentUser = nil
+                    await clearAuthState()
+                    logger.warning("Cleared invalid/expired session")
                 }
                 return nil
             } catch {
@@ -264,7 +283,74 @@ actor AuthService: AuthServiceProtocol {
         await tokenStore.loadTokens()?.accessToken
     }
 
+    /// Handle authentication callback from deep links (email confirmation, password reset, etc.)
+    func handleAuthCallback(url: URL) async {
+        do {
+            // Supabase handles the URL parsing and session creation
+            // The URL format is: farelens://auth/confirm#access_token=...&refresh_token=...
+            try await supabaseClient.auth.session(from: url)
+
+            // After successful session restoration, update current user
+            if let session = try? await supabaseClient.auth.session {
+                let user = try await convertSupabaseUser(session.user)
+
+                // Store tokens and user
+                await tokenStore.saveTokens(
+                    accessToken: session.accessToken,
+                    refreshToken: session.refreshToken
+                )
+                await apiClient.setAuthToken(session.accessToken)
+
+                currentUser = user
+                await persistenceService.saveUser(user)
+
+                logger.info("Successfully handled auth callback for user: \(user.email)")
+            }
+        } catch {
+            logger.error("Failed to handle auth callback: \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - Private Helpers
+
+    /// Clears all authentication state (tokens, user, API client)
+    /// Call this ONLY when auth failure is confirmed (invalid/expired tokens)
+    /// Do NOT call on network errors (tokens may still be valid)
+    private func clearAuthState() async {
+        await tokenStore.clearTokens()
+        await apiClient.setAuthToken(nil)
+        await persistenceService.clearUser()
+        currentUser = nil
+        logger.info("Auth state cleared")
+    }
+
+    /// Maps Supabase AuthError to app-specific AuthError for better UX
+    /// TODO: Migrate to structured error codes when Supabase Swift SDK v3.x stable
+    /// Current SDK: String matching required (PR #518 added codes but not in stable release)
+    /// Track: https://github.com/supabase/supabase-swift/issues/505
+    private func mapAuthError(_ error: Supabase.AuthError) -> AuthError {
+        let description = error.localizedDescription.lowercased()
+
+        // Check most specific patterns first
+        if description.contains("invalid login credentials") {
+            return .invalidCredentials
+        }
+        if description.contains("email not confirmed") {
+            return .emailNotConfirmed
+        }
+        if description.contains("user already registered") || description.contains("already exists") {
+            return .emailAlreadyExists
+        }
+        if description.contains("invalid") || description.contains("credentials") {
+            return .invalidCredentials
+        }
+        if description.contains("jwt") || description.contains("expired") {
+            return .invalidCredentials // Treat expired tokens as invalid
+        }
+
+        // Default to network error for unknown cases
+        return .networkError
+    }
 
     /// Convert Supabase user to app User model
     private func convertSupabaseUser(_ supabaseUser: Supabase.User) async throws -> User {
@@ -285,7 +371,7 @@ actor AuthService: AuthServiceProtocol {
 
             // Build AlertPreferences from actual DB values
             let alertPrefs = AlertPreferences(
-                enabled: profile.alertEnabled,
+                alertEnabled: profile.alertEnabled,
                 quietHoursEnabled: profile.quietHoursEnabled,
                 quietHoursStart: profile.quietHoursStart,
                 quietHoursEnd: profile.quietHoursEnd,
@@ -346,17 +432,30 @@ enum AuthError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidCredentials:
-            "Invalid email or password"
+            "The email or password you entered is incorrect. Please try again."
         case .userNotFound:
             "User not found"
         case .emailAlreadyExists:
-            "An account with this email already exists"
+            "An account with this email already exists. Try signing in instead."
         case .weakPassword:
             "Password must be at least 8 characters"
         case .networkError:
-            "Network error. Please try again."
+            "Unable to connect. Please check your internet connection and try again."
         case .emailNotConfirmed:
-            "Please confirm your email address before signing in"
+            "Please verify your email address. Check your inbox for a confirmation link."
+        }
+    }
+
+    var actionTitle: String? {
+        switch self {
+        case .emailNotConfirmed:
+            "Resend Confirmation"
+        case .emailAlreadyExists:
+            "Go to Sign In"
+        case .networkError:
+            "Try Again"
+        default:
+            nil
         }
     }
 }

@@ -2401,3 +2401,537 @@ struct PriceTrendChart: View {
 - ✅ Free vs Pro visual distinction documented
 - ✅ Light mode gradient specs completed (precise hex values, opacity, angles)
 - ✅ Swift Charts framework reference corrected
+
+---
+
+## AUTHENTICATION & FORM UX PATTERNS
+
+**Version:** 1.2
+**Added:** 2025-11-04
+**Designer:** Product Designer (Apple Design Philosophy)
+**Based on:** iOS HIG, WCAG 2.1 AA, Apple's Settings/App Store patterns
+
+### Design Philosophy
+
+Authentication is the **first impression**. Users judge app quality in the first 30 seconds. Our auth flow must feel as polished as Apple's own apps - invisible when it works, helpful when it doesn't.
+
+**Core Principles:**
+1. **Never disable buttons** - Accessibility-first (WCAG 2.1)
+2. **Validate progressively** - Format on blur, full check on submit
+3. **Be helpful, not revealing** - Specific client-side errors, generic server errors (security)
+4. **Instant feedback** - Haptics, animations, micro-interactions
+5. **Positive reinforcement** - Green checkmarks, not red X's while typing
+
+### Button States
+
+**NEVER use `.disabled()` on submit buttons:**
+
+**Bad (Current Pattern):**
+```swift
+FLButton(title: "Sign In", style: .primary) { }
+    .disabled(!viewModel.isFormValid) // ❌ WRONG - breaks accessibility
+```
+
+**Good (Apple Pattern):**
+```swift
+FLButton(title: "Sign In", style: .primary) {
+    await viewModel.validateAndSubmit() // Always enabled, validate on tap
+}
+// No .disabled() modifier
+```
+
+**Rationale:**
+- Disabled buttons can't receive focus (breaks VoiceOver navigation)
+- Users can't discover WHY they can't proceed (silent failure)
+- Apple's Settings, App Store, Mail all keep buttons enabled
+- Show inline errors on tap instead of preventing interaction
+
+### Form Validation Timing
+
+**3-Tier Validation Strategy:**
+
+| Validation Type | Trigger | Timing | Feedback | Security |
+|-----------------|---------|--------|----------|----------|
+| **Format** (email syntax) | On blur (field loses focus) | Immediate | Inline error below field | Safe to be specific |
+| **Client-side** (password length) | On submit | Immediate | Inline error + haptic | Safe to be specific |
+| **Server-side** (auth check) | On submit | After network call | Banner error | Generic (don't reveal email existence) |
+
+**Implementation:**
+
+```swift
+// ViewModel validation flow
+func validateAndSubmit(isSignUp: Bool) async {
+    // Step 1: Clear previous errors
+    emailError = nil
+    passwordError = nil
+    serverError = nil
+
+    // Step 2: Client-side validation (specific errors OK)
+    if email.isEmpty {
+        emailError = .emptyEmail
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        return
+    } else if !isValidEmail(email) {
+        emailError = .invalidEmail
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        return
+    }
+
+    if password.isEmpty {
+        passwordError = .emptyPassword
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        return
+    } else if password.count < 8 {
+        passwordError = .weakPassword("Must be at least 8 characters")
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        return
+    }
+
+    // Step 3: Server validation (generic errors for security)
+    do {
+        if isSignUp {
+            try await signUp()
+        } else {
+            try await signIn()
+        }
+    } catch let error as AuthError {
+        serverError = error // Shown in banner at top
+        UINotificationFeedbackGenerator().notificationOccurred(.error)
+    }
+}
+```
+
+**Validation Timing Rules:**
+- **Never validate while typing** - Too aggressive, annoying
+- **Validate format on blur** - When user moves to next field
+- **Validate everything on submit** - Final check before server call
+- **Show server errors in banner** - Separate from inline field errors
+
+### Keyboard Behavior
+
+**Performance Target:** Keyboard must appear within **300ms** of tap (perceived as instant).
+
+**Implementation Pattern:**
+
+```swift
+struct AuthScreen: View {
+    @FocusState private var focusedField: Field?
+
+    enum Field: Hashable {
+        case email
+        case password
+    }
+
+    var body: some View {
+        ZStack {
+            ScrollView {
+                // ... form fields ...
+
+                TextField("email@example.com", text: $viewModel.email)
+                    .focused($focusedField, equals: .email)
+                    .onSubmit {
+                        focusedField = .password // Return key moves to password
+                    }
+
+                SecureField("••••••••", text: $viewModel.password)
+                    .focused($focusedField, equals: .password)
+                    .onSubmit {
+                        await viewModel.validateAndSubmit() // Return key submits
+                    }
+            }
+            .scrollDismissesKeyboard(.interactively) // Dismiss on scroll
+            .onAppear {
+                // Pre-warm keyboard by focusing email field
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    focusedField = .email
+                }
+            }
+        }
+        .onTapGesture {
+            focusedField = nil // Dismiss on tap outside (Apple pattern)
+        }
+        .accessibilityAction(.escape) {
+            focusedField = nil // VoiceOver: two-finger double-tap dismisses
+        }
+    }
+}
+```
+
+**Key Features:**
+- `@FocusState` for programmatic keyboard control
+- `.onSubmit` for Return key navigation
+- `.onAppear` pre-warms keyboard (appears instantly)
+- `.onTapGesture` dismisses keyboard (Apple pattern from Settings/Mail)
+- `.scrollDismissesKeyboard` for scroll-to-dismiss (iOS native behavior)
+- `.accessibilityAction(.escape)` for VoiceOver users
+
+### Error Messages
+
+**Security vs UX Balance:**
+
+| Error Type | Specificity | Rationale | Example |
+|------------|-------------|-----------|---------|
+| **Email format** | Specific | Client-side check, no security risk | "Please enter a valid email address" |
+| **Empty fields** | Specific | Client-side check, no security risk | "Email is required" |
+| **Password length** | Specific | Client-side check, no security risk | "Password must be at least 8 characters" |
+| **Wrong credentials** | Generic | Don't reveal if email exists (security) | "The email or password you entered is incorrect" |
+| **Email not confirmed** | Specific | Server knows email exists (they signed up) | "Please verify your email address. Check your inbox for a confirmation link." |
+| **Email already exists** | Specific | Sign-up flow, helpful to redirect | "An account with this email already exists. Try signing in instead." |
+| **Network error** | Specific | Technical issue, not auth failure | "Unable to connect. Check your internet connection and try again." |
+
+**Implementation:**
+
+```swift
+enum AuthError: Error, LocalizedError {
+    case invalidCredentials
+    case emailNotConfirmed
+    case emailAlreadyExists
+    case networkError
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidCredentials:
+            return "The email or password you entered is incorrect. Please try again."
+        case .emailNotConfirmed:
+            return "Please verify your email address. Check your inbox for a confirmation link."
+        case .emailAlreadyExists:
+            return "An account with this email already exists. Try signing in instead."
+        case .networkError:
+            return "Unable to connect. Check your internet connection and try again."
+        }
+    }
+
+    var actionTitle: String? {
+        switch self {
+        case .emailNotConfirmed:
+            return "Resend Confirmation"
+        case .emailAlreadyExists:
+            return "Go to Sign In"
+        case .networkError:
+            return "Try Again"
+        default:
+            return nil
+        }
+    }
+}
+```
+
+**Visual Treatment:**
+
+**Inline Errors (field-level):**
+```swift
+// Component: ErrorText.swift
+struct ErrorText: View {
+    let message: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: Spacing.xs) {
+            Image(systemName: "exclamationmark.circle.fill")
+                .font(.caption)
+                .foregroundColor(.error)
+
+            Text(message)
+                .footnoteStyle()
+                .foregroundColor(.error)
+        }
+        .padding(.top, 4)
+        .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+}
+```
+
+**Server Errors (screen-level):**
+```swift
+// Component: ErrorBanner.swift
+struct ErrorBanner: View {
+    let error: AuthError
+    let action: (() -> Void)?
+
+    var body: some View {
+        HStack(spacing: Spacing.md) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.title3)
+                .foregroundColor(.error)
+
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text(error.errorDescription ?? "")
+                    .bodyStyle()
+                    .foregroundColor(.textPrimary)
+
+                if let actionTitle = error.actionTitle {
+                    Button(actionTitle) { action?() }
+                        .footnoteStyle()
+                        .foregroundColor(.brandBlue)
+                }
+            }
+        }
+        .padding(Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.error.opacity(0.1))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.error.opacity(0.3), lineWidth: 1)
+        )
+    }
+}
+```
+
+### Password Requirements
+
+**Show requirements BEFORE user fails** - Proactive, not reactive (Apple pattern from iCloud Keychain, App Store).
+
+**Visual Treatment:**
+
+```swift
+// Component: PasswordRequirements.swift
+struct PasswordRequirements: View {
+    let password: String
+
+    private var hasMinLength: Bool {
+        password.count >= 8
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            RequirementRow(met: hasMinLength, text: "At least 8 characters")
+            // Add more requirements as Supabase rules evolve
+        }
+        .padding(.top, Spacing.xs)
+    }
+}
+
+struct RequirementRow: View {
+    let met: Bool
+    let text: String
+
+    var body: some View {
+        HStack(spacing: Spacing.xs) {
+            Image(systemName: met ? "checkmark.circle.fill" : "circle")
+                .font(.caption)
+                .foregroundColor(met ? .success : .textTertiary)
+
+            Text(text)
+                .footnoteStyle()
+                .foregroundColor(met ? .success : .textSecondary)
+        }
+        .animation(.spring(response: 0.3), value: met)
+    }
+}
+```
+
+**Usage:**
+- Show ONLY on sign-up screen (not sign-in)
+- Appears below password field
+- Updates in real-time as user types
+- Green checkmark when requirement met
+- Gray circle when not met
+- NO red/error state (positive reinforcement only)
+
+### Haptic Feedback
+
+**Apple Pattern:** Subtle, purposeful haptics reinforce actions.
+
+| Interaction | Haptic Type | Timing | Code |
+|-------------|-------------|--------|------|
+| **Invalid form submission** | Medium impact | On submit with errors | `UIImpactFeedbackGenerator(style: .medium).impactOccurred()` |
+| **Server error** | Error notification | When server returns error | `UINotificationFeedbackGenerator().notificationOccurred(.error)` |
+| **Successful sign-in** | Success notification | After auth succeeds | `UINotificationFeedbackGenerator().notificationOccurred(.success)` |
+| **Button tap** | Light impact | On FLButton press | Already handled in FLButton component |
+
+**Do NOT overuse haptics:**
+- No haptic on every keystroke
+- No haptic on field focus/blur
+- No haptic on error message appearance (only on action that caused error)
+
+### Animations & Transitions
+
+**Micro-Interactions:**
+
+```swift
+// Error appearance
+.transition(.opacity.combined(with: .move(edge: .top)))
+.animation(.spring(response: 0.3, dampingFraction: 0.7), value: emailError)
+
+// Password requirement checkmark
+Image(systemName: met ? "checkmark.circle.fill" : "circle")
+    .animation(.spring(response: 0.3), value: met)
+
+// Field focus scale (subtle depth)
+TextField(...)
+    .scaleEffect(focusedField == .email ? 1.02 : 1.0)
+    .animation(.spring(response: 0.2), value: focusedField)
+```
+
+**Performance:**
+- All animations use spring physics (feels natural)
+- Response time: 0.2-0.3s (feels instant)
+- Damping: 0.7 (no excessive bouncing)
+- GPU-accelerated (scale, opacity) - no layout animations
+
+**Reduced Motion:**
+```swift
+.transaction { transaction in
+    if UIAccessibility.isReduceMotionEnabled {
+        transaction.animation = .linear(duration: 0.2)
+    } else {
+        transaction.animation = .spring(response: 0.3)
+    }
+}
+```
+
+### Accessibility
+
+**VoiceOver:**
+
+```swift
+// Text fields
+TextField("email@example.com", text: $email)
+    .accessibilityLabel("Email")
+    .accessibilityHint("Enter your email address")
+
+// Error messages (automatically announced)
+ErrorText(message: "Email is required")
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel("Error: Email is required")
+
+// Submit button
+FLButton(title: "Sign In")
+    .accessibilityHint(isFormValid ? "Activate to sign in" : "Complete all fields first")
+
+// Password requirements
+RequirementRow(met: true, text: "At least 8 characters")
+    .accessibilityLabel("Met: At least 8 characters")
+```
+
+**Dynamic Type:**
+- All text scales with system text size (via `.bodyStyle()`, `.footnoteStyle()`)
+- Minimum touch target: 44x44pt (WCAG 2.5.5)
+- Tested at Accessibility XXL size
+
+**High Contrast:**
+- Error red: #EF4444 → #FF5555 (in High Contrast mode)
+- Border opacity: 15% → 40%
+- Automatically handled via asset catalog appearances
+
+**Color Blindness:**
+- Never use color alone (errors = red + icon + text)
+- Success = green + checkmark + text
+- Supports protanopia, deuteranopia, tritanopia
+
+### Performance Targets
+
+| Metric | Target | Measurement |
+|--------|--------|-------------|
+| **Keyboard appearance** | <300ms | From tap to keyboard visible |
+| **Form validation** | <50ms | Client-side validation execution |
+| **Error display** | Instant | GPU-accelerated animation |
+| **Auth request timeout** | 2s max | Network call timeout (AppState) |
+| **App launch (cached user)** | <100ms | From launch to home screen |
+
+**Monitoring:**
+- Instruments Time Profiler for keyboard delay
+- Network Link Conditioner for timeout testing
+- Xcode Accessibility Inspector for VoiceOver
+
+### Component Files
+
+**New components to create:**
+
+1. `/ios-app/FareLens/DesignSystem/Components/ErrorText.swift`
+   - Inline field-level error display
+   - Icon + text, red color, fade-in animation
+
+2. `/ios-app/FareLens/DesignSystem/Components/ErrorBanner.swift`
+   - Screen-level server error display
+   - Error icon, message, action button, frosted glass background
+
+3. `/ios-app/FareLens/DesignSystem/Components/PasswordRequirements.swift`
+   - Real-time password requirement checklist
+   - Green checkmarks, gray circles, spring animations
+
+**Modified files:**
+
+1. `/ios-app/FareLens/Features/Onboarding/OnboardingView.swift`
+   - Add `@FocusState` for keyboard control
+   - Add `.onTapGesture` for keyboard dismissal
+   - Remove `.disabled()` from submit button
+   - Add inline ErrorText and ErrorBanner components
+
+2. `/ios-app/FareLens/Features/Onboarding/OnboardingViewModel.swift`
+   - Add `ValidationError` enum
+   - Add `emailError`, `passwordError`, `serverError` properties
+   - Add `validateEmailFormat()` method (on blur)
+   - Add `validateAndSubmit()` method (on submit)
+   - Enhance error handling in `signIn()`/`signUp()`
+
+3. `/ios-app/FareLens/Core/Services/AuthService.swift`
+   - Map Supabase errors to specific AuthError cases
+   - Add `actionTitle` property to AuthError
+   - Balance security (generic "invalid credentials") with helpfulness
+
+### Design Decision Log
+
+**Why never disable submit buttons?**
+- Accessibility: Disabled buttons can't receive focus (breaks VoiceOver)
+- Discoverability: Users need to understand WHY they can't proceed
+- Apple's pattern: Settings, App Store, Mail all keep buttons enabled
+- Better UX: Show explicit errors instead of silent failure
+
+**Why validate on blur, not real-time?**
+- Less aggressive (doesn't interrupt typing)
+- Accessibility (screen readers announce errors at natural pause points)
+- Performance (fewer validation calls)
+- Apple's pattern: Settings validates when moving to next field
+
+**Why show password requirements proactively?**
+- Prevents errors before they happen
+- Positive reinforcement (green checkmarks motivate progress)
+- Reduces frustration (no surprise "password too weak" errors)
+- Apple's pattern: iCloud Keychain, App Store password creation
+
+**Why generic "invalid credentials" error?**
+- Security: Don't reveal if email exists in database (prevents account enumeration)
+- Privacy: Protects user information
+- Apple's standard: Settings uses "Unable to sign in" generically
+- Balance: Client-side validation (format) can be specific, server-side (auth) stays generic
+
+### Testing Checklist
+
+**Manual Testing:**
+- [ ] Tap "Sign In" with empty fields → Shows inline errors, haptic feedback
+- [ ] Type "user@" in email → On blur, shows "Please enter a valid email address"
+- [ ] Type "pass" in password → On submit, shows "Must be at least 8 characters"
+- [ ] Disable WiFi, tap "Sign In" → Shows "Unable to connect" banner with "Try Again" button
+- [ ] Sign up with existing email → Shows "Account already exists" with "Go to Sign In" button
+- [ ] Tap outside keyboard → Keyboard dismisses
+- [ ] Scroll form while keyboard visible → Keyboard dismisses
+- [ ] Press Return in email field → Moves to password field
+- [ ] Press Return in password field → Submits form
+
+**Accessibility Testing:**
+- [ ] VoiceOver: All errors announced, fields labeled correctly
+- [ ] Dynamic Type: Test at Accessibility XXL size, layout doesn't break
+- [ ] Reduced Motion: Errors crossfade instead of slide, still feels polished
+- [ ] High Contrast: Error colors remain visible
+- [ ] VoiceOver: Two-finger double-tap dismisses keyboard
+
+**Performance Testing:**
+- [ ] Keyboard appears <300ms on email field tap (Instruments Time Profiler)
+- [ ] Client validation executes <50ms (no perceptible delay)
+- [ ] Auth timeout at 2s max (Network Link Conditioner)
+- [ ] Animations run at 60fps (Xcode FPS meter)
+
+---
+
+**DESIGN.md v1.2 - Authentication UX Patterns Added**
+- ✅ Form validation timing strategy documented (3-tier: format, client, server)
+- ✅ Button state pattern: Never disable submit buttons (accessibility-first)
+- ✅ Keyboard behavior: Focus management, dismissal, pre-warming
+- ✅ Error message hierarchy: Inline vs banner, security vs helpfulness
+- ✅ Password requirements: Proactive display, real-time feedback
+- ✅ Haptic feedback patterns: Medium impact, error notification, success notification
+- ✅ Accessibility specifications: VoiceOver, Dynamic Type, Reduced Motion, High Contrast
+- ✅ Performance targets: <300ms keyboard, <50ms validation, 2s timeout
+- ✅ Component architecture: ErrorText, ErrorBanner, PasswordRequirements

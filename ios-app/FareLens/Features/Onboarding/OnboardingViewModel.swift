@@ -3,71 +3,178 @@
 
 import Foundation
 import Observation
+import UIKit
 
 @Observable
 @MainActor
 final class OnboardingViewModel {
+    // W3C HTML5 email validation regex (matches user expectations from web forms)
+    // Server does authoritative validation - this is just client-side UX
+    // Anchors (^$) ensure entire string matches (prevents partial matches like "valid@test.com invalid")
+    private static let emailValidationRegex = "^[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}$"
+
     var email = ""
     var password = ""
     var isLoading = false
-    var errorMessage: String?
     var currentStep: OnboardingStep = .welcome
 
-    private let appState: AppState
+    // Validation errors (field-level)
+    var emailError: ValidationError?
+    var passwordError: ValidationError?
 
-    init(appState: AppState) {
+    // Server errors (screen-level)
+    var serverError: ServerError?
+
+    private let appState: AppState
+    private let authService: AuthServiceProtocol
+
+    init(appState: AppState, authService: AuthServiceProtocol = AuthService.shared) {
         self.appState = appState
+        self.authService = authService
     }
 
     var isFormValid: Bool {
-        !email.isEmpty && email.contains("@") && password.count >= 8
+        !email.isEmpty && isValidEmail(email) && password.count >= 8
     }
 
-    func signIn() async {
-        guard isFormValid else {
-            errorMessage = "Please enter a valid email and password (min 8 characters)"
+    // MARK: - Validation
+
+    /// Validates email format (called on blur)
+    func validateEmailFormat() {
+        guard !email.isEmpty else {
+            emailError = nil // Don't show error for empty field on blur
             return
         }
 
+        if !isValidEmail(email) {
+            emailError = .invalidFormat
+        } else {
+            emailError = nil
+        }
+    }
+
+    /// Validates all fields and submits form (called on submit button tap)
+    func validateAndSubmit(isSignUp: Bool) async {
+        // Clear previous errors
+        emailError = nil
+        passwordError = nil
+        serverError = nil
+
+        // Validate all fields and collect errors (don't return early)
+        var hasErrors = false
+
+        // Validate email
+        if email.isEmpty {
+            emailError = .empty
+            hasErrors = true
+        } else if !isValidEmail(email) {
+            emailError = .invalidFormat
+            hasErrors = true
+        }
+
+        // Validate password
+        if password.isEmpty {
+            passwordError = .empty
+            hasErrors = true
+        } else if password.count < 8 {
+            passwordError = .tooShort
+            hasErrors = true
+        }
+
+        // If any validation errors, show haptic feedback and stop
+        if hasErrors {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            return
+        }
+
+        // All validation passed - proceed with auth
+        if isSignUp {
+            await signUp()
+        } else {
+            await signIn()
+        }
+    }
+
+    /// Clears all errors (called when switching between sign in/sign up)
+    func clearErrors() {
+        emailError = nil
+        passwordError = nil
+        serverError = nil
+    }
+
+    private func isValidEmail(_ email: String) -> Bool {
+        let emailPredicate = NSPredicate(format: "SELF MATCHES %@", Self.emailValidationRegex)
+        return emailPredicate.evaluate(with: email)
+    }
+
+    // MARK: - Authentication
+
+    private func signIn() async {
         isLoading = true
-        errorMessage = nil
+        serverError = nil
 
         do {
-            let user = try await AuthService.shared.signIn(email: email, password: password)
+            let user = try await authService.signIn(email: email, password: password)
             isLoading = false
+
+            // Success haptic
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
 
             // Update AppState to transition to main app
             appState.isAuthenticated = true
             appState.currentUser = user
             appState.subscriptionTier = user.subscriptionTier
             await registerForNotifications()
-        } catch {
-            errorMessage = error.localizedDescription
+        } catch let error as AuthError {
             isLoading = false
+            serverError = mapAuthError(error)
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+        } catch {
+            isLoading = false
+            serverError = .network
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
         }
     }
 
-    func signUp() async {
-        guard isFormValid else {
-            errorMessage = "Please enter a valid email and password (min 8 characters)"
-            return
-        }
-
+    private func signUp() async {
         isLoading = true
-        errorMessage = nil
+        serverError = nil
 
         do {
-            let user = try await AuthService.shared.signUp(email: email, password: password)
+            let user = try await authService.signUp(email: email, password: password)
             isLoading = false
+
+            // Success haptic
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
 
             // Update AppState to transition to main app
             appState.isAuthenticated = true
             appState.currentUser = user
             appState.subscriptionTier = user.subscriptionTier
             await registerForNotifications()
-        } catch {
-            errorMessage = error.localizedDescription
+        } catch let error as AuthError {
             isLoading = false
+            serverError = mapAuthError(error)
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+        } catch {
+            isLoading = false
+            serverError = .network
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+        }
+    }
+
+    private func mapAuthError(_ error: AuthError) -> ServerError {
+        switch error {
+        case .invalidCredentials, .userNotFound:
+            .invalidCredentials
+        case .emailNotConfirmed:
+            .emailNotConfirmed
+        case .emailAlreadyExists:
+            .emailAlreadyExists
+        case .weakPassword:
+            .weakPassword
+        case .networkError:
+            .network
         }
     }
 
@@ -107,4 +214,85 @@ enum OnboardingStep {
     case welcome
     case benefits
     case auth
+}
+
+// MARK: - Validation Errors
+
+enum ValidationError: Identifiable {
+    case empty
+    case invalidFormat
+    case tooShort
+
+    var id: String {
+        switch self {
+        case .empty: "empty"
+        case .invalidFormat: "invalid"
+        case .tooShort: "short"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .empty:
+            "This field is required"
+        case .invalidFormat:
+            "Please enter a valid email address"
+        case .tooShort:
+            "Password must be at least 8 characters"
+        }
+    }
+}
+
+// MARK: - Server Errors
+
+enum ServerError: Identifiable {
+    case invalidCredentials
+    case emailNotConfirmed
+    case emailAlreadyExists
+    case network
+    case unknown
+    case weakPassword
+
+    var id: String {
+        switch self {
+        case .invalidCredentials: "invalid"
+        case .emailNotConfirmed: "not_confirmed"
+        case .emailAlreadyExists: "exists"
+        case .network: "network"
+        case .unknown: "unknown"
+        case .weakPassword: "weak_password"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .invalidCredentials:
+            "The email or password you entered is incorrect. Please try again."
+        case .emailNotConfirmed:
+            "Please verify your email address. Check your inbox for a confirmation link."
+        case .emailAlreadyExists:
+            "An account with this email already exists. Try signing in instead."
+        case .network:
+            "Unable to connect. Please check your internet connection and try again."
+        case .unknown:
+            "Something went wrong. Please try again."
+        case .weakPassword:
+            "Password must be at least 8 characters."
+        }
+    }
+
+    var actionTitle: String? {
+        switch self {
+        case .emailNotConfirmed:
+            "Resend Confirmation"
+        case .emailAlreadyExists:
+            "Go to Sign In"
+        case .network:
+            "Try Again"
+        case .weakPassword:
+            "Update Password"
+        default:
+            nil
+        }
+    }
 }
