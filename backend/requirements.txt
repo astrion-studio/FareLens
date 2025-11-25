@@ -27,7 +27,7 @@ httpx==0.28.1
 aiohttp==3.13.1
 
 # Development
-pytest==8.3.4
+pytest==9.0.1
 pytest-asyncio==0.24.0
 pytest-cov==7.0.0
 black==24.10.0
