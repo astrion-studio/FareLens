@@ -6,6 +6,7 @@ import SwiftUI
 struct AlertsView: View {
     @State var viewModel: AlertsViewModel
     @State private var selectedFilter: AlertFilter = .all
+    @State private var showingAlertPreferences = false
 
     var body: some View {
         NavigationView {
@@ -63,12 +64,17 @@ struct AlertsView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        // Navigate to alert preferences
-                    }) {
+                    Button {
+                        showingAlertPreferences = true
+                    } label: {
                         Image(systemName: "gear")
                             .foregroundColor(.brandBlue)
                     }
+                }
+            }
+            .sheet(isPresented: $showingAlertPreferences) {
+                NavigationView {
+                    AlertPreferencesView()
                 }
             }
         }
