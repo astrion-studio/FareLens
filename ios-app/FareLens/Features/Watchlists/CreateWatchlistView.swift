@@ -21,6 +21,7 @@ struct CreateWatchlistView: View {
     @State private var endDate = Date().addingTimeInterval(30 * 86400) // 30 days
     @State private var hasMaxPrice = false
     @State private var maxPrice: Double = 500
+    @State private var hasAttemptedSave = false
 
     var isFormValid: Bool {
         !name.isEmpty &&
@@ -63,8 +64,16 @@ struct CreateWatchlistView: View {
                     VStack(spacing: Spacing.xl) {
                         // Name Section
                         FormSection(title: "Name") {
-                            TextField("e.g., LAX to NYC Summer", text: $name)
-                                .textFieldStyle(.roundedBorder)
+                            VStack(alignment: .leading, spacing: Spacing.xs) {
+                                TextField("e.g., LAX to NYC Summer", text: $name)
+                                    .textFieldStyle(.roundedBorder)
+
+                                if hasAttemptedSave && name.isEmpty {
+                                    Text("Watchlist name is required")
+                                        .font(.caption)
+                                        .foregroundColor(.red)
+                                }
+                            }
                         }
 
                         // Route Section
@@ -77,6 +86,12 @@ struct CreateWatchlistView: View {
                                     TextField("Airport code (e.g., LAX)", text: $origin)
                                         .textFieldStyle(.roundedBorder)
                                         .autocapitalization(.allCharacters)
+
+                                    if hasAttemptedSave && !isValidAirportCode(origin) {
+                                        Text(origin.isEmpty ? "Origin airport is required" : "Invalid airport code (must be 3 letters)")
+                                            .font(.caption)
+                                            .foregroundColor(.red)
+                                    }
                                 }
 
                                 // Destination
@@ -118,6 +133,12 @@ struct CreateWatchlistView: View {
                                                     .cornerRadius(CornerRadius.sm)
                                             }
                                         }
+                                    }
+
+                                    if hasAttemptedSave && !isFlexibleDestination && !isValidAirportCode(destination) {
+                                        Text(destination.isEmpty ? "Destination airport is required" : "Invalid airport code (must be 3 letters)")
+                                            .font(.caption)
+                                            .foregroundColor(.red)
                                     }
                                 }
                             }
@@ -215,10 +236,13 @@ struct CreateWatchlistView: View {
 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
-                        saveWatchlist()
+                        hasAttemptedSave = true
+                        if isFormValid {
+                            saveWatchlist()
+                        }
                     }
-                    .foregroundColor(isFormValid && !viewModel.isCreating ? .brandBlue : .textTertiary)
-                    .disabled(!isFormValid || viewModel.isCreating)
+                    .foregroundColor(!viewModel.isCreating ? .brandBlue : .textTertiary)
+                    .disabled(viewModel.isCreating)
                 }
             }
             .alert("Couldn't Save Watchlist", isPresented: Binding(
