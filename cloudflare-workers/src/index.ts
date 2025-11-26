@@ -882,7 +882,8 @@ const UserUpdateSchema = z.object({
   watchlist_only_mode: z.boolean().optional(),
 
   // Preferred airports (JSONB array in users table)
-  preferred_airports: z.array(PreferredAirportSchema).max(10, 'Maximum 10 preferred airports').optional(),
+  // Note: Tier-specific limits validated separately (Free=1, Pro=3)
+  preferred_airports: z.array(PreferredAirportSchema).max(3, 'Maximum 3 preferred airports').optional(),
 }).strict();  // Reject any unknown fields (e.g., subscription_tier, id, created_at)
 
 type UserUpdateInput = z.infer<typeof UserUpdateSchema>;
@@ -917,9 +918,63 @@ async function updateUser(
 
   const userData: UserUpdateInput = parseResult.data;
 
-  // Validate preferred airports weights sum to 1.0 if provided
+  // Fetch current user to check tier for validation
+  const getCurrentUserResponse = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=subscription_tier`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  if (!getCurrentUserResponse.ok) {
+    return jsonResponse({ error: 'Failed to fetch user tier' }, 500, {}, env);
+  }
+
+  const currentUsers = await getCurrentUserResponse.json();
+  if (!Array.isArray(currentUsers) || currentUsers.length === 0) {
+    return jsonResponse({ error: 'User not found' }, 404, {}, env);
+  }
+
+  const currentTier = currentUsers[0].subscription_tier as 'free' | 'pro';
+
+  // Validate preferred airports if provided
   if (userData.preferred_airports && userData.preferred_airports.length > 0) {
-    const weightSum = userData.preferred_airports.reduce((sum, airport) => sum + airport.weight, 0);
+    const airports = userData.preferred_airports;
+
+    // Tier-based airport limits
+    const MAX_AIRPORTS = { free: 1, pro: 3 };
+    if (airports.length > MAX_AIRPORTS[currentTier]) {
+      return jsonResponse(
+        {
+          error: `${currentTier} tier allows maximum ${MAX_AIRPORTS[currentTier]} preferred airport(s)`,
+          current_tier: currentTier,
+          max_allowed: MAX_AIRPORTS[currentTier],
+          provided: airports.length,
+          upgrade_required: currentTier === 'free',
+        },
+        403,
+        {},
+        env
+      );
+    }
+
+    // Check for duplicate IATA codes
+    const iataSet = new Set(airports.map(a => a.iata));
+    if (iataSet.size !== airports.length) {
+      return jsonResponse(
+        { error: 'Duplicate airport codes detected' },
+        400,
+        {},
+        env
+      );
+    }
+
+    // Validate weights sum to 1.0
+    const weightSum = airports.reduce((sum, airport) => sum + airport.weight, 0);
     const WEIGHT_TOLERANCE = 0.001;
 
     if (Math.abs(weightSum - 1.0) > WEIGHT_TOLERANCE) {
@@ -936,6 +991,31 @@ async function updateUser(
     }
   }
 
+  // Validate Pro-only features
+  if (userData.watchlist_only_mode === true && currentTier === 'free') {
+    return jsonResponse(
+      {
+        error: 'Watchlist-only mode is a Pro feature. Upgrade to enable.',
+        upgrade_required: true,
+      },
+      403,
+      {},
+      env
+    );
+  }
+
+  // Prepare update payload - add UUIDs to preferred_airports if needed
+  const updatePayload: any = { ...userData };
+
+  if (userData.preferred_airports) {
+    // Generate UUIDs for airports (iOS doesn't send IDs, but DB schema expects them)
+    updatePayload.preferred_airports = userData.preferred_airports.map(airport => ({
+      id: crypto.randomUUID(),
+      iata: airport.iata,
+      weight: airport.weight,
+    }));
+  }
+
   // Update users table (single operation, all fields in same table)
   const response = await fetch(
     `${env.SUPABASE_URL}/rest/v1/users?id=eq.${userId}`,
@@ -947,7 +1027,7 @@ async function updateUser(
         'Content-Type': 'application/json',
         'Prefer': 'return=representation',
       },
-      body: JSON.stringify(userData),
+      body: JSON.stringify(updatePayload),
     }
   );
 
