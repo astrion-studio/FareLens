@@ -305,12 +305,19 @@ struct AddAirportSheet: View {
     }
 
     private func loadInitialAirports() async {
-        isSearching = true
-        searchResults = await AirportService.shared.search(query: "")
-        isSearching = false
+        // Don't load initial airports - wait for user to type 2+ characters
+        // This encourages focused search and improves performance
+        searchResults = []
     }
 
     private func performSearch(_ query: String) async {
+        // Only search if query is 2+ characters (matches backend requirement)
+        guard query.count >= 2 else {
+            searchResults = []
+            isSearching = false
+            return
+        }
+
         isSearching = true
         searchResults = await AirportService.shared.search(query: query)
         isSearching = false
@@ -327,15 +334,17 @@ struct EmptySearchView: View {
                 .foregroundColor(.textTertiary)
 
             VStack(spacing: Spacing.xs) {
-                Text("No airports found")
+                Text("Start typing to search")
                     .title3Style()
                     .foregroundColor(.textPrimary)
 
-                Text("Try searching by city or airport code")
+                Text("Enter at least 2 characters to see results\n(e.g., \"LAX\", \"Los Angeles\", \"New York\")")
                     .bodyStyle()
                     .foregroundColor(.textSecondary)
+                    .multilineTextAlignment(.center)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, Spacing.screenHorizontal)
     }
 }
