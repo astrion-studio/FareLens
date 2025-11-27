@@ -25,6 +25,8 @@ struct OnboardingView: View {
                     BenefitsScreen(viewModel: viewModel)
                 case .auth:
                     AuthScreen(viewModel: viewModel)
+                case .airportSelection:
+                    AirportSelectionScreen(viewModel: viewModel)
                 }
             }
         }
