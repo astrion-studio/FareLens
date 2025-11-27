@@ -3,6 +3,7 @@
 
 import Foundation
 import Observation
+import UIKit
 
 @Observable
 @MainActor
@@ -11,6 +12,8 @@ final class SettingsViewModel {
     var alertPreferences: AlertPreferences
     var preferredAirports: [PreferredAirport]
     var isLoading = false
+    var isSaving = false
+    var showSaveSuccess = false
     var errorMessage: String?
     var showingUpgradeSheet = false
 
@@ -61,6 +64,11 @@ final class SettingsViewModel {
             return
         }
 
+        isSaving = true
+        errorMessage = nil
+        showSaveSuccess = false
+        defer { isSaving = false }
+
         do {
             // Use consolidated /user endpoint
             let endpoint = APIEndpoint.updateUser(
@@ -68,8 +76,28 @@ final class SettingsViewModel {
             )
             try await APIClient.shared.requestNoResponse(endpoint)
             user.preferredAirports = preferredAirports
+
+            // Show success feedback
+            showSaveSuccess = true
+
+            // Haptic feedback
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+
+            // Auto-hide success message after 2 seconds
+            Task {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                showSaveSuccess = false
+            }
         } catch {
-            errorMessage = error.localizedDescription
+            // Provide specific error message
+            if error.localizedDescription.lowercased().contains("network") {
+                errorMessage = "Network error. Please check your connection and try again."
+            } else if error.localizedDescription.lowercased().contains("unauthorized") {
+                errorMessage = "Session expired. Please sign in again."
+            } else {
+                errorMessage = "Failed to save airports. Please try again."
+            }
         }
     }
 

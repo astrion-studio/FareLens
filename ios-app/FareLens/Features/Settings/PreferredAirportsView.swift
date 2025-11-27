@@ -68,12 +68,44 @@ struct PreferredAirportsView: View {
                                 .foregroundColor(.error)
                         }
 
-                        FLButton(title: "Save Changes", style: .primary) {
-                            Task {
-                                await viewModel.updatePreferredAirports()
+                        Group {
+                            if viewModel.isSaving {
+                                // Loading state
+                                HStack(spacing: Spacing.sm) {
+                                    ProgressView()
+                                        .tint(.white)
+                                    Text("Saving...")
+                                        .headlineStyle()
+                                        .foregroundColor(.white)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, Spacing.buttonVertical)
+                                .background(Color.brandBlue)
+                                .cornerRadius(CornerRadius.md)
+                            } else if viewModel.showSaveSuccess {
+                                // Success state
+                                HStack(spacing: Spacing.sm) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.white)
+                                        .font(.title3)
+                                    Text("Saved")
+                                        .headlineStyle()
+                                        .foregroundColor(.white)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, Spacing.buttonVertical)
+                                .background(Color.success)
+                                .cornerRadius(CornerRadius.md)
+                            } else {
+                                // Normal state
+                                FLButton(title: "Save Changes", style: .primary) {
+                                    Task {
+                                        await viewModel.updatePreferredAirports()
+                                    }
+                                }
+                                .disabled(!viewModel.isWeightSumValid)
                             }
                         }
-                        .disabled(!viewModel.isWeightSumValid)
                         .padding(.horizontal, Spacing.screenHorizontal)
                     }
                     .padding(.vertical, Spacing.md)
