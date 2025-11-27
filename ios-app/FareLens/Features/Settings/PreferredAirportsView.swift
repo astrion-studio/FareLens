@@ -20,6 +20,7 @@ struct PreferredAirportsView: View {
                             AirportWeightRow(
                                 airport: airport,
                                 weight: airport.weight,
+                                showWeightControls: viewModel.user.subscriptionTier == .pro,
                                 onWeightChange: { newWeight in
                                     viewModel.updateAirportWeight(at: index, weight: newWeight)
                                 },
@@ -33,21 +34,23 @@ struct PreferredAirportsView: View {
                             indexSet.sorted().reversed().forEach { viewModel.removePreferredAirport(at: $0) }
                         }
 
-                        // Weight Sum Validation
-                        Section {
-                            HStack {
-                                Text("Total Weight")
-                                    .bodyStyle()
-                                Spacer()
-                                Text(String(format: "%.1f", viewModel.preferredAirports.totalWeight))
-                                    .headlineStyle()
-                                    .foregroundColor(viewModel.isWeightSumValid ? .success : .error)
-                            }
-                        } footer: {
-                            if !viewModel.isWeightSumValid {
-                                Text("Weights must sum to 1.0")
-                                    .footnoteStyle()
-                                    .foregroundColor(.error)
+                        // Weight Sum Validation (Pro tier only)
+                        if viewModel.user.subscriptionTier == .pro {
+                            Section {
+                                HStack {
+                                    Text("Total Weight")
+                                        .bodyStyle()
+                                    Spacer()
+                                    Text(String(format: "%.1f", viewModel.preferredAirports.totalWeight))
+                                        .headlineStyle()
+                                        .foregroundColor(viewModel.isWeightSumValid ? .success : .error)
+                                }
+                            } footer: {
+                                if !viewModel.isWeightSumValid {
+                                    Text("Weights must sum to 1.0")
+                                        .footnoteStyle()
+                                        .foregroundColor(.error)
+                                }
                             }
                         }
                     }
@@ -123,6 +126,7 @@ struct PreferredAirportsView: View {
 struct AirportWeightRow: View {
     let airport: PreferredAirport
     let weight: Double
+    let showWeightControls: Bool
     let onWeightChange: (Double) -> Void
     let onDelete: () -> Void
 
@@ -134,8 +138,12 @@ struct AirportWeightRow: View {
                         .title3Style()
                         .foregroundColor(.textPrimary)
 
-                    Text("Weight: \(Int(weight * 100))%")
-                        .footnoteStyle()
+                    // Only show weight for Pro tier
+                    if showWeightControls {
+                        Text("Weight: \(Int(weight * 100))%")
+                            .footnoteStyle()
+                            .foregroundColor(.textSecondary)
+                    }
                 }
 
                 Spacer()
@@ -147,20 +155,22 @@ struct AirportWeightRow: View {
                 }
             }
 
-            // Weight Slider
-            VStack(spacing: Spacing.xs) {
-                Slider(value: Binding(
-                    get: { weight },
-                    set: { onWeightChange($0) }
-                ), in: 0.0...1.0, step: 0.1)
-                    .tint(.brandBlue)
+            // Weight Slider (Pro tier only)
+            if showWeightControls {
+                VStack(spacing: Spacing.xs) {
+                    Slider(value: Binding(
+                        get: { weight },
+                        set: { onWeightChange($0) }
+                    ), in: 0.0...1.0, step: 0.1)
+                        .tint(.brandBlue)
 
-                HStack {
-                    Text("0%")
-                        .captionStyle()
-                    Spacer()
-                    Text("100%")
-                        .captionStyle()
+                    HStack {
+                        Text("0%")
+                            .captionStyle()
+                        Spacer()
+                        Text("100%")
+                            .captionStyle()
+                    }
                 }
             }
         }
