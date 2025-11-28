@@ -77,6 +77,8 @@ struct AlertsView: View {
         }
         .sheet(isPresented: $showingAlertPreferences) {
             AlertPreferencesView(viewModel: SettingsViewModel(user: viewModel.user))
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
         .task {
             await viewModel.loadAlerts()
@@ -118,8 +120,13 @@ struct FilterChip: View {
     let isSelected: Bool
     let onTap: () -> Void
 
+    private let impactGenerator = UIImpactFeedbackGenerator(style: .light)
+
     var body: some View {
-        Button(action: onTap) {
+        Button(action: {
+            impactGenerator.impactOccurred()
+            onTap()
+        }) {
             Text(title)
                 .footnoteStyle()
                 .foregroundColor(isSelected ? .white : .textPrimary)
@@ -127,6 +134,9 @@ struct FilterChip: View {
                 .padding(.vertical, Spacing.sm)
                 .background(isSelected ? Color.brandBlue : Color.cardBackground)
                 .cornerRadius(CornerRadius.sm)
+        }
+        .onAppear {
+            impactGenerator.prepare()
         }
     }
 }
@@ -172,6 +182,10 @@ struct TodayAlertCounter: View {
                         .headlineStyle()
                         .foregroundColor(.textPrimary)
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Daily alerts")
+                .accessibilityValue("\(sent) of \(limit) sent, \(limit > 0 ? Int((Double(sent) / Double(limit)) * 100) : 0) percent used")
+                .accessibilityHint(sent >= limit ? "Daily limit reached" : "\(limit - sent) alerts remaining today")
             }
         }
     }
