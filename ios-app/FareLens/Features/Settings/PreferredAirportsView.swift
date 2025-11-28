@@ -20,11 +20,15 @@ struct PreferredAirportsView: View {
                             AirportWeightRow(
                                 airport: airport,
                                 weight: airport.weight,
+                                isProUser: viewModel.user.isProUser,
                                 onWeightChange: { newWeight in
                                     viewModel.updateAirportWeight(at: index, weight: newWeight)
                                 },
                                 onDelete: {
                                     viewModel.removePreferredAirport(at: index)
+                                },
+                                onUpgradeTap: {
+                                    viewModel.showingUpgradeSheet = true
                                 }
                             )
                         }
@@ -44,10 +48,18 @@ struct PreferredAirportsView: View {
                                     .foregroundColor(viewModel.isWeightSumValid ? .success : .error)
                             }
                         } footer: {
-                            if !viewModel.isWeightSumValid {
+                            if !viewModel.user.isProUser {
+                                Text("Upgrade to Pro to add up to 3 airports with custom weights to prioritize your preferred departure locations")
+                                    .footnoteStyle()
+                                    .foregroundColor(.textSecondary)
+                            } else if !viewModel.isWeightSumValid {
                                 Text("Weights must sum to 1.0")
                                     .footnoteStyle()
                                     .foregroundColor(.error)
+                            } else {
+                                Text("Distribute weights across airports to prioritize deals from your preferred locations")
+                                    .footnoteStyle()
+                                    .foregroundColor(.textSecondary)
                             }
                         }
                     }
@@ -155,19 +167,31 @@ struct PreferredAirportsView: View {
 struct AirportWeightRow: View {
     let airport: PreferredAirport
     let weight: Double
+    let isProUser: Bool
     let onWeightChange: (Double) -> Void
     let onDelete: () -> Void
+    let onUpgradeTap: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             HStack {
                 VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text(airport.iata)
-                        .title3Style()
-                        .foregroundColor(.textPrimary)
+                    HStack(spacing: Spacing.xs) {
+                        Text(airport.iata)
+                            .title3Style()
+                            .foregroundColor(.textPrimary)
+
+                        if !isProUser {
+                            FLBadge(text: "Pro", style: .custom(
+                                backgroundColor: Color.warning.opacity(0.15),
+                                foregroundColor: .warning
+                            ))
+                        }
+                    }
 
                     Text("Weight: \(Int(weight * 100))%")
                         .footnoteStyle()
+                        .foregroundColor(isProUser ? .textSecondary : .textTertiary)
                 }
 
                 Spacer()
@@ -177,23 +201,53 @@ struct AirportWeightRow: View {
                         .foregroundColor(.error)
                         .font(.headline)
                 }
+                .accessibilityLabel("Delete airport")
             }
 
-            // Weight Slider
+            // Weight Slider - Disabled for Free tier with lock icon
             VStack(spacing: Spacing.xs) {
-                Slider(value: Binding(
-                    get: { weight },
-                    set: { onWeightChange($0) }
-                ), in: 0.0...1.0, step: 0.1)
-                    .tint(.brandBlue)
+                HStack(spacing: Spacing.sm) {
+                    if !isProUser {
+                        Image(systemName: "lock.fill")
+                            .foregroundColor(.textTertiary)
+                            .font(.caption)
+                    }
+
+                    Slider(value: Binding(
+                        get: { weight },
+                        set: { onWeightChange($0) }
+                    ), in: 0.0...1.0, step: 0.1)
+                        .tint(isProUser ? .brandBlue : .textTertiary.opacity(0.3))
+                        .disabled(!isProUser)
+                        .accessibilityLabel("Airport weight")
+                        .accessibilityValue("\(Int(weight * 100)) percent")
+                        .accessibilityHint(isProUser ? "Adjust to change priority" : "Upgrade to Pro to customize weights")
+                }
 
                 HStack {
                     Text("0%")
                         .captionStyle()
+                        .foregroundColor(isProUser ? .textSecondary : .textTertiary)
                     Spacer()
                     Text("100%")
                         .captionStyle()
+                        .foregroundColor(isProUser ? .textSecondary : .textTertiary)
                 }
+            }
+
+            // Upgrade CTA for Free users
+            if !isProUser {
+                Button(action: onUpgradeTap) {
+                    HStack(spacing: Spacing.xs) {
+                        Image(systemName: "star.fill")
+                            .font(.caption)
+                        Text("Upgrade to customize weights")
+                            .footnoteStyle()
+                    }
+                    .foregroundColor(.warning)
+                }
+                .accessibilityLabel("Upgrade to Pro")
+                .accessibilityHint("Unlock custom airport weights with Pro subscription")
             }
         }
         .padding(.vertical, Spacing.sm)
