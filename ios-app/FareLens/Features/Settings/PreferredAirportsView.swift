@@ -189,6 +189,8 @@ struct AirportWeightRow: View {
     let onDelete: () -> Void
     let onUpgradeTap: () -> Void
 
+    private let selectionFeedback = UISelectionFeedbackGenerator()
+
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             HStack {
@@ -232,13 +234,22 @@ struct AirportWeightRow: View {
 
                     Slider(value: Binding(
                         get: { weight },
-                        set: { onWeightChange($0) }
+                        set: { newWeight in
+                            // Light haptic feedback on value change (Pro users only)
+                            if isProUser, newWeight != weight {
+                                selectionFeedback.selectionChanged()
+                            }
+                            onWeightChange(newWeight)
+                        }
                     ), in: 0.0...1.0, step: 0.1)
                         .tint(isProUser ? .brandBlue : .textTertiary.opacity(0.3))
                         .disabled(!isProUser)
                         .accessibilityLabel("Airport weight")
                         .accessibilityValue("\(Int(weight * 100)) percent")
                         .accessibilityHint(isProUser ? "Adjust to change priority" : "Upgrade to Pro to customize weights")
+                        .onAppear {
+                            selectionFeedback.prepare()
+                        }
                 }
 
                 HStack {
