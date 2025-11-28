@@ -91,6 +91,9 @@ final class SettingsViewModel {
             // Show success feedback
             showSaveSuccess = true
 
+            // VoiceOver announcement for save success
+            UIAccessibility.post(notification: .announcement, argument: "Preferred airports saved successfully")
+
             // Optimized haptic timing - delay 50ms to coincide with visual update
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(50))
@@ -116,11 +119,17 @@ final class SettingsViewModel {
                 errorMessage = "Failed to save airports. Please try again."
             }
             feedbackGenerator.notificationOccurred(.error)
+            // VoiceOver announcement for error
+            if let errorMsg = errorMessage {
+                UIAccessibility.post(notification: .announcement, argument: errorMsg)
+            }
         } catch {
             // Other errors (API errors, etc.)
             // TODO: Add typed error handling for APIError when available
             errorMessage = "Failed to save airports. Please try again."
             feedbackGenerator.notificationOccurred(.error)
+            // VoiceOver announcement for error
+            UIAccessibility.post(notification: .announcement, argument: errorMessage ?? "Save failed")
         }
     }
 
