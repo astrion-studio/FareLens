@@ -6,6 +6,7 @@ import SwiftUI
 struct AlertsView: View {
     @State var viewModel: AlertsViewModel
     @State private var selectedFilter: AlertFilter = .all
+    @State private var showingAlertPreferences = false
 
     var body: some View {
         NavigationView {
@@ -64,13 +65,18 @@ struct AlertsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
-                        // Navigate to alert preferences
+                        showingAlertPreferences = true
                     }) {
                         Image(systemName: "gear")
                             .foregroundColor(.brandBlue)
                     }
+                    .accessibilityLabel("Alert settings")
+                    .accessibilityHint("Double tap to configure alert preferences")
                 }
             }
+        }
+        .sheet(isPresented: $showingAlertPreferences) {
+            AlertPreferencesView(viewModel: SettingsViewModel(user: viewModel.user))
         }
         .task {
             await viewModel.loadAlerts()
@@ -157,7 +163,7 @@ struct TodayAlertCounter: View {
                         .frame(width: 56, height: 56)
 
                     Circle()
-                        .trim(from: 0, to: CGFloat(sent) / CGFloat(limit))
+                        .trim(from: 0, to: limit > 0 ? CGFloat(sent) / CGFloat(limit) : 0)
                         .stroke(progressColor, lineWidth: 6)
                         .frame(width: 56, height: 56)
                         .rotationEffect(.degrees(-90))
@@ -171,6 +177,7 @@ struct TodayAlertCounter: View {
     }
 
     private var progressColor: Color {
+        guard limit > 0 else { return .textTertiary }
         let percentage = Double(sent) / Double(limit)
         if percentage >= 1.0 {
             return .error

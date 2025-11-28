@@ -17,10 +17,18 @@ final class SettingsViewModel {
     var errorMessage: String?
     var showingUpgradeSheet = false
 
+    private var dismissSuccessTask: Task<Void, Never>?
+    private let feedbackGenerator = UINotificationFeedbackGenerator()
+
     init(user: User) {
         self.user = user
         alertPreferences = user.alertPreferences
         preferredAirports = user.preferredAirports
+        feedbackGenerator.prepare()
+    }
+
+    deinit {
+        dismissSuccessTask?.cancel()
     }
 
     // Safe URL accessors for settings links
@@ -64,6 +72,9 @@ final class SettingsViewModel {
             return
         }
 
+        // Prepare haptic engine before save (reduces latency)
+        feedbackGenerator.prepare()
+
         isSaving = true
         errorMessage = nil
         showSaveSuccess = false
@@ -80,24 +91,36 @@ final class SettingsViewModel {
             // Show success feedback
             showSaveSuccess = true
 
-            // Haptic feedback
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
+            // Optimized haptic timing - delay 50ms to coincide with visual update
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(50))
+                feedbackGenerator.notificationOccurred(.success)
+            }
 
-            // Auto-hide success message after 2 seconds
-            Task {
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
+            // Auto-hide success message after 1.2 seconds (optimized from 2s)
+            // Cancel any existing dismiss task
+            dismissSuccessTask?.cancel()
+            dismissSuccessTask = Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1.2))
+                guard !Task.isCancelled else { return }
                 showSaveSuccess = false
             }
-        } catch {
-            // Provide specific error message
-            if error.localizedDescription.lowercased().contains("network") {
+        } catch let error as URLError {
+            // Network-related errors
+            switch error.code {
+            case .notConnectedToInternet, .networkConnectionLost, .timedOut:
                 errorMessage = "Network error. Please check your connection and try again."
-            } else if error.localizedDescription.lowercased().contains("unauthorized") {
+            case .userAuthenticationRequired:
                 errorMessage = "Session expired. Please sign in again."
-            } else {
+            default:
                 errorMessage = "Failed to save airports. Please try again."
             }
+            feedbackGenerator.notificationOccurred(.error)
+        } catch {
+            // Other errors (API errors, etc.)
+            // TODO: Add typed error handling for APIError when available
+            errorMessage = "Failed to save airports. Please try again."
+            feedbackGenerator.notificationOccurred(.error)
         }
     }
 
