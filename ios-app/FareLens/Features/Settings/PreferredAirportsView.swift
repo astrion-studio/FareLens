@@ -69,7 +69,12 @@ struct PreferredAirportsView: View {
                     EmptyAirportsView {
                         showingAddAirport = true
                     }
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.9).combined(with: .opacity),
+                        removal: .scale(scale: 0.9).combined(with: .opacity)
+                    ))
                 }
+                .animation(.spring(response: 0.5, dampingFraction: 0.8), value: viewModel.preferredAirports.isEmpty)
 
                 // Save Button
                 if !viewModel.preferredAirports.isEmpty {
@@ -94,12 +99,17 @@ struct PreferredAirportsView: View {
                                 .padding(.vertical, Spacing.buttonVertical)
                                 .background(Color.brandBlue)
                                 .cornerRadius(CornerRadius.md)
+                                .transition(.asymmetric(
+                                    insertion: .scale(scale: 0.95).combined(with: .opacity),
+                                    removal: .scale(scale: 1.05).combined(with: .opacity)
+                                ))
                             } else if viewModel.showSaveSuccess {
-                                // Success state
+                                // Success state with checkmark animation
                                 HStack(spacing: Spacing.sm) {
                                     Image(systemName: "checkmark.circle.fill")
                                         .foregroundColor(.white)
                                         .font(.title3)
+                                        .symbolEffect(.bounce, value: viewModel.showSaveSuccess)
                                     Text("Saved")
                                         .headlineStyle()
                                         .foregroundColor(.white)
@@ -108,6 +118,10 @@ struct PreferredAirportsView: View {
                                 .padding(.vertical, Spacing.buttonVertical)
                                 .background(Color.success)
                                 .cornerRadius(CornerRadius.md)
+                                .transition(.asymmetric(
+                                    insertion: .scale(scale: 0.95).combined(with: .opacity),
+                                    removal: .scale(scale: 0.95).combined(with: .opacity)
+                                ))
                             } else {
                                 // Normal state
                                 FLButton(title: "Save Changes", style: .primary) {
@@ -116,8 +130,11 @@ struct PreferredAirportsView: View {
                                     }
                                 }
                                 .disabled(!viewModel.isWeightSumValid)
+                                .transition(.scale(scale: 0.95).combined(with: .opacity))
                             }
                         }
+                        .animation(.spring(response: 0.4, dampingFraction: 0.75), value: viewModel.isSaving)
+                        .animation(.spring(response: 0.4, dampingFraction: 0.75), value: viewModel.showSaveSuccess)
                         .padding(.horizontal, Spacing.screenHorizontal)
                     }
                     .padding(.vertical, Spacing.md)
