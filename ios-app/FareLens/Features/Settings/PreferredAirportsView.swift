@@ -8,6 +8,8 @@ struct PreferredAirportsView: View {
     @Bindable var viewModel: SettingsViewModel
     @State private var showingAddAirport = false
     @State private var newAirportCode = ""
+    @State private var airportToDelete: PreferredAirport?
+    @State private var deleteIndex: Int?
 
     var body: some View {
         ZStack {
@@ -31,10 +33,14 @@ struct PreferredAirportsView: View {
                                     viewModel.showingUpgradeSheet = true
                                 }
                             )
-                        }
-                        .onDelete { indexSet in
-                            // Remove in reverse order to prevent index shifting crashes
-                            indexSet.sorted().reversed().forEach { viewModel.removePreferredAirport(at: $0) }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    airportToDelete = airport
+                                    deleteIndex = index
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
                         }
 
                         // Weight Sum Validation
@@ -47,16 +53,30 @@ struct PreferredAirportsView: View {
                                     .headlineStyle()
                                     .foregroundColor(viewModel.isWeightSumValid ? .success : .error)
                             }
+
+                            // Inline validation message with actionable guidance
+                            if !viewModel.isWeightSumValid && viewModel.user.isProUser {
+                                let total = viewModel.preferredAirports.totalWeight
+                                let diff = abs(1.0 - total)
+                                let action = total < 1.0 ? "Add" : "Reduce by"
+
+                                ValidationMessage(
+                                    message: "Current total: \(String(format: "%.1f", total)) - \(action) \(String(format: "%.1f", diff)) to reach 1.0",
+                                    severity: .error
+                                )
+                                .padding(.horizontal, -Spacing.md) // Compensate for cell padding
+                                .padding(.top, Spacing.xs)
+                                .onAppear {
+                                    let generator = UINotificationFeedbackGenerator()
+                                    generator.notificationOccurred(.warning)
+                                }
+                            }
                         } footer: {
                             if !viewModel.user.isProUser {
                                 Text("Upgrade to Pro to add up to 3 airports with custom weights to prioritize your preferred departure locations")
                                     .footnoteStyle()
                                     .foregroundColor(.textSecondary)
-                            } else if !viewModel.isWeightSumValid {
-                                Text("Weights must sum to 1.0")
-                                    .footnoteStyle()
-                                    .foregroundColor(.error)
-                            } else {
+                            } else if viewModel.isWeightSumValid {
                                 Text("Distribute weights across airports to prioritize deals from your preferred locations")
                                     .footnoteStyle()
                                     .foregroundColor(.textSecondary)
@@ -65,6 +85,7 @@ struct PreferredAirportsView: View {
                     }
                     .listStyle(.insetGrouped)
                     .scrollContentBackground(.hidden)
+                    .animation(.uiSnappy, value: viewModel.isWeightSumValid)
                 } else {
                     EmptyAirportsView {
                         showingAddAirport = true
@@ -74,15 +95,26 @@ struct PreferredAirportsView: View {
                         removal: .scale(scale: 0.9).combined(with: .opacity)
                     ))
                 }
-                .animation(.spring(response: 0.5, dampingFraction: 0.8), value: viewModel.preferredAirports.isEmpty)
+                .animation(.uiSmooth, value: viewModel.preferredAirports.isEmpty)
 
                 // Save Button
                 if !viewModel.preferredAirports.isEmpty {
                     VStack(spacing: Spacing.sm) {
+                        // Error recovery with retry and dismiss
                         if let error = viewModel.errorMessage {
-                            Text(error)
-                                .footnoteStyle()
-                                .foregroundColor(.error)
+                            ErrorBanner(
+                                message: error,
+                                actionTitle: "Try Again",
+                                action: {
+                                    Task {
+                                        await viewModel.retryLastOperation()
+                                    }
+                                },
+                                onDismiss: {
+                                    viewModel.dismissError()
+                                }
+                            )
+                            .animation(.uiStandard, value: viewModel.errorMessage != nil)
                         }
 
                         Group {
@@ -123,18 +155,39 @@ struct PreferredAirportsView: View {
                                     removal: .scale(scale: 0.95).combined(with: .opacity)
                                 ))
                             } else {
-                                // Normal state
-                                FLButton(title: "Save Changes", style: .primary) {
-                                    Task {
-                                        await viewModel.updatePreferredAirports()
+                                // Normal state with accessibility enhancements
+                                VStack(spacing: Spacing.sm) {
+                                    FLButton(title: "Save Changes", style: .primary) {
+                                        Task {
+                                            await viewModel.updatePreferredAirports()
+                                        }
+                                    }
+                                    .disabled(!viewModel.isWeightSumValid)
+                                    .opacity(viewModel.isWeightSumValid ? 1.0 : 0.6)
+                                    .scaleEffect(viewModel.isWeightSumValid ? 1.0 : 0.98)
+                                    .accessibilityHint(viewModel.isWeightSumValid ?
+                                        "Saves your airport preferences" :
+                                        "Weights must sum to 1.0 before saving")
+                                    .transition(.scale(scale: 0.95).combined(with: .opacity))
+
+                                    // Helper text for disabled state
+                                    if !viewModel.isWeightSumValid {
+                                        HStack(spacing: Spacing.xs) {
+                                            Image(systemName: "info.circle.fill")
+                                                .font(.caption)
+                                                .foregroundColor(.textSecondary)
+                                            Text("Adjust weights to total 1.0 to enable saving")
+                                                .footnoteStyle()
+                                                .foregroundColor(.textSecondary)
+                                        }
+                                        .transition(.opacity.combined(with: .move(edge: .top)))
                                     }
                                 }
-                                .disabled(!viewModel.isWeightSumValid)
-                                .transition(.scale(scale: 0.95).combined(with: .opacity))
+                                .animation(.uiSnappy, value: viewModel.isWeightSumValid)
                             }
                         }
-                        .animation(.spring(response: 0.4, dampingFraction: 0.75), value: viewModel.isSaving)
-                        .animation(.spring(response: 0.4, dampingFraction: 0.75), value: viewModel.showSaveSuccess)
+                        .animation(.uiStandard, value: viewModel.isSaving)
+                        .animation(.uiStandard, value: viewModel.showSaveSuccess)
                         .padding(.horizontal, Spacing.screenHorizontal)
                     }
                     .padding(.vertical, Spacing.md)
@@ -165,6 +218,41 @@ struct PreferredAirportsView: View {
                     addAirport()
                 }
             )
+        }
+        .confirmationDialog(
+            "Delete Airport",
+            isPresented: Binding(
+                get: { airportToDelete != nil },
+                set: { if !$0 { airportToDelete = nil; deleteIndex = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Delete \(airportToDelete?.iata ?? "")", role: .destructive) {
+                if let index = deleteIndex {
+                    // Haptic feedback before deletion
+                    let generator = UINotificationFeedbackGenerator()
+                    generator.notificationOccurred(.warning)
+
+                    viewModel.removePreferredAirport(at: index)
+
+                    // VoiceOver announcement
+                    UIAccessibility.post(
+                        notification: .announcement,
+                        argument: "\(airportToDelete?.iata ?? "Airport") deleted"
+                    )
+                }
+                airportToDelete = nil
+                deleteIndex = nil
+            }
+
+            Button("Cancel", role: .cancel) {
+                airportToDelete = nil
+                deleteIndex = nil
+            }
+        } message: {
+            if let airport = airportToDelete {
+                Text("Remove \(airport.iata) from your preferred airports? This action cannot be undone.")
+            }
         }
     }
 

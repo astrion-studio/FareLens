@@ -5,6 +5,7 @@ import SwiftUI
 
 struct AlertsView: View {
     @State var viewModel: AlertsViewModel
+    @Environment(AppState.self) var appState: AppState
     @State private var selectedFilter: AlertFilter = .all
     @State private var showingAlertPreferences = false
 
@@ -76,9 +77,11 @@ struct AlertsView: View {
             }
         }
         .sheet(isPresented: $showingAlertPreferences) {
-            AlertPreferencesView(viewModel: SettingsViewModel(user: viewModel.user))
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
+            if let user = appState.currentUser {
+                AlertPreferencesView(viewModel: SettingsViewModel(user: user))
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+            }
         }
         .task {
             await viewModel.loadAlerts()

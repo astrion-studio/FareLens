@@ -4,16 +4,23 @@
 import SwiftUI
 
 /// Screen-level error banner for server/network errors
-/// Shows error icon, message, and optional action button
+/// Shows error icon, message, and optional retry/dismiss actions
 struct ErrorBanner: View {
     let message: String
     let actionTitle: String?
     let action: (() -> Void)?
+    let onDismiss: (() -> Void)?
 
-    init(message: String, actionTitle: String? = nil, action: (() -> Void)? = nil) {
+    init(
+        message: String,
+        actionTitle: String? = nil,
+        action: (() -> Void)? = nil,
+        onDismiss: (() -> Void)? = nil
+    ) {
         self.message = message
         self.actionTitle = actionTitle
         self.action = action
+        self.onDismiss = onDismiss
     }
 
     var body: some View {
@@ -28,11 +35,31 @@ struct ErrorBanner: View {
                     .foregroundColor(.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                if let actionTitle {
-                    Button(action: { action?() }) {
-                        Text(actionTitle)
-                            .footnoteStyle()
-                            .foregroundColor(.brandBlue)
+                // Action buttons row
+                if actionTitle != nil || onDismiss != nil {
+                    HStack(spacing: Spacing.md) {
+                        if let actionTitle {
+                            Button(action: {
+                                let generator = UIImpactFeedbackGenerator(style: .medium)
+                                generator.impactOccurred()
+                                action?()
+                            }) {
+                                Text(actionTitle)
+                                    .footnoteStyle()
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.brandBlue)
+                            }
+                        }
+
+                        if onDismiss != nil {
+                            Button(action: {
+                                onDismiss?()
+                            }) {
+                                Text("Dismiss")
+                                    .footnoteStyle()
+                                    .foregroundColor(.textSecondary)
+                            }
+                        }
                     }
                 }
             }
@@ -59,17 +86,22 @@ struct ErrorBanner: View {
     VStack(spacing: Spacing.lg) {
         ErrorBanner(
             message: "Unable to connect. Please check your internet connection and try again.",
-            actionTitle: "Try Again"
-        ) {
-            // Retry action
-        }
+            actionTitle: "Try Again",
+            action: {
+                // Retry action
+            },
+            onDismiss: {
+                // Dismiss action
+            }
+        )
 
         ErrorBanner(
             message: "An account with this email already exists. Try signing in instead.",
-            actionTitle: "Go to Sign In"
-        ) {
-            // Switch to sign in action
-        }
+            actionTitle: "Go to Sign In",
+            action: {
+                // Switch to sign in action
+            }
+        )
 
         ErrorBanner(
             message: "The email or password you entered is incorrect. Please try again."

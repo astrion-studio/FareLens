@@ -21,6 +21,9 @@ final class SettingsViewModel {
     nonisolated(unsafe) private var dismissSuccessTask: Task<Void, Never>?
     private let feedbackGenerator = UINotificationFeedbackGenerator()
 
+    // Error recovery support - stores last failed operation for retry
+    private var lastFailedOperation: (() async -> Void)?
+
     init(user: User) {
         self.user = user
         alertPreferences = user.alertPreferences
@@ -67,6 +70,11 @@ final class SettingsViewModel {
     }
 
     func updatePreferredAirports() async {
+        // Store operation for retry support
+        lastFailedOperation = { [weak self] in
+            await self?.updatePreferredAirports()
+        }
+
         // Validate weights sum to 1.0
         guard isWeightSumValid else {
             errorMessage = "Airport weights must sum to 1.0"
@@ -196,5 +204,24 @@ final class SettingsViewModel {
         Task {
             await updateAlertPreferences()
         }
+    }
+
+    // MARK: - Error Recovery
+
+    /// Retries the last failed operation (e.g., save, update)
+    func retryLastOperation() async {
+        guard let operation = lastFailedOperation else { return }
+        errorMessage = nil
+        await operation()
+    }
+
+    /// Dismisses the current error and clears retry state
+    func dismissError() {
+        errorMessage = nil
+        lastFailedOperation = nil
+
+        // Light haptic feedback for dismissal
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
     }
 }
