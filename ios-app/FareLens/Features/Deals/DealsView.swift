@@ -27,6 +27,7 @@ struct DealsView: View {
                     }
                 } else if viewModel.deals.isEmpty {
                     EmptyDealsView(
+                        user: appState.user,
                         watchlistsViewModel: watchlistsViewModel,
                         onCreateWatchlist: {
                             showingCreateWatchlist = true
@@ -129,8 +130,10 @@ struct FilterBar: View {
 }
 
 struct EmptyDealsView: View {
+    let user: User?
     let watchlistsViewModel: WatchlistsViewModel?
     let onCreateWatchlist: () -> Void
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         VStack(spacing: Spacing.xl) {
@@ -143,15 +146,37 @@ struct EmptyDealsView: View {
                     .title2Style()
                     .foregroundColor(.textPrimary)
 
-                Text("We're scanning thousands of flights.\nCheck back soon for amazing deals!")
-                    .bodyStyle()
-                    .foregroundColor(.textSecondary)
-                    .multilineTextAlignment(.center)
+                if user?.preferredAirports.isEmpty == true {
+                    // User has no preferred airports - guide them to set one
+                    Text("Set your preferred airport to start seeing personalized deals!")
+                        .bodyStyle()
+                        .foregroundColor(.textSecondary)
+                        .multilineTextAlignment(.center)
+                } else {
+                    // User has airports - show standard message
+                    Text("We're scanning thousands of flights.\nCheck back soon for amazing deals!")
+                        .bodyStyle()
+                        .foregroundColor(.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
             }
 
-            FLButton(title: "Create Watchlist", style: .secondary, action: onCreateWatchlist)
-                .disabled(watchlistsViewModel == nil)
-                .opacity(watchlistsViewModel == nil ? 0.5 : 1.0)
+            // Show appropriate CTA based on user state
+            if user?.preferredAirports.isEmpty == true {
+                // User has no airports - guide them to Settings
+                NavigationLink(destination: SettingsView()) {
+                    HStack {
+                        Image(systemName: "location.fill")
+                        Text("Set Preferred Airport")
+                    }
+                }
+                .buttonStyle(FLButtonStyle(style: .primary))
+            } else {
+                // User has airports - optionally show Create Watchlist button
+                FLButton(title: "Create Watchlist", style: .secondary, action: onCreateWatchlist)
+                    .disabled(watchlistsViewModel == nil)
+                    .opacity(watchlistsViewModel == nil ? 0.5 : 1.0)
+            }
         }
         .padding(Spacing.screenHorizontal)
     }
