@@ -17,7 +17,8 @@ final class SettingsViewModel {
     var errorMessage: String?
     var showingUpgradeSheet = false
 
-    private var dismissSuccessTask: Task<Void, Never>?
+    // Task cancellation is thread-safe, so can be accessed from nonisolated deinit
+    nonisolated(unsafe) private var dismissSuccessTask: Task<Void, Never>?
     private let feedbackGenerator = UINotificationFeedbackGenerator()
 
     init(user: User) {
