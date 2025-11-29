@@ -18,5 +18,6 @@ struct FLIconButton: View {
                 .background(Color.cardBackground)
                 .cornerRadius(CornerRadius.sm)
         }
+        .buttonStyle(PressAnimationButtonStyle())
     }
 }
