@@ -25,12 +25,19 @@ final class OnboardingViewModel {
     // Server errors (screen-level)
     var serverError: ServerError?
 
+    // Airport selection state
+    var selectedAirports: [PreferredAirport] = []
+    var isSavingAirports = false
+    var airportSelectionError: String?
+
     private let appState: AppState
     private let authService: AuthServiceProtocol
+    private let apiClient: APIClient
 
-    init(appState: AppState, authService: AuthServiceProtocol = AuthService.shared) {
+    init(appState: AppState, authService: AuthServiceProtocol = AuthService.shared, apiClient: APIClient = .shared) {
         self.appState = appState
         self.authService = authService
+        self.apiClient = apiClient
     }
 
     var isFormValid: Bool {
@@ -120,11 +127,19 @@ final class OnboardingViewModel {
             // Success haptic
             UINotificationFeedbackGenerator().notificationOccurred(.success)
 
-            // Update AppState to transition to main app
-            appState.isAuthenticated = true
+            // Update AppState with user info (but don't mark authenticated yet)
             appState.currentUser = user
             appState.subscriptionTier = user.subscriptionTier
-            await registerForNotifications()
+
+            // Check if user already has preferred airports
+            if !user.preferredAirports.isEmpty {
+                // User has airports - complete onboarding
+                appState.isAuthenticated = true
+                await registerForNotifications()
+            } else {
+                // New user - advance to airport selection
+                currentStep = .airportSelection
+            }
         } catch let error as AuthError {
             isLoading = false
             serverError = mapAuthError(error)
@@ -147,11 +162,12 @@ final class OnboardingViewModel {
             // Success haptic
             UINotificationFeedbackGenerator().notificationOccurred(.success)
 
-            // Update AppState to transition to main app
-            appState.isAuthenticated = true
+            // Update AppState with user info (but don't mark authenticated yet)
             appState.currentUser = user
             appState.subscriptionTier = user.subscriptionTier
-            await registerForNotifications()
+
+            // New signups always need to select airports
+            currentStep = .airportSelection
         } catch let error as AuthError {
             isLoading = false
             serverError = mapAuthError(error)
@@ -185,7 +201,9 @@ final class OnboardingViewModel {
         case .benefits:
             currentStep = .auth
         case .auth:
-            break
+            break // Auth success advances to airportSelection automatically
+        case .airportSelection:
+            break // Airport selection completion sets isAuthenticated
         }
     }
 
@@ -197,6 +215,8 @@ final class OnboardingViewModel {
             currentStep = .welcome
         case .auth:
             currentStep = .benefits
+        case .airportSelection:
+            currentStep = .auth
         }
     }
 
@@ -208,12 +228,112 @@ final class OnboardingViewModel {
         //     await NotificationService.shared.registerForRemoteNotifications()
         // }
     }
+
+    // MARK: - Airport Selection
+
+    func addAirport(_ airport: PreferredAirport) {
+        selectedAirports.append(airport)
+        normalizeWeights()
+    }
+
+    func removeAirport(at index: Int) {
+        selectedAirports.remove(at: index)
+        normalizeWeights()
+    }
+
+    func updateAirportWeight(at index: Int, weight: Double) {
+        selectedAirports[index] = PreferredAirport(
+            id: selectedAirports[index].id,
+            iata: selectedAirports[index].iata,
+            weight: weight
+        )
+    }
+
+    var canAddAirport: Bool {
+        let maxAirports = appState.subscriptionTier == .free ? 1 : 3
+        return selectedAirports.count < maxAirports
+    }
+
+    var isWeightSumValid: Bool {
+        let sum = selectedAirports.reduce(0.0) { $0 + $1.weight }
+        return abs(sum - 1.0) < 0.001 // Allow small floating point error
+    }
+
+    var canCompleteSelection: Bool {
+        !selectedAirports.isEmpty && isWeightSumValid
+    }
+
+    func completeAirportSelection() async {
+        guard canCompleteSelection else { return }
+
+        isSavingAirports = true
+        airportSelectionError = nil
+
+        do {
+            try await apiClient.request(
+                .updateUser(preferredAirports: selectedAirports),
+                responseType: EmptyResponse.self
+            )
+
+            isSavingAirports = false
+
+            // Update AppState with selected airports
+            if var user = appState.currentUser {
+                user.preferredAirports = selectedAirports
+                appState.currentUser = user
+            }
+
+            // Complete onboarding
+            appState.isAuthenticated = true
+            await registerForNotifications()
+
+            // Success haptic
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        } catch {
+            isSavingAirports = false
+            airportSelectionError = "Failed to save airports. Please try again."
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+        }
+    }
+
+    func skipAirportSelection() async {
+        // Only Pro users can skip
+        guard appState.subscriptionTier == .pro else { return }
+
+        // Complete onboarding without airports
+        appState.isAuthenticated = true
+        await registerForNotifications()
+    }
+
+    private func normalizeWeights() {
+        guard !selectedAirports.isEmpty else { return }
+
+        if selectedAirports.count == 1 {
+            // Single airport gets 100% weight
+            selectedAirports[0] = PreferredAirport(
+                id: selectedAirports[0].id,
+                iata: selectedAirports[0].iata,
+                weight: 1.0
+            )
+        } else {
+            // Distribute weights equally
+            let equalWeight = 1.0 / Double(selectedAirports.count)
+            selectedAirports = selectedAirports.map { airport in
+                PreferredAirport(id: airport.id, iata: airport.iata, weight: equalWeight)
+            }
+        }
+    }
 }
+
+// MARK: - Empty Response
+
+struct EmptyResponse: Codable {}
 
 enum OnboardingStep {
     case welcome
     case benefits
     case auth
+    case airportSelection
 }
 
 // MARK: - Validation Errors
