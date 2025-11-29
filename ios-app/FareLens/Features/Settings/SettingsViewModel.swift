@@ -3,6 +3,7 @@
 
 import Foundation
 import Observation
+import UIKit
 
 @Observable
 @MainActor
@@ -11,13 +12,27 @@ final class SettingsViewModel {
     var alertPreferences: AlertPreferences
     var preferredAirports: [PreferredAirport]
     var isLoading = false
+    var isSaving = false
+    var showSaveSuccess = false
     var errorMessage: String?
     var showingUpgradeSheet = false
+
+    // Task cancellation is thread-safe, so can be accessed from nonisolated deinit
+    nonisolated(unsafe) private var dismissSuccessTask: Task<Void, Never>?
+    private let feedbackGenerator = UINotificationFeedbackGenerator()
+
+    // Error recovery support - stores last failed operation for retry
+    private var lastFailedOperation: (() async -> Void)?
 
     init(user: User) {
         self.user = user
         alertPreferences = user.alertPreferences
         preferredAirports = user.preferredAirports
+        feedbackGenerator.prepare()
+    }
+
+    deinit {
+        dismissSuccessTask?.cancel()
     }
 
     // Safe URL accessors for settings links
@@ -55,11 +70,24 @@ final class SettingsViewModel {
     }
 
     func updatePreferredAirports() async {
+        // Store operation for retry support
+        lastFailedOperation = { [weak self] in
+            await self?.updatePreferredAirports()
+        }
+
         // Validate weights sum to 1.0
         guard isWeightSumValid else {
             errorMessage = "Airport weights must sum to 1.0"
             return
         }
+
+        // Prepare haptic engine before save (reduces latency)
+        feedbackGenerator.prepare()
+
+        isSaving = true
+        errorMessage = nil
+        showSaveSuccess = false
+        defer { isSaving = false }
 
         do {
             // Use consolidated /user endpoint
@@ -68,8 +96,49 @@ final class SettingsViewModel {
             )
             try await APIClient.shared.requestNoResponse(endpoint)
             user.preferredAirports = preferredAirports
+
+            // Show success feedback
+            showSaveSuccess = true
+
+            // VoiceOver announcement for save success
+            UIAccessibility.post(notification: .announcement, argument: "Preferred airports saved successfully")
+
+            // Optimized haptic timing - delay 50ms to coincide with visual update
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(50))
+                feedbackGenerator.notificationOccurred(.success)
+            }
+
+            // Auto-hide success message after 1.2 seconds (optimized from 2s)
+            // Cancel any existing dismiss task
+            dismissSuccessTask?.cancel()
+            dismissSuccessTask = Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1.2))
+                guard !Task.isCancelled else { return }
+                showSaveSuccess = false
+            }
+        } catch let error as URLError {
+            // Network-related errors
+            switch error.code {
+            case .notConnectedToInternet, .networkConnectionLost, .timedOut:
+                errorMessage = "Network error. Please check your connection and try again."
+            case .userAuthenticationRequired:
+                errorMessage = "Session expired. Please sign in again."
+            default:
+                errorMessage = "Failed to save airports. Please try again."
+            }
+            feedbackGenerator.notificationOccurred(.error)
+            // VoiceOver announcement for error
+            if let errorMsg = errorMessage {
+                UIAccessibility.post(notification: .announcement, argument: errorMsg)
+            }
         } catch {
-            errorMessage = error.localizedDescription
+            // Other errors (API errors, etc.)
+            // TODO: Add typed error handling for APIError when available
+            errorMessage = "Failed to save airports. Please try again."
+            feedbackGenerator.notificationOccurred(.error)
+            // VoiceOver announcement for error
+            UIAccessibility.post(notification: .announcement, argument: errorMessage ?? "Save failed")
         }
     }
 
@@ -135,5 +204,24 @@ final class SettingsViewModel {
         Task {
             await updateAlertPreferences()
         }
+    }
+
+    // MARK: - Error Recovery
+
+    /// Retries the last failed operation (e.g., save, update)
+    func retryLastOperation() async {
+        guard let operation = lastFailedOperation else { return }
+        errorMessage = nil
+        await operation()
+    }
+
+    /// Dismisses the current error and clears retry state
+    func dismissError() {
+        errorMessage = nil
+        lastFailedOperation = nil
+
+        // Light haptic feedback for dismissal
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
     }
 }

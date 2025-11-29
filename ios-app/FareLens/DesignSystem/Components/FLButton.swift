@@ -3,8 +3,22 @@
 
 import SwiftUI
 
+// MARK: - Press Animation Button Style
+
+/// Button style that applies a subtle scale animation on press
+/// Following Apple's HIG for tactile feedback (0.96x scale)
+struct PressAnimationButtonStyle: SwiftUI.ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
+    }
+}
+
+// MARK: - FLButton
+
 /// FareLens Button Component
-/// Consistent button styling across the app
+/// Consistent button styling across the app with press animations
 struct FLButton: View {
     let title: String
     let style: ButtonStyle
@@ -21,6 +35,7 @@ struct FLButton: View {
                 .background(style.background)
                 .cornerRadius(CornerRadius.sm)
         }
+        .buttonStyle(PressAnimationButtonStyle())
     }
 
     enum ButtonStyle {

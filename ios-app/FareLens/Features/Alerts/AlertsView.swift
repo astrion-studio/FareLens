@@ -5,7 +5,9 @@ import SwiftUI
 
 struct AlertsView: View {
     @State var viewModel: AlertsViewModel
+    @Environment(AppState.self) var appState: AppState
     @State private var selectedFilter: AlertFilter = .all
+    @State private var showingAlertPreferences = false
 
     var body: some View {
         NavigationView {
@@ -64,12 +66,21 @@ struct AlertsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
-                        // Navigate to alert preferences
+                        showingAlertPreferences = true
                     }) {
                         Image(systemName: "gear")
                             .foregroundColor(.brandBlue)
                     }
+                    .accessibilityLabel("Alert settings")
+                    .accessibilityHint("Double tap to configure alert preferences")
                 }
+            }
+        }
+        .sheet(isPresented: $showingAlertPreferences) {
+            if let user = appState.currentUser {
+                AlertPreferencesView(viewModel: SettingsViewModel(user: user))
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
             }
         }
         .task {
@@ -112,8 +123,13 @@ struct FilterChip: View {
     let isSelected: Bool
     let onTap: () -> Void
 
+    private let impactGenerator = UIImpactFeedbackGenerator(style: .light)
+
     var body: some View {
-        Button(action: onTap) {
+        Button(action: {
+            impactGenerator.impactOccurred()
+            onTap()
+        }) {
             Text(title)
                 .footnoteStyle()
                 .foregroundColor(isSelected ? .white : .textPrimary)
@@ -121,6 +137,9 @@ struct FilterChip: View {
                 .padding(.vertical, Spacing.sm)
                 .background(isSelected ? Color.brandBlue : Color.cardBackground)
                 .cornerRadius(CornerRadius.sm)
+        }
+        .onAppear {
+            impactGenerator.prepare()
         }
     }
 }
@@ -157,7 +176,7 @@ struct TodayAlertCounter: View {
                         .frame(width: 56, height: 56)
 
                     Circle()
-                        .trim(from: 0, to: CGFloat(sent) / CGFloat(limit))
+                        .trim(from: 0, to: limit > 0 ? CGFloat(sent) / CGFloat(limit) : 0)
                         .stroke(progressColor, lineWidth: 6)
                         .frame(width: 56, height: 56)
                         .rotationEffect(.degrees(-90))
@@ -166,11 +185,16 @@ struct TodayAlertCounter: View {
                         .headlineStyle()
                         .foregroundColor(.textPrimary)
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Daily alerts")
+                .accessibilityValue("\(sent) of \(limit) sent, \(limit > 0 ? Int((Double(sent) / Double(limit)) * 100) : 0) percent used")
+                .accessibilityHint(sent >= limit ? "Daily limit reached" : "\(limit - sent) alerts remaining today")
             }
         }
     }
 
     private var progressColor: Color {
+        guard limit > 0 else { return .textTertiary }
         let percentage = Double(sent) / Double(limit)
         if percentage >= 1.0 {
             return .error
@@ -287,6 +311,43 @@ struct EmptyAlertsView: View {
                     .multilineTextAlignment(.center)
             }
 
+            // Onboarding Checklist (only for "all" filter)
+            if filter == .all {
+                VStack(alignment: .leading, spacing: Spacing.md) {
+                    Text("Get Started")
+                        .headlineStyle()
+                        .foregroundColor(.textPrimary)
+
+                    OnboardingChecklistItem(
+                        icon: "list.bullet.clipboard",
+                        title: "Create a watchlist",
+                        subtitle: "Track flight deals from your favorite routes"
+                    )
+
+                    OnboardingChecklistItem(
+                        icon: "bell.badge",
+                        title: "Enable push notifications",
+                        subtitle: "Get instant alerts when deals appear"
+                    )
+
+                    OnboardingChecklistItem(
+                        icon: "slider.horizontal.3",
+                        title: "Set your alert preferences",
+                        subtitle: "Customize how often you want to hear from us"
+                    )
+
+                    OnboardingChecklistItem(
+                        icon: "sparkles",
+                        title: "Sit back and relax",
+                        subtitle: "We'll monitor deals and notify you automatically"
+                    )
+                }
+                .padding(Spacing.md)
+                .background(Color.cardBackground)
+                .cornerRadius(CornerRadius.md)
+                .padding(.horizontal, Spacing.sm)
+            }
+
             FLButton(title: "Adjust Alert Settings", style: .secondary) {
                 // Navigate to alert preferences
             }
@@ -305,6 +366,38 @@ struct EmptyAlertsView: View {
             "this week"
         case .thisMonth:
             "this month"
+        }
+    }
+}
+
+// MARK: - Onboarding Checklist Item
+
+private struct OnboardingChecklistItem: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        HStack(spacing: Spacing.md) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundColor(.brandBlue)
+                .frame(width: 32, height: 32)
+                .background(Color.brandBlue.opacity(0.1))
+                .cornerRadius(CornerRadius.sm)
+
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text(title)
+                    .bodyStyle()
+                    .fontWeight(.semibold)
+                    .foregroundColor(.textPrimary)
+
+                Text(subtitle)
+                    .footnoteStyle()
+                    .foregroundColor(.textSecondary)
+            }
+
+            Spacer()
         }
     }
 }
