@@ -21,7 +21,7 @@ struct AlertsView: View {
                         }
                     }
                 } else if viewModel.filteredAlerts.isEmpty {
-                    EmptyAlertsView(filter: selectedFilter)
+                    EmptyAlertsView(filter: selectedFilter, dailyLimit: viewModel.dailyLimit)
                 } else {
                     VStack(spacing: 0) {
                         // Filter Picker
@@ -269,6 +269,7 @@ struct AlertHistoryCard: View {
 
 struct EmptyAlertsView: View {
     let filter: AlertFilter
+    let dailyLimit: Int
 
     var body: some View {
         VStack(spacing: Spacing.xl) {
@@ -281,15 +282,17 @@ struct EmptyAlertsView: View {
                     .title2Style()
                     .foregroundColor(.textPrimary)
 
-                Text("We'll notify you when we find deals matching your preferences")
+                Text("You'll receive up to \(dailyLimit) alerts per day when deals match your preferences and watchlists")
                     .bodyStyle()
                     .foregroundColor(.textSecondary)
                     .multilineTextAlignment(.center)
             }
 
-            FLButton(title: "Adjust Alert Settings", style: .secondary) {
-                // Navigate to alert preferences
-            }
+            // Info Box
+            InfoBox(
+                icon: "info.circle.fill",
+                text: "Set your preferred airports and create watchlists to get personalized deal alerts"
+            )
             .padding(.horizontal, Spacing.xl)
         }
         .padding(Spacing.screenHorizontal)

@@ -43,7 +43,23 @@ final class AlertsViewModel {
             filteredAlerts = history
             alertsSentToday = await alertService.getAlertsSentToday(for: user.id)
         } catch {
-            errorMessage = error.localizedDescription
+            // Distinguish between "no alerts yet" (empty state) vs actual errors
+            // If it's a 404 or "not found" error, treat as empty state (no error)
+            let errorDescription = error.localizedDescription.lowercased()
+            if errorDescription.contains("404") ||
+               errorDescription.contains("not found") ||
+               errorDescription.contains("no alerts") {
+                // Treat as successful empty state
+                alerts = []
+                filteredAlerts = []
+                errorMessage = nil
+            } else {
+                // Actual error (network, server, etc.)
+                errorMessage = "Failed to load alerts. Please check your connection and try again."
+            }
+
+            // Still try to get today's count even if history fetch failed
+            alertsSentToday = (try? await alertService.getAlertsSentToday(for: user.id)) ?? 0
         }
     }
 
