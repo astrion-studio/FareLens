@@ -311,6 +311,43 @@ struct EmptyAlertsView: View {
                     .multilineTextAlignment(.center)
             }
 
+            // Onboarding Checklist (only for "all" filter)
+            if filter == .all {
+                VStack(alignment: .leading, spacing: Spacing.md) {
+                    Text("Get Started")
+                        .headlineStyle()
+                        .foregroundColor(.textPrimary)
+
+                    OnboardingChecklistItem(
+                        icon: "list.bullet.clipboard",
+                        title: "Create a watchlist",
+                        subtitle: "Track flight deals from your favorite routes"
+                    )
+
+                    OnboardingChecklistItem(
+                        icon: "bell.badge",
+                        title: "Enable push notifications",
+                        subtitle: "Get instant alerts when deals appear"
+                    )
+
+                    OnboardingChecklistItem(
+                        icon: "slider.horizontal.3",
+                        title: "Set your alert preferences",
+                        subtitle: "Customize how often you want to hear from us"
+                    )
+
+                    OnboardingChecklistItem(
+                        icon: "sparkles",
+                        title: "Sit back and relax",
+                        subtitle: "We'll monitor deals and notify you automatically"
+                    )
+                }
+                .padding(Spacing.md)
+                .background(Color.cardBackground)
+                .cornerRadius(CornerRadius.md)
+                .padding(.horizontal, Spacing.sm)
+            }
+
             FLButton(title: "Adjust Alert Settings", style: .secondary) {
                 // Navigate to alert preferences
             }
@@ -329,6 +366,38 @@ struct EmptyAlertsView: View {
             "this week"
         case .thisMonth:
             "this month"
+        }
+    }
+}
+
+// MARK: - Onboarding Checklist Item
+
+private struct OnboardingChecklistItem: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        HStack(spacing: Spacing.md) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundColor(.brandBlue)
+                .frame(width: 32, height: 32)
+                .background(Color.brandBlue.opacity(0.1))
+                .cornerRadius(CornerRadius.sm)
+
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text(title)
+                    .bodyStyle()
+                    .fontWeight(.semibold)
+                    .foregroundColor(.textPrimary)
+
+                Text(subtitle)
+                    .footnoteStyle()
+                    .foregroundColor(.textSecondary)
+            }
+
+            Spacer()
         }
     }
 }
