@@ -4,6 +4,69 @@
 import Observation
 import SwiftUI
 
+// MARK: - Validation Message (Inline - TODO: Refactor to DesignSystem)
+
+/// Validation message component for form feedback
+private struct ValidationMessage: View {
+    let message: String
+    let severity: Severity
+
+    enum Severity {
+        case error
+        case warning
+        case info
+
+        var icon: String {
+            switch self {
+            case .error: return "exclamationmark.triangle.fill"
+            case .warning: return "exclamationmark.circle.fill"
+            case .info: return "info.circle.fill"
+            }
+        }
+
+        var color: Color {
+            switch self {
+            case .error: return .error
+            case .warning: return .warning
+            case .info: return .brandBlue
+            }
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: severity.icon)
+                .font(.caption)
+                .foregroundColor(severity.color)
+
+            Text(message)
+                .footnoteStyle()
+                .foregroundColor(.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, Spacing.sm)
+        .background(severity.color.opacity(0.1))
+        .cornerRadius(CornerRadius.sm)
+        .transition(.asymmetric(
+            insertion: .move(edge: .top).combined(with: .opacity),
+            removal: .opacity
+        ))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(severity == .error ? "Error" : severity == .warning ? "Warning" : "Information"): \(message)")
+    }
+}
+
+// MARK: - Animation Extensions (Inline - TODO: Refactor to DesignSystem)
+
+private extension Animation {
+    static let uiSnappy = Animation.spring(response: 0.3, dampingFraction: 0.7)
+    static let uiStandard = Animation.spring(response: 0.4, dampingFraction: 0.75)
+    static let uiSmooth = Animation.spring(response: 0.5, dampingFraction: 0.8)
+}
+
 struct PreferredAirportsView: View {
     @Bindable var viewModel: SettingsViewModel
     @State private var showingAddAirport = false
@@ -416,6 +479,7 @@ struct AddAirportSheet: View {
     @State private var searchQuery = ""
     @State private var searchResults: [Airport] = []
     @State private var isSearching = false
+    @State private var searchTask: Task<Void, Never>?
 
     var body: some View {
         NavigationView {
@@ -435,7 +499,17 @@ struct AddAirportSheet: View {
                             .autocorrectionDisabled()
                             .font(.body)
                             .onChange(of: searchQuery) { _, newValue in
-                                Task {
+                                // Cancel previous search task
+                                searchTask?.cancel()
+
+                                // Create new debounced search task
+                                searchTask = Task {
+                                    // Debounce: wait 300ms before searching
+                                    try? await Task.sleep(for: .milliseconds(300))
+
+                                    // Check if task was cancelled during sleep
+                                    guard !Task.isCancelled else { return }
+
                                     await performSearch(newValue)
                                 }
                             }
@@ -461,9 +535,8 @@ struct AddAirportSheet: View {
                                 }) {
                                     VStack(alignment: .leading, spacing: Spacing.xs) {
                                         HStack {
-                                            Text(airport.iata)
+                                            HighlightedText(text: airport.iata, query: searchQuery)
                                                 .headlineStyle()
-                                                .foregroundColor(.textPrimary)
 
                                             Spacer()
 
@@ -471,11 +544,11 @@ struct AddAirportSheet: View {
                                                 .foregroundColor(.brandBlue)
                                         }
 
-                                        Text(airport.cityDisplay)
+                                        HighlightedText(text: airport.cityDisplay, query: searchQuery)
                                             .bodyStyle()
                                             .foregroundColor(.textSecondary)
 
-                                        Text(airport.name)
+                                        HighlightedText(text: airport.name, query: searchQuery)
                                             .footnoteStyle()
                                             .foregroundColor(.textTertiary)
                                             .lineLimit(1)
@@ -504,6 +577,10 @@ struct AddAirportSheet: View {
         .task {
             await loadInitialAirports()
         }
+        .onDisappear {
+            // Cancel any pending search task to prevent memory leaks
+            searchTask?.cancel()
+        }
     }
 
     private func loadInitialAirports() async {
@@ -516,6 +593,57 @@ struct AddAirportSheet: View {
         isSearching = true
         searchResults = await AirportService.shared.search(query: query)
         isSearching = false
+    }
+}
+
+// MARK: - Highlighted Text Helper
+
+private struct HighlightedText: View {
+    let text: String
+    let query: String
+
+    var body: some View {
+        if query.isEmpty {
+            Text(text)
+        } else {
+            highlightedText
+        }
+    }
+
+    @ViewBuilder
+    private var highlightedText: some View {
+        let parts = highlightParts(in: text, matching: query)
+
+        parts.reduce(Text("")) { result, part in
+            result + Text(part.text)
+                .foregroundColor(part.isHighlighted ? .brandBlue : .primary)
+                .fontWeight(part.isHighlighted ? .semibold : .regular)
+        }
+    }
+
+    private func highlightParts(in text: String, matching query: String) -> [(text: String, isHighlighted: Bool)] {
+        var parts: [(text: String, isHighlighted: Bool)] = []
+        let lowerText = text.lowercased()
+        let lowerQuery = query.lowercased()
+
+        guard let range = lowerText.range(of: lowerQuery) else {
+            return [(text, false)]
+        }
+
+        let startIndex = text.index(text.startIndex, offsetBy: lowerText.distance(from: lowerText.startIndex, to: range.lowerBound))
+        let endIndex = text.index(text.startIndex, offsetBy: lowerText.distance(from: lowerText.startIndex, to: range.upperBound))
+
+        if startIndex > text.startIndex {
+            parts.append((String(text[..<startIndex]), false))
+        }
+
+        parts.append((String(text[startIndex..<endIndex]), true))
+
+        if endIndex < text.endIndex {
+            parts.append((String(text[endIndex...]), false))
+        }
+
+        return parts
     }
 }
 

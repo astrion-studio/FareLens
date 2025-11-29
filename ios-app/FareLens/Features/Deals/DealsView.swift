@@ -132,26 +132,49 @@ struct EmptyDealsView: View {
     let watchlistsViewModel: WatchlistsViewModel?
     let onCreateWatchlist: () -> Void
 
+    private var hasWatchlists: Bool {
+        guard let viewModel = watchlistsViewModel else { return false }
+        return !viewModel.watchlists.isEmpty
+    }
+
     var body: some View {
         VStack(spacing: Spacing.xl) {
-            Image(systemName: "airplane.departure")
+            Image(systemName: hasWatchlists ? "bell.slash" : "airplane.departure")
                 .font(.system(size: 64))
                 .foregroundColor(.brandBlue.opacity(0.5))
 
             VStack(spacing: Spacing.sm) {
-                Text("No deals right now")
+                Text(hasWatchlists ? "No deals found" : "No deals right now")
                     .title2Style()
                     .foregroundColor(.textPrimary)
 
-                Text("We're scanning thousands of flights.\nCheck back soon for amazing deals!")
+                Text(hasWatchlists
+                    ? "We're actively monitoring your watchlists.\nYou'll be notified when deals appear!"
+                    : "Create a watchlist to start tracking\nflight deals from your favorite routes")
                     .bodyStyle()
                     .foregroundColor(.textSecondary)
                     .multilineTextAlignment(.center)
             }
 
-            FLButton(title: "Create Watchlist", style: .secondary, action: onCreateWatchlist)
-                .disabled(watchlistsViewModel == nil)
-                .opacity(watchlistsViewModel == nil ? 0.5 : 1.0)
+            // Context-aware CTA
+            if hasWatchlists {
+                VStack(spacing: Spacing.md) {
+                    // Secondary action: Add another watchlist
+                    if let viewModel = watchlistsViewModel, viewModel.canAddWatchlist {
+                        FLButton(title: "Add Another Watchlist", style: .secondary, action: onCreateWatchlist)
+                    }
+
+                    // Helpful tip
+                    InfoBox(
+                        icon: "lightbulb.fill",
+                        text: "Tip: Deals appear based on your watchlist criteria. Try adjusting your routes or destinations for more results."
+                    )
+                }
+            } else {
+                FLButton(title: "Create Watchlist", style: .primary, action: onCreateWatchlist)
+                    .disabled(watchlistsViewModel == nil)
+                    .opacity(watchlistsViewModel == nil ? 0.5 : 1.0)
+            }
         }
         .padding(Spacing.screenHorizontal)
     }
