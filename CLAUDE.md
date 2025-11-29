@@ -15,7 +15,7 @@
 3. Use ios-architect to create ARCHITECTURE.md (may challenge design feasibility)
 4. Use backend-architect to create API.md (if backend needed)
 5. Implement following architecture docs
-6. Use code-reviewer before every commit (blocks on P0 issues)
+6. Use code-reviewer before every commit (blocks on P0/P1 issues)
 7. Use qa-specialist to create TEST_PLAN.md
 8. Use platform-engineer when ready to deploy
 
@@ -46,7 +46,8 @@ TEST_PLAN.md - Testing strategy (qa-specialist)
 ## Workflow
 
 - Run tests before committing (no exceptions)
-- Code-reviewer must approve before merge (zero P0 issues)
+- Code-reviewer must approve before merge (zero P0, P1, P2 issues)
+- product-manager and product-designer must align with all changes impacting the customer experience in any way
 - Subagents make technical decisions autonomously
 - User decides: brand identity, business priorities, product trade-offs
 - On conflicts between agents: Stop, present options, let user decide
@@ -55,13 +56,13 @@ TEST_PLAN.md - Testing strategy (qa-specialist)
 
 Can merge:
 - All tests pass
-- Code-reviewer approved
-- Coverage ≥80% (≥95% for critical paths)
+- Code-reviewer, product-manager, product-designer, ios-architect, and backend-architect approved
+- Coverage ≥90% (≥95% for critical paths)
 
 Can ship:
 - Crash-free ≥99.5%
 - Launch <2s on iPhone SE
-- No P0 bugs
+- No P0/P1 bugs
 
 ## Project Structure
 
@@ -75,7 +76,7 @@ ios-app/
 
 ## Common Patterns
 
-Adding a feature:
+Adding/updating a feature or adding missing details to a feature or app experience:
 1. product-manager adds to PRD.md
 2. product-designer designs UI in DESIGN.md
 3. ios-architect plans implementation
@@ -84,14 +85,15 @@ Adding a feature:
 
 Fixing a bug:
 1. Write failing test
-2. Fix bug
-3. code-reviewer reviews fix
-4. Verify test passes
+2. product-manager or product-designer provides feedback on fix.
+3. Fix bug
+4. code-reviewer reviews fix
+5. Verify test passes
 
 ## Design References
 
 - Competitor UX screenshots in design-refs/competitors/
-- product-designer should review these before creating DESIGN.md
+- product-designer and product-manager should review these before creating DESIGN.md and during the project when neccessary.
 
 ## Project-Specific Notes
 
@@ -111,17 +113,17 @@ Fixing a bug:
 
 ### Error Prevention Protocol
 **BEFORE making changes:**
-1. Read the ENTIRE section you're modifying (not just the line)
+1. Read the ENTIRE section you're modifying (not just the line) and consider other files or sections that may need modification
 2. Use Grep to find ALL instances of what you're changing (e.g., all pricing, all Redis refs)
 3. Make a checklist of every location that needs updating
 4. Update systematically, checking off each location
 5. AFTER changes: Grep again to verify NO old references remain
 
-**AFTER agent reviews:**
+**AFTER agents reviews:**
 1. NEVER claim work is complete without validation
 2. When user requests "review after fixes", actually DO the review
 3. Use Grep to verify each critical fix (pricing, colors, tech stack, etc.)
-4. If approaching context limits, TELL USER instead of rushing
+4. If approaching context limits, TELL USER instead of rushing - never implement short-term solutions - always think long-term scalable solutions.
 
 **Agent review workflow:**
 1. Run agents ONE AT A TIME (never parallel for final reviews)
@@ -137,6 +139,8 @@ Fixing a bug:
 - Instant feedback, optimistic UI updates
 - Privacy-first (on-device ML, minimal server data)
 - Polished animations (spring curves, natural motion)
+- No P0/P1 bugs
+- Users are excited to use the app and know everything just works, is easy to understand, and design is something apple would launch.
 
 ### Zero-Defect Review Protocol (Comprehensive Methodology)
 
@@ -175,7 +179,8 @@ Fixing a bug:
 - Fix ALL issues found (P0, P1, P2) before next cycle - partial fixes cause regression
 - Continue cycles until 2 consecutive show zero P0/P1 issues
 - Only acceptable P2 remaining: test-only issues, documentation suggestions
-- Use agents (code-reviewer, ios-architect, qa-specialist) for comprehensive coverage
+- Use agents (code-reviewer, product-manager, product-designer, ios-architect, qa-specialist) for comprehensive coverage
+- never implement short-term solutions - always think long-term scalable solutions that meet the apple quality bar
 - Document all fixes with clear commit messages
 
 **When Review is Complete:**
@@ -184,6 +189,7 @@ Fixing a bug:
 - All files mentally compile successfully
 - 100% pattern consistency verified across all ViewModels/Views
 - Automation scripts pass (see scripts/check-ios26-patterns.sh)
+- any issues, not deprioritizd to be fixed later (i.e., P2 issues) should be documented in github issues with appropriate labeling
 
 **See Also:**
 - iOS_26_PATTERNS.md - Complete pattern reference guide
